@@ -82,19 +82,19 @@ func DecodeString(r io.Reader) (string, error) {
 	if _, err := io.ReadFull(r, lenBuf); err != nil {
 		return "", fmt.Errorf("failed to read string length: %w", err)
 	}
-	
+
 	length := DecodeU32(lenBuf, 0)
-	
+
 	// Read string bytes
 	if length == 0 {
 		return "", nil
 	}
-	
+
 	strBuf := make([]byte, length)
 	if _, err := io.ReadFull(r, strBuf); err != nil {
 		return "", fmt.Errorf("failed to read string data: %w", err)
 	}
-	
+
 	return string(strBuf), nil
 }
 

@@ -90,7 +90,7 @@ func EncodeString(w io.Writer, s string) (int, error) {
 	if err != nil {
 		return n, err
 	}
-	
+
 	// Write string bytes
 	m, err := w.Write([]byte(s))
 	return n + m, err

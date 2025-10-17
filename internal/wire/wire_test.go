@@ -271,29 +271,29 @@ func TestEncodeDecodeString(t *testing.T) {
 		"Newlines\nand\ttabs",
 		string(make([]byte, 1000)), // Large string
 	}
-	
+
 	for _, val := range testCases {
 		var buf bytes.Buffer
-		
+
 		// Encode
 		n, err := EncodeString(&buf, val)
 		if err != nil {
 			t.Errorf("EncodeString failed: %v", err)
 			continue
 		}
-		
+
 		expectedSize := 4 + len(val)
 		if n != expectedSize {
 			t.Errorf("EncodeString: expected %d bytes written, got %d", expectedSize, n)
 		}
-		
+
 		// Decode
 		got, err := DecodeString(&buf)
 		if err != nil {
 			t.Errorf("DecodeString failed: %v", err)
 			continue
 		}
-		
+
 		if got != val {
 			t.Errorf("String: encoded %q, decoded %q", val, got)
 		}
@@ -303,25 +303,25 @@ func TestEncodeDecodeString(t *testing.T) {
 func TestEncodeDecodeStringFormat(t *testing.T) {
 	// Verify wire format: [u32 length][bytes]
 	var buf bytes.Buffer
-	
+
 	_, err := EncodeString(&buf, "abc")
 	if err != nil {
 		t.Fatalf("EncodeString failed: %v", err)
 	}
-	
+
 	data := buf.Bytes()
-	
+
 	// Check length prefix
 	if len(data) != 7 { // 4 bytes length + 3 bytes string
 		t.Errorf("Expected 7 bytes, got %d", len(data))
 	}
-	
+
 	// Verify length is little-endian u32 = 3
 	length := DecodeU32(data, 0)
 	if length != 3 {
 		t.Errorf("Expected length 3, got %d", length)
 	}
-	
+
 	// Verify string bytes
 	if string(data[4:]) != "abc" {
 		t.Errorf("Expected 'abc', got %q", data[4:])
@@ -330,28 +330,28 @@ func TestEncodeDecodeStringFormat(t *testing.T) {
 
 func TestEncodeDecodeArrayHeader(t *testing.T) {
 	testCases := []uint32{0, 1, 10, 100, 1000, 1000000}
-	
+
 	for _, count := range testCases {
 		var buf bytes.Buffer
-		
+
 		// Encode
 		n, err := EncodeArrayHeader(&buf, count)
 		if err != nil {
 			t.Errorf("EncodeArrayHeader failed: %v", err)
 			continue
 		}
-		
+
 		if n != 4 {
 			t.Errorf("EncodeArrayHeader: expected 4 bytes written, got %d", n)
 		}
-		
+
 		// Decode
 		got, err := DecodeArrayHeader(&buf)
 		if err != nil {
 			t.Errorf("DecodeArrayHeader failed: %v", err)
 			continue
 		}
-		
+
 		if got != count {
 			t.Errorf("ArrayHeader: encoded %d, decoded %d", count, got)
 		}
@@ -365,7 +365,7 @@ func TestDecodeStringErrors(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error for incomplete length, got nil")
 	}
-	
+
 	// Test incomplete string data
 	buf = bytes.NewBuffer([]byte{0x05, 0x00, 0x00, 0x00, 0x61, 0x62}) // length=5, only 2 bytes
 	_, err = DecodeString(buf)
