@@ -117,11 +117,11 @@ func TestLittleEndian(t *testing.T)
 ---
 
 ### Task 1.3: String Wire Format
-**Status:** `[ ]`
+**Status:** `[✓]`
 
 **Work:**
 1. Add to `internal/wire/encode.go`:
-   - `EncodeString(w io.Writer, s string) error`
+   - `EncodeString(w io.Writer, s string) (int, error)`
    - Writes: `[u32: length][utf8_bytes]`
 
 2. Add to `internal/wire/decode.go`:
@@ -129,44 +129,27 @@ func TestLittleEndian(t *testing.T)
    - Validates sufficient bytes
    - Returns string
 
-**Tests:** `internal/wire/wire_test.go`
-```go
-func TestEncodeDecodeString(t *testing.T)
-func TestEncodeEmptyString(t *testing.T)
-func TestDecodeStringEOF(t *testing.T)
-```
-
-**Verification:**
-- Empty strings work
-- UTF-8 strings work
-- EOF detection works
-
-**Time:** 1 hour
-
----
-
-### Task 1.4: Array Wire Format Helpers
-**Status:** `[ ]`
-
-**Work:**
-1. Add to `internal/wire/encode.go`:
-   - `EncodeArrayHeader(w io.Writer, count uint32) error`
-   - Just writes count as u32
-
-2. Add to `internal/wire/decode.go`:
+3. Add array header helpers:
+   - `EncodeArrayHeader(w io.Writer, count uint32) (int, error)`
    - `DecodeArrayHeader(r io.Reader) (uint32, error)`
 
 **Tests:** `internal/wire/wire_test.go`
 ```go
+func TestEncodeDecodeString(t *testing.T)
+func TestEncodeDecodeStringFormat(t *testing.T)
+func TestDecodeStringErrors(t *testing.T)
 func TestEncodeDecodeArrayHeader(t *testing.T)
-func TestEmptyArrayHeader(t *testing.T)
+func TestDecodeArrayHeaderErrors(t *testing.T)
 ```
 
 **Verification:**
-- Array count encoding works
-- Empty arrays (count=0) work
+- ✓ Empty strings work
+- ✓ UTF-8 strings work
+- ✓ EOF detection works
+- ✓ Array count encoding works
+- ✓ 98.1% test coverage
 
-**Time:** 30 minutes
+**Time:** 1.5 hours (combined Task 1.3 and 1.4)
 
 ---
 
