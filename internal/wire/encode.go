@@ -5,6 +5,7 @@ package wire
 
 import (
 	"encoding/binary"
+	"io"
 	"math"
 )
 
@@ -76,4 +77,30 @@ func EncodeBool(buf []byte, offset int, val bool) {
 	} else {
 		buf[offset] = 0
 	}
+}
+
+// EncodeString writes a string to the writer in wire format.
+// Format: [u32: length][utf8_bytes]
+// Returns the number of bytes written and any error.
+func EncodeString(w io.Writer, s string) (int, error) {
+	// Write length prefix (4 bytes)
+	lenBuf := make([]byte, 4)
+	EncodeU32(lenBuf, 0, uint32(len(s)))
+	n, err := w.Write(lenBuf)
+	if err != nil {
+		return n, err
+	}
+	
+	// Write string bytes
+	m, err := w.Write([]byte(s))
+	return n + m, err
+}
+
+// EncodeArrayHeader writes an array count prefix to the writer.
+// Format: [u32: count]
+// Returns the number of bytes written and any error.
+func EncodeArrayHeader(w io.Writer, count uint32) (int, error) {
+	buf := make([]byte, 4)
+	EncodeU32(buf, 0, count)
+	return w.Write(buf)
 }

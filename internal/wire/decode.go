@@ -2,6 +2,8 @@ package wire
 
 import (
 	"encoding/binary"
+	"fmt"
+	"io"
 	"math"
 )
 
@@ -69,4 +71,40 @@ func DecodeF64(buf []byte, offset int) float64 {
 // 0 is decoded as false, any non-zero value as true.
 func DecodeBool(buf []byte, offset int) bool {
 	return buf[offset] != 0
+}
+
+// DecodeString reads a string from the reader in wire format.
+// Format: [u32: length][utf8_bytes]
+// Returns the decoded string and any error.
+func DecodeString(r io.Reader) (string, error) {
+	// Read length prefix (4 bytes)
+	lenBuf := make([]byte, 4)
+	if _, err := io.ReadFull(r, lenBuf); err != nil {
+		return "", fmt.Errorf("failed to read string length: %w", err)
+	}
+	
+	length := DecodeU32(lenBuf, 0)
+	
+	// Read string bytes
+	if length == 0 {
+		return "", nil
+	}
+	
+	strBuf := make([]byte, length)
+	if _, err := io.ReadFull(r, strBuf); err != nil {
+		return "", fmt.Errorf("failed to read string data: %w", err)
+	}
+	
+	return string(strBuf), nil
+}
+
+// DecodeArrayHeader reads an array count prefix from the reader.
+// Format: [u32: count]
+// Returns the count and any error.
+func DecodeArrayHeader(r io.Reader) (uint32, error) {
+	buf := make([]byte, 4)
+	if _, err := io.ReadFull(r, buf); err != nil {
+		return 0, fmt.Errorf("failed to read array count: %w", err)
+	}
+	return DecodeU32(buf, 0), nil
 }

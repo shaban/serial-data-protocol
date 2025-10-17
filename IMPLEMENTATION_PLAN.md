@@ -83,7 +83,7 @@ Each task has a status:
 ---
 
 ### Task 1.2: Wire Format Primitives
-**Status:** `[ ]`
+**Status:** `[✓]`
 
 **Work:**
 1. Create `internal/wire/encode.go`:
@@ -108,9 +108,9 @@ func TestLittleEndian(t *testing.T)
 ```
 
 **Verification:**
-- All primitive types encode/decode correctly
-- Little-endian byte order verified
-- 100% test coverage for wire package
+- ✓ All primitive types encode/decode correctly
+- ✓ Little-endian byte order verified
+- ✓ 100% test coverage for wire package
 
 **Time:** 2 hours
 
