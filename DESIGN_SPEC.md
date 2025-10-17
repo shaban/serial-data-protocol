@@ -1,0 +1,1184 @@
+# Serial Data Protocol - Design Specification
+
+**Version:** 1.0.0  
+**Date:** October 18, 2025  
+**Status:** Draft
+
+## 1. Overview
+
+### 1.1 Purpose
+
+A binary serialization protocol optimized for same-machine IPC between languages via FFI (Foreign Function Interface), specifically targeting CGO bridges between C/C++/Swift/Rust and Go.
+
+### 1.2 Design Goals
+
+- **Performance:** Minimize allocations, enable bulk data transfer
+- **Simplicity:** Limited type system, flexible field write order
+- **Type Safety:** Schema-driven code generation
+- **Ergonomics:** Generated types match idiomatic language patterns
+- **Single-pass serialization:** Build and serialize simultaneously
+
+### 1.3 Non-Goals
+
+- Cross-platform serialization (different architectures)
+- Network protocol (versioning, endianness handling)
+- Long-term storage format
+- Zero-copy deserialization
+- Schema versioning or evolution
+
+### 1.4 Use Case
+
+High-level orchestrator (Go/Rust) receiving bulk structured data from low-level workhorse (C/Swift/native). Example: Audio plugin enumeration, device discovery, configuration data.
+
+```
+Native Side (C/Swift)    →  Single FFI Call  →  Go Side
+Build + Serialize                               Deserialize once
+```
+
+### 1.5 Composition Architecture
+
+**Protocol transmits primitives, application composes domain objects.**
+
+Native side enumerates distinct data sets independently (e.g., devices, plugins, configurations). Receiver decodes each as separate types, then composes application-specific domain models.
+
+**Example:**
+```
+Native: EnumerateDevices() → DeviceList
+        EnumeratePlugins() → PluginList
+
+Go:     Decode DeviceList
+        Decode PluginList
+        Compose: PluginWithDevice{Plugin, Device}
+```
+
+This separation allows wire format to remain simple while application expresses rich relationships.
+
+## 2. Type System
+
+### 2.1 Primitive Types
+
+| Type      | Size    | Wire Format        |
+|-----------|---------|-------------------|
+| `u8`      | 1 byte  | Unsigned 8-bit    |
+| `u16`     | 2 bytes | Unsigned 16-bit   |
+| `u32`     | 4 bytes | Unsigned 32-bit   |
+| `u64`     | 8 bytes | Unsigned 64-bit   |
+| `i8`      | 1 byte  | Signed 8-bit      |
+| `i16`     | 2 bytes | Signed 16-bit     |
+| `i32`     | 4 bytes | Signed 32-bit     |
+| `i64`     | 8 bytes | Signed 64-bit     |
+| `f32`     | 4 bytes | IEEE 754 float    |
+| `f64`     | 8 bytes | IEEE 754 double   |
+| `bool`    | 1 byte  | 0=false, 1=true   |
+
+### 2.2 String Type
+
+**Type:** `str`
+
+**Wire Format:**
+```
+[u32: byte_length][utf8_bytes]
+```
+
+- Length-prefixed (no null terminator in wire format)
+- UTF-8 encoded
+- Trust encoder (no validation on encode), validate on decode if required by language
+
+### 2.3 Array Type
+
+**Syntax:** `[]T` where T is primitive, string, or struct
+
+**Constraints:**
+- Homogeneous: all elements same type
+- One level of nesting per array (arrays contain primitives, strings, OR structs, not arrays)
+
+**Wire Format:**
+```
+[u32: element_count][element_0][element_1]...[element_n]
+```
+
+### 2.4 Struct Type
+
+**Syntax:**
+```
+struct Name {
+    field1: type1
+    field2: type2
+    ...
+}
+```
+
+**Constraints:**
+- Fixed set of fields defined in schema
+- Fields written in definition order
+- Can contain primitives, strings, arrays, or nested structs
+
+**Wire Format:**
+```
+[field1_data][field2_data]...
+```
+(No struct metadata in wire format - structure known from schema)
+
+### 2.5 Nested Structures
+
+**Supported:**
+```rust
+struct PluginList {
+    plugins: []Plugin,
+}
+
+struct Plugin {
+    name: str,
+    parameters: []Parameter,
+}
+
+struct Parameter {
+    name: str,
+    values: []f64,
+}
+```
+
+**Wire Format Example:**
+```
+[2]                          // plugin count
+  [str: "Reverb"]           // plugin[0].name
+  [3]                        // plugin[0].parameters count
+    [str: "wet"]            // param[0].name
+    [2][0.5][0.8]           // param[0].values
+    [str: "dry"]            // param[1].name
+    [0]                      // param[1].values (empty)
+    ...
+  [str: "Delay"]            // plugin[1].name
+  ...
+```
+
+### 2.6 Optional Fields Pattern
+
+**Use arrays with 0 or 1 elements for optional struct fields:**
+
+```rust
+struct Snapshot {
+    devices: []Device,
+    engine_config: []EngineConfig,  // 0 or 1 element
+}
+```
+
+**Usage (Go):**
+```go
+if len(snapshot.EngineConfig) > 0 {
+    cfg := snapshot.EngineConfig[0]
+    // Use config
+}
+```
+
+**Rationale:** Reuses existing array semantics, no additional wire format features needed.
+
+## 3. Schema Definition
+
+### 3.1 Schema Format
+
+**File extension:** `.sdp` (Serial Data Protocol)
+
+**Syntax:** Rust-like (use Rust syntax highlighting in IDE)
+
+**Example:**
+```rust
+// plugin_list.sdp
+
+/// PluginList contains all enumerated plugins.
+struct PluginList {
+    /// List of discovered plugins.
+    plugins: []Plugin,
+}
+
+/// Plugin represents a single audio plugin.
+struct Plugin {
+    /// Unique plugin identifier.
+    id: u32,
+    
+    /// Human-readable plugin name.
+    name: str,
+    
+    /// Vendor/manufacturer name.
+    vendor: str,
+    
+    /// Plugin parameters.
+    parameters: []Parameter,
+}
+
+/// Parameter represents a controllable plugin parameter.
+struct Parameter {
+    /// Parameter name.
+    name: str,
+    
+    /// Parameter type identifier.
+    type: u8,
+    
+    /// Whether parameter can be automated.
+    automatable: bool,
+    
+    /// Parameter values.
+    values: []f64,
+}
+```
+
+**IDE Setup (VSCode):**
+```json
+{
+  "files.associations": {
+    "*.sdp": "rust"
+  }
+}
+```
+
+### 3.2 Schema Compiler
+
+**Input:** `*.sdp` files  
+**Output:** Generated code per target language
+
+**Go Output:**
+- Struct definitions with doc comments
+- `Decode(dest *T, data []byte) error` function
+- Metadata (computed at `init()` via `unsafe`)
+
+**C Output:**
+- Builder API (`BeginT`, `SetT_Field`, `DiscardT` functions)
+- Tentative struct definitions
+- Helper functions for writing primitives
+
+**Other Languages:**
+- Rust: Similar to Go (structs + decode)
+- Swift: Similar to Go (structs + decode)
+
+### 3.3 Type Mapping
+
+| Schema | Go            | C                          | Rust         | Swift        |
+|--------|---------------|----------------------------|--------------|--------------|
+| `u32`  | `uint32`      | `uint32_t`                 | `u32`        | `UInt32`     |
+| `f64`  | `float64`     | `double`                   | `f64`        | `Double`     |
+| `str`  | `string`      | `const char*` (param)      | `String`     | `String`     |
+| `[]T`  | `[]T`         | `T* items; uint32_t count` | `Vec<T>`     | `[T]`        |
+
+### 3.4 Naming Rules
+
+**Schema identifiers (packages, types, fields) must:**
+- Start with letter or underscore
+- Contain only letters, digits, underscores
+- Not be reserved words in Go, Rust, Swift, or C
+
+**Reserved word validation:** Generator maintains list of reserved keywords across all target languages and rejects schemas using them.
+
+**Style:** Generator does NOT enforce naming conventions (camelCase, snake_case, etc.). Use your language's conventions in schema files.
+
+### 3.5 Schema Validation
+
+**Generator validates schemas in two phases:**
+
+**Phase 1: Parse all schemas**
+- Syntax errors
+- Malformed struct definitions
+
+**Phase 2: Semantic validation**
+- Type reference validation (unknown types)
+- Circular reference detection
+- Empty struct detection
+- Duplicate field names
+- Reserved keyword usage
+- Cross-schema reference detection (not supported)
+
+**Validation errors are collected and reported together** - generator does not stop at first error.
+
+**Examples of rejected schemas:**
+
+```rust
+// ❌ Unknown type
+struct Plugin {
+    device: AudioDevice,  // AudioDevice not defined
+}
+
+// ❌ Circular reference
+struct Node {
+    value: u32,
+    next: Node,  // Direct self-reference
+}
+
+// ❌ Empty struct
+struct Empty {
+    // No fields
+}
+
+// ❌ Duplicate field
+struct Plugin {
+    id: u32,
+    name: str,
+    id: u64,  // Duplicate
+}
+
+// ❌ Reserved keyword
+struct Plugin {
+    type: u32,  // 'type' reserved in Go/Rust
+}
+```
+
+## 4. Serialization (Encoder)
+
+### 4.1 Builder Architecture
+
+**Hierarchical tentative structure with flexible field ordering:**
+
+```c
+typedef struct tentative_base {
+    tentative_type_t type;
+    struct tentative_base* parent;        // Link up
+    struct tentative_base* first_child;   // Link down
+    struct tentative_base* next_sibling;  // Link sideways
+    
+    uint8_t* buffer;
+    size_t buffer_size;
+    size_t buffer_pos;
+    
+    int uncommitted_children;
+    error_code_t error;
+} tentative_base_t;
+```
+
+**Each struct type stores fields independently for flexible write order:**
+```c
+typedef struct {
+    tentative_base_t base;
+    
+    // Per-field storage
+    struct { bool written; uint32_t value; } id;
+    struct { bool written; char* value; } name;
+    struct { bool written; bool value; } active;
+} tentative_plugin_t;
+```
+
+**Benefits:**
+- Scalar fields can be written in any order
+- Fields reordered to match schema order on commit
+- Omitted fields use type defaults
+
+### 4.2 Generated Builder API
+
+**Per-schema generation with flexible field setters:**
+
+```c
+// Root builder
+plugin_list_builder_t* NewPluginListBuilder(void);
+serial_data_t FinalizeBuilder(plugin_list_builder_t* builder);
+void DestroyBuilder(plugin_list_builder_t* builder);
+
+// Struct builders
+tentative_plugin_t* BeginPlugin(plugin_list_builder_t* parent);
+void DiscardPlugin(plugin_list_builder_t* parent, tentative_plugin_t* plugin);
+
+// Scalar field setters (any order)
+void SetPluginID(tentative_plugin_t* plugin, uint32_t id);
+void SetPluginName(tentative_plugin_t* plugin, const char* name);
+void SetPluginVendor(tentative_plugin_t* plugin, const char* vendor);
+
+// Array field builder (must be after scalars)
+tentative_parameter_t* BeginParameter(tentative_plugin_t* parent);
+void SetParameterName(tentative_parameter_t* param, const char* name);
+void SetParameterType(tentative_parameter_t* param, uint8_t type);
+void SetParameterAutomatable(tentative_parameter_t* param, bool automatable);
+
+// Array element helpers
+void AddParameterValue(tentative_parameter_t* param, double value);
+```
+
+**Usage pattern:**
+```c
+plugin_list_builder_t* builder = NewPluginListBuilder();
+
+tentative_plugin_t* p = BeginPlugin(builder);
+
+// Scalars in any order
+SetPluginVendor(p, "Acme");
+SetPluginID(p, 42);
+SetPluginName(p, "Reverb");  // Order doesn't matter
+
+// Arrays (schema order)
+tentative_parameter_t* pm = BeginParameter(p);
+SetParameterName(pm, "wet");
+SetParameterType(pm, 1);
+AddParameterValue(pm, 0.5);
+
+serial_data_t result = FinalizeBuilder(builder);
+```
+
+### 4.3 Implicit Commit Semantics
+
+**Key principle:** Commit happens when parent commits or when root finalizes.
+
+**User writes:**
+```c
+tentative_plugin_t* p = BeginPlugin(builder);
+SetPluginName(p, "Reverb");
+
+tentative_parameter_t* pm = BeginParameter(p);
+SetParameterName(pm, "wet");
+
+// No explicit commit needed - implicit on Finalize
+
+serial_data_t result = FinalizeBuilder(builder);
+```
+
+**Discard is explicit:**
+```c
+tentative_parameter_t* pm = BeginParameter(p);
+SetParameterName(pm, "dry");
+
+if (!should_keep) {
+    DiscardParameter(p, pm);  // Explicit rejection
+}
+```
+
+### 4.4 Field Write Order and Defaults
+
+**Scalar fields can be written in any order:**
+```c
+tentative_plugin_t* p = BeginPlugin(builder);
+
+// Write in discovery order
+SetPluginVendor(p, get_vendor());   // Third field
+SetPluginID(p, get_id());           // First field
+SetPluginName(p, get_name());       // Second field
+
+// On commit: reordered to schema definition order
+```
+
+**Omitted fields use type defaults:**
+- `u32`, `u64`, `i32`, `i64`, `u16`, `i16`, `u8`, `i8` → 0
+- `f32`, `f64` → 0.0
+- `bool` → false
+- `str` → empty string ""
+- `[]T` → empty array (count 0)
+
+**Example with omission:**
+```c
+tentative_plugin_t* p = BeginPlugin(builder);
+SetPluginID(p, 42);
+// name and vendor omitted → defaults to "" for both
+```
+
+**Array fields must be written in schema order after scalars:**
+```c
+// ✅ Correct
+SetPluginID(p, 42);
+SetPluginName(p, "Reverb");
+BeginParameter(p);  // After all scalars
+
+// ❌ Incorrect (implementation may reject)
+BeginParameter(p);
+SetPluginID(p, 42);  // Scalar after array started
+```
+
+### 4.5 Commit Algorithm
+
+**On `FinalizeBuilder()`:**
+
+1. Traverse tree depth-first (post-order)
+2. For each tentative:
+   - Commit all child tentatives first
+   - Write scalar fields in schema definition order
+   - Write array fields (already in schema order)
+   - Copy to parent's buffer
+   - Free tentative
+3. Bubble up until root
+4. Return root's buffer as serialized data
+
+**Commit with field reordering:**
+```c
+void commit_tentative_plugin(tentative_plugin_t* p, uint8_t* parent_buffer) {
+    // Write fields in schema order (not write order)
+    
+    // Field 1: id
+    if (p->id.written) {
+        write_u32(parent_buffer, p->id.value);
+    } else {
+        write_u32(parent_buffer, 0);  // Default
+    }
+    
+    // Field 2: name
+    if (p->name.written) {
+        write_string(parent_buffer, p->name.value);
+        free(p->name.value);
+    } else {
+        write_string(parent_buffer, "");  // Default
+    }
+    
+    // Field 3: vendor
+    if (p->vendor.written) {
+        write_string(parent_buffer, p->vendor.value);
+        free(p->vendor.value);
+    } else {
+        write_string(parent_buffer, "");  // Default
+    }
+    
+    // Field 4: parameters (array - from children)
+    uint32_t param_count = count_children_of_type(p, TYPE_PARAMETER);
+    write_u32(parent_buffer, param_count);
+    for_each_child(p, TYPE_PARAMETER, commit_child);
+}
+```
+
+### 4.6 Discard Algorithm
+
+**On `DiscardT(parent, tentative)`:**
+
+1. Recursively free all children (cascade)
+2. Free field storage (strings, etc.)
+3. Decrement parent's uncommitted_children
+4. Unlink from parent's child list
+5. Free tentative struct
+
+**Implementation:**
+```c
+void discard_subtree(tentative_base_t* node) {
+    // Discard children first (post-order)
+    tentative_base_t* child = node->first_child;
+    while (child) {
+        tentative_base_t* next = child->next_sibling;
+        discard_subtree(child);
+        child = next;
+    }
+    
+    // Free field storage
+    if (node->type == TYPE_PLUGIN) {
+        tentative_plugin_t* p = (tentative_plugin_t*)node;
+        if (p->name.written) free(p->name.value);
+        if (p->vendor.written) free(p->vendor.value);
+    }
+    
+    // Unlink from parent
+    if (node->parent) {
+        node->parent->uncommitted_children--;
+        unlink_from_parent(node);
+    }
+    
+    free(node);
+}
+```
+
+### 4.7 Memory Limits
+
+**Per-tentative buffer limits:**
+```c
+#define MAX_TENTATIVE_BUFFER_SIZE (2 * 1024 * 1024)  // 2MB
+#define INITIAL_TENTATIVE_SIZE 256                    // 256 bytes
+```
+
+**Nesting depth limit:**
+```c
+#define MAX_NESTING_DEPTH 32
+
+int get_nesting_depth(tentative_base_t* t) {
+    int depth = 0;
+    while (t->parent) {
+        depth++;
+        t = t->parent;
+    }
+    return depth;
+}
+```
+
+**Buffer growth:**
+```c
+void ensure_capacity(tentative_base_t* t, size_t additional) {
+    size_t required = t->buffer_pos + additional;
+    
+    if (required > MAX_TENTATIVE_BUFFER_SIZE) {
+        t->error = ERR_TENTATIVE_TOO_LARGE;
+        return;
+    }
+    
+    if (required > t->buffer_size) {
+        size_t new_size = t->buffer_size * 2;
+        if (new_size < required) {
+            new_size = required;
+        }
+        if (new_size > MAX_TENTATIVE_BUFFER_SIZE) {
+            new_size = MAX_TENTATIVE_BUFFER_SIZE;
+        }
+        t->buffer = realloc(t->buffer, new_size);
+        t->buffer_size = new_size;
+    }
+}
+```
+
+## 5. Deserialization (Decoder)
+
+### 5.1 Generated Decoder API
+
+**Go:**
+```go
+func Decode(dest *PluginList, data []byte) error
+```
+
+**Rust:**
+```rust
+fn decode(data: &[u8]) -> Result<PluginList, DecodeError>
+```
+
+### 5.2 Decode Algorithm
+
+**Sequential parsing with pre-allocation:**
+
+1. Validate total data size (must not exceed 128MB)
+2. For each field in schema definition order:
+   - If primitive: read bytes directly
+   - If string: read length, validate, allocate, copy bytes
+   - If array: read count, validate, allocate, decode elements
+   - If struct: recurse
+3. Track total elements allocated
+
+**Example (Go):**
+```go
+func decodePlugin(data []byte, offset *int, ctx *DecodeContext) (Plugin, error) {
+    var p Plugin
+    
+    // Field: id (u32)
+    if *offset + 4 > len(data) {
+        return Plugin{}, ErrUnexpectedEOF
+    }
+    p.ID = binary.LittleEndian.Uint32(data[*offset:])
+    *offset += 4
+    
+    // Field: name (str)
+    if *offset + 4 > len(data) {
+        return Plugin{}, ErrUnexpectedEOF
+    }
+    nameLen := binary.LittleEndian.Uint32(data[*offset:])
+    *offset += 4
+    
+    if *offset + int(nameLen) > len(data) {
+        return Plugin{}, ErrUnexpectedEOF
+    }
+    p.Name = string(data[*offset:*offset+int(nameLen)])
+    *offset += int(nameLen)
+    
+    // Field: vendor (str)
+    // ... similar
+    
+    // Field: parameters ([]Parameter)
+    if *offset + 4 > len(data) {
+        return Plugin{}, ErrUnexpectedEOF
+    }
+    paramCount := binary.LittleEndian.Uint32(data[*offset:])
+    *offset += 4
+    
+    if err := ctx.checkArraySize(paramCount); err != nil {
+        return Plugin{}, err
+    }
+    
+    p.Parameters = make([]Parameter, paramCount)
+    for i := 0; i < int(paramCount); i++ {
+        p.Parameters[i], err = decodeParameter(data, offset, ctx)
+        if err != nil {
+            return Plugin{}, err
+        }
+    }
+    
+    return p, nil
+}
+```
+
+### 5.3 Size/Offset Metadata
+
+**Challenge:** Different languages have different struct layouts.
+
+**Solution:** Self-reporting at runtime via `init()` or static analysis.
+
+**Purpose:** Debugging and potential optimizations (not used in decode logic).
+
+**Go example:**
+```go
+var Metadata = struct {
+    PluginSize      uintptr
+    PluginAlignment uintptr
+}{}
+
+func init() {
+    type probe struct {
+        id         uint32
+        name       string
+        vendor     string
+        parameters []Parameter
+    }
+    
+    Metadata.PluginSize = unsafe.Sizeof(probe{})
+    Metadata.PluginAlignment = unsafe.Alignof(probe{})
+}
+```
+
+**Note:** Wire format is densely packed (no padding). Decoder reads sequentially and constructs native structs.
+
+### 5.4 Error Handling
+
+**Decoder validates:**
+- ✅ Sufficient bytes remaining for read
+- ✅ UTF-8 validity for strings (language-dependent: required in Rust, optional in Go)
+- ✅ Array counts within limits
+- ✅ Total elements allocated within limits
+
+**Does NOT validate:**
+- ❌ Struct type identity (no type tags in wire format)
+- ❌ Schema version matching (not supported)
+- ❌ Field presence (omitted fields use defaults)
+
+**Error types:**
+```go
+var (
+    ErrUnexpectedEOF      = errors.New("unexpected end of data")
+    ErrInvalidUTF8        = errors.New("invalid UTF-8 string")
+    ErrDataTooLarge       = errors.New("data exceeds 128MB limit")
+    ErrArrayTooLarge      = errors.New("array count exceeds per-array limit")
+    ErrTooManyElements    = errors.New("total elements exceed limit")
+)
+```
+
+### 5.5 Size Limits
+
+**Maximum serialized data size:** 128 MB
+
+Decoder rejects data exceeding this limit at entry point.
+
+**Maximum elements per array:** 1,000,000
+
+**Maximum total elements:** 10,000,000
+
+**Rationale:**
+- Protects against malicious or corrupted data
+- Prevents out-of-memory conditions
+- Aligned with Protocol Buffers defaults
+- Sufficient for bulk enumeration use cases
+
+**Validation:**
+```go
+const (
+    MaxSerializedSize = 128 * 1024 * 1024
+    MaxArrayElements  = 1_000_000
+    MaxTotalElements  = 10_000_000
+)
+
+type DecodeContext struct {
+    totalElements int
+}
+
+func (ctx *DecodeContext) checkArraySize(count uint32) error {
+    if count > MaxArrayElements {
+        return ErrArrayTooLarge
+    }
+    
+    ctx.totalElements += int(count)
+    if ctx.totalElements > MaxTotalElements {
+        return ErrTooManyElements
+    }
+    
+    return nil
+}
+
+func Decode(dest *PluginList, data []byte) error {
+    if len(data) > MaxSerializedSize {
+        return ErrDataTooLarge
+    }
+    
+    ctx := &DecodeContext{}
+    offset := 0
+    return decodePluginList(dest, data, &offset, ctx)
+}
+```
+
+## 6. Wire Format Specification
+
+### 6.1 Endianness
+
+**Little-endian** for all multi-byte values.
+
+**Rationale:** Most common architecture (x86, ARM in little-endian mode). Same-machine constraint means no conversion needed in practice.
+
+### 6.2 Alignment
+
+**No alignment padding in wire format.** Fields are densely packed.
+
+**Decoder responsibility:** Unpack to properly aligned native structs.
+
+### 6.3 Example Wire Format
+
+**Schema:**
+```
+struct Plugin {
+    id: u32
+    name: str
+    active: bool
+}
+```
+
+**Data:**
+```
+Plugin { id: 42, name: "Reverb", active: true }
+```
+
+**Wire format (hex):**
+```
+2A 00 00 00              // id: 42 (u32, little-endian)
+06 00 00 00              // name length: 6 (u32)
+52 65 76 65 72 62        // name: "Reverb" (UTF-8)
+01                       // active: true (bool)
+```
+
+**Total:** 15 bytes
+
+### 6.4 Array Example
+
+**Schema:**
+```
+struct DeviceList {
+    devices: []u32
+}
+```
+
+**Data:**
+```
+DeviceList { devices: [1, 2, 3] }
+```
+
+**Wire format (hex):**
+```
+03 00 00 00              // array count: 3
+01 00 00 00              // devices[0]: 1
+02 00 00 00              // devices[1]: 2
+03 00 00 00              // devices[2]: 3
+```
+
+**Total:** 16 bytes
+
+### 6.5 Empty Arrays
+
+**Empty array is valid:**
+```
+00 00 00 00              // count: 0
+                         // (no elements)
+```
+
+## 7. Memory Management
+
+### 7.1 Encoder Side (C)
+
+**Ownership:** Builder owns all tentative memory.
+
+**Lifecycle:**
+```c
+builder_t* b = NewBuilder();         // Allocates root
+tentative_t* t = BeginStruct(b);     // Allocates tentative
+serial_data_t data = Finalize(b);    // Frees tentatives, returns buffer
+// data.buffer owned by builder
+DestroyBuilder(b);                   // Frees data.buffer
+```
+
+**Go copies immediately:**
+```go
+cData := C.FinalizeBuilder(builder)
+defer C.DestroyBuilder(builder)
+goData := C.GoBytes(unsafe.Pointer(cData.data), C.int(cData.len))
+// Now goData is Go-managed, C can free
+```
+
+### 7.2 Decoder Side (Go)
+
+**Ownership:** Decoder allocates Go-managed memory.
+
+```go
+var list PluginList
+err := Decode(&list, data)
+// list contains Go strings, slices - managed by GC
+```
+
+### 7.3 Tentative Growth
+
+**Dynamic buffer growth:**
+```c
+void EnsureCapacity(tentative_base_t* t, size_t additional) {
+    size_t required = t->buffer_pos + additional;
+    if (required > t->buffer_size) {
+        size_t new_size = t->buffer_size * 2;
+        if (new_size < required) {
+            new_size = required;
+        }
+        t->buffer = realloc(t->buffer, new_size);
+        t->buffer_size = new_size;
+    }
+}
+```
+
+**Initial sizes:** 256 bytes per tentative (tunable).
+
+## 8. Error Handling
+
+### 8.1 Encoder Errors
+
+**Strategy:** Sticky error flag, operations no-op after error.
+
+```c
+typedef struct {
+    tentative_base_t root;
+    error_code_t error;
+    char error_msg[256];
+} builder_t;
+
+void SetPluginName(tentative_plugin_t* p, const char* name) {
+    if (p->base.error != ERR_NONE) {
+        return;  // Already in error state, no-op
+    }
+    
+    if (strlen(name) > MAX_STRING_LENGTH) {
+        p->base.error = ERR_STRING_TOO_LONG;
+        snprintf(p->base.error_msg, sizeof(p->base.error_msg),
+                 "string too long: %zu bytes", strlen(name));
+        return;
+    }
+    
+    p->name.value = strdup(name);
+    if (!p->name.value) {
+        p->base.error = ERR_OUT_OF_MEMORY;
+        return;
+    }
+    p->name.written = true;
+}
+
+serial_data_t FinalizeBuilder(builder_t* b) {
+    if (b->root.error != ERR_NONE) {
+        return (serial_data_t){
+            .data = NULL,
+            .len = 0,
+            .error = b->root.error,
+            .error_msg = b->root.error_msg
+        };
+    }
+    
+    // Normal finalize...
+}
+```
+
+**Error codes:**
+```c
+typedef enum {
+    ERR_NONE = 0,
+    ERR_OUT_OF_MEMORY,
+    ERR_TENTATIVE_TOO_LARGE,
+    ERR_NESTING_TOO_DEEP,
+    ERR_STRING_TOO_LONG,
+} error_code_t;
+```
+
+### 8.2 Decoder Errors
+
+**Strategy:** Return error immediately, no partial results.
+
+Covered in Section 5.4 and 5.5.
+
+## 9. Implementation Phases
+
+### Phase 1: Core Infrastructure
+- [ ] Schema parser (`.sdp` → AST)
+- [ ] Type system validation
+- [ ] Wire format specification finalized
+
+### Phase 2: C Encoder
+- [ ] Tentative structure implementation
+- [ ] Builder API code generation
+- [ ] Implicit commit/explicit discard logic
+- [ ] Array count handling
+
+### Phase 3: Go Decoder
+- [ ] Struct generation
+- [ ] Decode function generation
+- [ ] `init()` self-reporting
+- [ ] Error handling
+
+### Phase 4: Testing
+- [ ] Unit tests (see Testing Strategy)
+- [ ] Integration tests (C encoder → Go decoder)
+- [ ] Fuzzing (malformed data)
+- [ ] Performance benchmarks
+
+### Phase 5: Additional Languages
+- [ ] Rust encoder/decoder
+- [ ] Swift encoder/decoder
+- [ ] Language-specific idioms
+
+## 10. Performance Considerations
+
+### 10.1 Encoder Performance
+
+**Optimizations:**
+- Pre-allocate tentative buffers (256B default)
+- Geometric growth on realloc (2x)
+- Single memory copy per commit (tentative → parent)
+- No intermediate serialization step
+
+**Expected overhead:**
+- Struct allocation: ~100ns per tentative
+- Buffer growth: amortized O(1)
+- Commit copy: memcpy, O(n) in data size
+
+### 10.2 Decoder Performance
+
+**Optimizations:**
+- Pre-allocate arrays with known count
+- Single-pass decode (no validation pass)
+- Direct memory reads (no buffering)
+
+**Expected overhead:**
+- Array allocation: `make([]T, count)` per array
+- String allocation: one per string
+- Struct allocation: stack or inline
+
+### 10.3 CGO Overhead
+
+**Single FFI call per logical unit:**
+```
+C.EnumeratePlugins() → returns serialized blob (one call)
+```
+
+**Not:**
+```
+for each plugin:
+    C.GetPlugin() → many calls
+```
+
+**CGO call cost:** ~6ns on M1 (acceptable for bulk transfer).
+
+## 11. Best Practices
+
+### 11.1 Schema Evolution
+
+**Field order matters.** Wire format depends on field definition order in schema.
+
+**Breaking changes:**
+- Reordering fields ❌
+- Changing field types ❌
+- Removing fields ❌
+
+**Non-breaking changes:**
+- Renaming fields ✅ (wire format has no field names)
+- Adding doc comments ✅
+
+**Note:** Schemas are not versioned. Any structural change breaks compatibility between encoder and decoder.
+
+### 11.2 Thread Safety
+
+**Builder API is NOT thread-safe.** Use one of these patterns:
+
+**Pattern 1: One builder per thread**
+```c
+dispatch_apply(count, queue, ^(size_t i) {
+    builder_t* thread_builder = NewBuilder();
+    // ... build
+    collect_result(FinalizeBuilder(thread_builder));
+});
+```
+
+**Pattern 2: Parallel collect, serial serialize (recommended)**
+```c
+// Parallel: collect raw data
+dispatch_apply(count, queue, ^(size_t i) {
+    raw_data[i] = expensive_enumeration(i);
+});
+
+// Serial: build from collected data
+builder_t* builder = NewBuilder();
+for (int i = 0; i < count; i++) {
+    build_from_raw_data(builder, raw_data[i]);
+}
+```
+
+### 11.3 Extension Pattern
+
+**Extend generated types via embedding (Go example):**
+
+```go
+// Generated (don't modify)
+package audio
+
+type Device struct {
+    ID   uint32
+    Name string
+}
+
+// Hand-written extension
+package audio
+
+type ExtendedDevice struct {
+    Device  // Embed generated type
+    
+    // Additional application fields
+    IsActive bool
+}
+
+func (d ExtendedDevice) DisplayName() string {
+    return fmt.Sprintf("%s (%s)", d.Name, status(d.IsActive))
+}
+```
+
+**Decoder output → convert to extended type:**
+```go
+var deviceList audio.DeviceList
+audio.Decode(&deviceList, data)
+
+extended := make([]ExtendedDevice, len(deviceList.Devices))
+for i, dev := range deviceList.Devices {
+    extended[i] = ExtendedDevice{
+        Device:   dev,
+        IsActive: checkIfActive(dev.ID),
+    }
+}
+```
+
+### 11.4 UTF-8 Handling
+
+**Encoder:** Trust native code to produce valid UTF-8.
+
+**Decoder:** 
+- Go: Trust (accepts invalid UTF-8, though not recommended)
+- Rust: Validates (String requires valid UTF-8)
+- Swift: Trust (String handles conversion)
+- C: Trust (bytes are bytes)
+
+**If encoding non-UTF-8:** Use `[]u8` instead of `str`.
+
+### 11.5 Limitations
+
+**Current version limitations:**
+- No schema versioning or evolution
+- No optional field syntax (use arrays with 0/1 elements)
+- No enums (use u8/u16 with constants in comments)
+- No maps/dictionaries (use parallel arrays or structs)
+- Cross-schema references not supported
+
+**Workarounds:**
+
+**Optional fields:** Use `[]Type` with 0 or 1 element.
+
+**Enums:** Use primitives with constants.
+```rust
+/// Status represents device state.
+/// 0 = Inactive, 1 = Active, 2 = Error
+struct Device {
+    status: u8,
+}
+```
+
+**Maps:** Use struct with parallel arrays.
+```rust
+struct StringMap {
+    keys: []str,
+    values: []str,
+}
+```
+
+---
+
+**End of Design Specification**
