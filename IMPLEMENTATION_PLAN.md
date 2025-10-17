@@ -52,7 +52,7 @@ Each task has a status:
 **Goal:** Set up project structure and wire format basics.
 
 ### Task 1.1: Project Initialization
-**Status:** `[→]`
+**Status:** `[✓]`
 
 **Work:**
 1. Initialize git repository
@@ -73,10 +73,10 @@ Each task has a status:
 **Tests:** None (infrastructure)
 
 **Verification:**
-- `git status` shows clean repository
-- `go mod verify` succeeds
-- Directory structure matches spec
-- Git ignores generated files
+- ✓ `git status` shows clean repository
+- ✓ `go mod verify` succeeds
+- ✓ Directory structure matches spec
+- ✓ Git ignores generated files
 
 **Time:** 30 minutes
 
