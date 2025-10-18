@@ -1,0 +1,17 @@
+/// A list of devices
+struct DeviceList {
+    devices: []Device,
+}
+
+/// A device with parameters
+struct Device {
+    id: u32,
+    name: str,
+    parameters: []Parameter,
+}
+
+/// A configuration parameter
+struct Parameter {
+    name: str,
+    value: f64,
+}

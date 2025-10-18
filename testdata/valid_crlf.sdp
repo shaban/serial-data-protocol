@@ -1,0 +1,4 @@
+/// Test file with CRLF line endings
+struct Example {
+    field: u32,
+}

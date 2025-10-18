@@ -1,0 +1,5 @@
+/// A simple device with ID and name
+struct Device {
+    id: u32,
+    name: str,
+}
