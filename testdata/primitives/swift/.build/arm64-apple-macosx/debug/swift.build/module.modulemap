@@ -1,0 +1,4 @@
+module swift {
+    header "/Users/shaban/Code/serial-data-protocol/testdata/primitives/swift/.build/arm64-apple-macosx/debug/swift.build/swift-Swift.h"
+    requires objc
+}

@@ -1,0 +1,23 @@
+{
+  "": {
+    "swift-dependencies": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/master.swiftdeps"
+  },
+  "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/Sources/swift/Decode.swift": {
+    "dependencies": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Decode.d",
+    "object": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Decode.swift.o",
+    "swiftmodule": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Decode~partial.swiftmodule",
+    "swift-dependencies": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Decode.swiftdeps"
+  },
+  "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/Sources/swift/Encode.swift": {
+    "dependencies": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Encode.d",
+    "object": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Encode.swift.o",
+    "swiftmodule": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Encode~partial.swiftmodule",
+    "swift-dependencies": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Encode.swiftdeps"
+  },
+  "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/Sources/swift/Types.swift": {
+    "dependencies": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Types.d",
+    "object": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Types.swift.o",
+    "swiftmodule": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Types~partial.swiftmodule",
+    "swift-dependencies": "/Users/shaban/Code/serial-data-protocol/testdata/complex/swift/.build/arm64-apple-macosx/debug/swift.build/Types.swiftdeps"
+  }
+}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/shaban/serial-data-protocol/internal/generator/golang"
 	"github.com/shaban/serial-data-protocol/internal/generator/rust"
+	"github.com/shaban/serial-data-protocol/internal/generator/swift"
 	"github.com/shaban/serial-data-protocol/internal/parser"
 	"github.com/shaban/serial-data-protocol/internal/validator"
 )
@@ -37,10 +38,12 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\nExamples:\n")
 		fmt.Fprintf(os.Stderr, "  # Generate Go code\n")
 		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./generated -lang go\n\n")
+		fmt.Fprintf(os.Stderr, "  # Generate Rust code\n")
+		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./generated -lang rust\n\n")
+		fmt.Fprintf(os.Stderr, "  # Generate Swift code\n")
+		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./generated -lang swift\n\n")
 		fmt.Fprintf(os.Stderr, "  # Validate schema only\n")
 		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -validate-only\n\n")
-		fmt.Fprintf(os.Stderr, "  # Generate with custom package name\n")
-		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./gen -package mydevice\n\n")
 	}
 
 	flag.Parse()
@@ -66,13 +69,14 @@ func main() {
 
 	// Validate language
 	validLangs := map[string]bool{
-		"go":   true,
-		"rust": true,
-		"c":    false, // Not yet implemented
+		"go":    true,
+		"rust":  true,
+		"swift": true,
+		"c":     false, // Not yet implemented
 	}
 
 	if !validLangs[*lang] {
-		fmt.Fprintf(os.Stderr, "Error: -lang must be 'go' or 'rust' (c not yet implemented), got '%s'\n", *lang)
+		fmt.Fprintf(os.Stderr, "Error: -lang must be 'go', 'rust', or 'swift' (c not yet implemented), got '%s'\n", *lang)
 		os.Exit(1)
 	}
 
@@ -184,6 +188,13 @@ func run(schemaPath, outputDir, lang, packageName string, validateOnly, astJSON,
 		err = rust.Generate(schema, outputDir, verbose)
 		if err != nil {
 			return fmt.Errorf("failed to generate Rust code: %w", err)
+		}
+
+	case "swift":
+		// Swift generator writes files directly
+		err = swift.Generate(schema, outputDir, verbose)
+		if err != nil {
+			return fmt.Errorf("failed to generate Swift code: %w", err)
 		}
 
 	case "c":

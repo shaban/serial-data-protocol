@@ -1,0 +1,256 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.swift-arm64-apple-macosx16.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/sources",
+      "importPath" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Decode.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Encode.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Types.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "swift",
+      "moduleOutputPath" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/Modules/swift.swiftmodule",
+      "objects" : [
+        "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/Decode.swift.o",
+        "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/Encode.swift.o",
+        "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/Types.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx10.13",
+        "-enable-batch-mode",
+        "-index-store-path",
+        "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-module-cache-path",
+        "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/swift-Swift.h",
+        "-color-diagnostics",
+        "-swift-version",
+        "5",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "swift"
+      ],
+      "outputFileMapPath" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/Decode.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/Encode.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/Types.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/Modules/swift.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Decode.swift",
+        "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Encode.swift",
+        "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Types.swift"
+      ],
+      "tempsPath" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "swift" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "swift",
+      "-package-name",
+      "swift",
+      "-incremental",
+      "-c",
+      "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Decode.swift",
+      "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Encode.swift",
+      "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Types.swift",
+      "-I",
+      "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx10.13",
+      "-enable-batch-mode",
+      "-index-store-path",
+      "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-module-cache-path",
+      "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/swift-Swift.h",
+      "-color-diagnostics",
+      "-swift-version",
+      "5",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "swift",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "swift" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "enableAllTraits" : false
+  },
+  "writeCommands" : {
+    "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    },
+    "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Decode.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Encode.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/Sources/swift/Types.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/shaban/Code/serial-data-protocol/testdata/optional/swift/.build/arm64-apple-macosx/debug/swift.build/sources"
+    }
+  }
+}
