@@ -41,6 +41,34 @@ func runRustBench(command string, args ...string) int64 {
 	return ns
 }
 
+// Helper to run Swift benchmark binary and parse timing
+func runSwiftBench(command string, args ...string) int64 {
+	// Compile swift_bench if needed (release mode with optimizations)
+	if _, err := os.Stat("./swift_bench"); os.IsNotExist(err) {
+		cmd := exec.Command("swiftc", "-O", "-whole-module-optimization", "swift_bench.swift", "-o", "swift_bench")
+		if err := cmd.Run(); err != nil {
+			panic("Failed to compile swift_bench: " + err.Error())
+		}
+	}
+
+	// Run benchmark
+	allArgs := append([]string{command}, args...)
+	cmd := exec.Command("./swift_bench", allArgs...)
+	output, err := cmd.Output()
+	if err != nil {
+		panic("Failed to run swift_bench: " + err.Error())
+	}
+
+	// Parse nanoseconds per operation
+	nsStr := strings.TrimSpace(string(output))
+	ns, err := strconv.ParseInt(nsStr, 10, 64)
+	if err != nil {
+		panic("Failed to parse swift_bench output: " + err.Error())
+	}
+
+	return ns
+}
+
 // Benchmark: Go encode primitives
 func BenchmarkGo_Primitives_Encode(b *testing.B) {
 	data := primitives.AllPrimitives{
@@ -327,6 +355,50 @@ func BenchmarkRust_AudioUnit_Decode(b *testing.B) {
 	b.ResetTimer()
 
 	ns := runRustBench("decode-audiounit", tmpFile, strconv.Itoa(b.N))
+
+	b.ReportMetric(float64(ns), "ns/op")
+	b.ReportMetric(float64(b.N)*1e9/float64(ns*int64(b.N)), "ops/sec")
+}
+
+// ============================================================================
+// Swift Benchmarks
+// ============================================================================
+
+// Benchmark: Swift encode primitives (called from Go)
+func BenchmarkSwift_Primitives_Encode(b *testing.B) {
+	// Run Swift benchmark
+	ns := runSwiftBench("encode-primitives", strconv.Itoa(b.N))
+
+	b.ReportMetric(float64(ns), "ns/op")
+	b.ReportMetric(float64(b.N)*1e9/float64(ns*int64(b.N)), "ops/sec")
+}
+
+// Benchmark: Swift decode primitives (called from Go)
+func BenchmarkSwift_Primitives_Decode(b *testing.B) {
+	// Create test file
+	data := primitives.AllPrimitives{
+		U8Field:   255,
+		U16Field:  65535,
+		U32Field:  4294967295,
+		U64Field:  18446744073709551615,
+		I8Field:   -128,
+		I16Field:  -32768,
+		I32Field:  -2147483648,
+		I64Field:  -9223372036854775808,
+		F32Field:  3.14159,
+		F64Field:  2.718281828459045,
+		BoolField: true,
+		StrField:  "Hello from Swift!",
+	}
+
+	encoded, _ := primitives.EncodeAllPrimitives(&data)
+	tmpFile := "/tmp/bench_primitives.bin"
+	os.WriteFile(tmpFile, encoded, 0644)
+
+	b.ResetTimer()
+
+	// Run Swift benchmark
+	ns := runSwiftBench("decode-primitives", tmpFile, strconv.Itoa(b.N))
 
 	b.ReportMetric(float64(ns), "ns/op")
 	b.ReportMetric(float64(b.N)*1e9/float64(ns*int64(b.N)), "ops/sec")
