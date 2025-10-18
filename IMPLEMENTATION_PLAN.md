@@ -578,28 +578,57 @@ func TestMapUnknownTypeKind(t *testing.T)       // Invalid type kind
 ---
 
 ### Task 4.2: Name Conversion
-**Status:** `[ ]`
+**Status:** `[✓]`
 
 **Work:**
 1. Add to `internal/generator/golang/types.go`:
-   - `ToGoStructName(name string) string` - PascalCase
-   - `ToGoFieldName(name string) string` - PascalCase
-   - Preserve existing capitals
-   - Handle underscores
+   - `ToGoName(name string) string` - Unified PascalCase conversion
+   - `capitalizeFirst(s string) string` - Helper for first letter capitalization
+   - Works for both struct names and field names (both exported in Go)
+   - Preserve existing capitals (HTTPResponse → HTTPResponse)
+   - Handle snake_case (audio_device → AudioDevice)
+   - Handle multiple/leading/trailing underscores
+   - Unicode support (école → École)
 
-**Tests:** `internal/generator/golang/types_test.go`
+**Tests:** `internal/generator/golang/types_test.go` (4 test functions, 42 subtests)
 ```go
-func TestToGoStructName(t *testing.T)
-func TestToGoFieldName(t *testing.T)
-func TestPreserveCase(t *testing.T)
+func TestToGoName(t *testing.T)              // 24 cases: snake_case, capitals, underscores, edge cases
+func TestToGoNamePreservesCase(t *testing.T) // 6 cases: HTTP, ID, camelCase preservation
+func TestToGoNameWithSnakeCase(t *testing.T) // 6 real-world examples
+func TestCapitalizeFirst(t *testing.T)       // 8 cases: basic, Unicode, edge cases
 ```
 
 **Verification:**
-- snake_case → PascalCase
-- Existing capitals preserved
-- Single words capitalized
+- ✓ snake_case → PascalCase (audio_device → AudioDevice)
+- ✓ Existing capitals preserved (HTTPResponse, deviceID)
+- ✓ Single words capitalized (device → Device)
+- ✓ Multiple underscores handled (audio__device → AudioDevice)
+- ✓ Leading/trailing underscores removed (_device_ → Device)
+- ✓ Empty string handled
+- ✓ Unicode support (école → École)
+- ✓ All 77 tests passing (type mapping + name conversion)
+- ✓ 100% coverage maintained
 
 **Time:** 1 hour
+
+---
+
+### Task 4.3: Struct Generator
+**Status:** `[ ]`
+
+**Work:**
+1. Create `internal/generator/golang/struct_gen.go`:
+   - `GenerateStructs(schema *Schema) (string, error)`
+   - Generate Go struct definitions
+   - Include doc comments from schema
+   - Format field comments as "FieldName is..."
+   - Use `gofmt` or template
+
+**Tests:** `internal/generator/golang/struct_gen_test.go`
+```go
+func TestGenerateSimpleStruct(t *testing.T)
+func TestGenerateNestedStruct(t *testing.T)
+````
 
 ---
 
