@@ -259,7 +259,7 @@ func TestParseWithComments(t *testing.T)
 ---
 
 ### Task 2.4: Schema File Loader
-**Status:** `[ ]`
+**Status:** `[✓]`
 
 **Work:**
 1. Create `internal/parser/loader.go`:
@@ -271,15 +271,19 @@ func TestParseWithComments(t *testing.T)
 
 **Tests:** `internal/parser/loader_test.go`
 ```go
-func TestLoadValidSchema(t *testing.T)
-func TestLoadMissingFile(t *testing.T)
-func TestHandleCRLF(t *testing.T)
+func TestLoadSchemaFile_Valid(t *testing.T)           // basic & complex schemas
+func TestLoadSchemaFile_MissingFile(t *testing.T)
+func TestLoadSchemaFile_InvalidSyntax(t *testing.T)
+func TestLoadSchemaFile_CRLF(t *testing.T)
+func TestLoadSchemaFile_PreservesDocComments(t *testing.T)
 ```
 
 **Verification:**
-- Files load correctly
-- Line ending normalization works
-- Errors include filename
+- ✓ Files load correctly
+- ✓ Line ending normalization works
+- ✓ Errors include filename
+- ✓ Doc comments preserved
+- ✓ All tests pass (89.2% parser coverage)
 
 **Time:** 1 hour
 
