@@ -1,8 +1,11 @@
 package integration_test
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/binary"
 	"encoding/json"
+	"io"
 	"math"
 	"os"
 	"os/exec"
@@ -3277,4 +3280,249 @@ func BenchmarkMessageSizeOverhead(b *testing.B) {
 	b.ReportMetric(float64(len(messageEncoded)), "message_bytes")
 	b.ReportMetric(float64(overhead), "overhead_bytes")
 	b.ReportMetric(float64(overhead)/float64(len(regularEncoded))*100, "overhead_%")
+}
+
+// ============================================================================
+// Streaming I/O Integration Tests
+// ============================================================================
+// These tests demonstrate user composition with stdlib interfaces.
+// NO compression is baked into SDP - users compose with their libraries.
+// ============================================================================
+
+// TestStreamingFileIO tests encoding/decoding via file I/O
+// Demonstrates: User composes EncodeXToWriter with os.File
+func TestStreamingFileIO(t *testing.T) {
+	// Create test data
+	original := primitives.AllPrimitives{
+		U8Field:   42,
+		U16Field:  1000,
+		U32Field:  1000000,
+		U64Field:  1000000000,
+		I8Field:   -42,
+		I16Field:  -1000,
+		I32Field:  -1000000,
+		I64Field:  -1000000000,
+		F32Field:  3.14,
+		F64Field:  3.14159265359,
+		BoolField: true,
+		StrField:  "Hello, streaming I/O!",
+	}
+
+	// Create temporary file
+	tmpFile, err := os.CreateTemp("", "sdp_test_*.bin")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	// Encode to file (user composes with os.File)
+	if err := primitives.EncodeAllPrimitivesToWriter(&original, tmpFile); err != nil {
+		t.Fatalf("EncodeToWriter failed: %v", err)
+	}
+
+	// Close for writing, reopen for reading
+	tmpFile.Close()
+	tmpFile, err = os.Open(tmpFile.Name())
+	if err != nil {
+		t.Fatalf("Failed to reopen temp file: %v", err)
+	}
+
+	// Decode from file (user composes with os.File)
+	var decoded primitives.AllPrimitives
+	if err := primitives.DecodeAllPrimitivesFromReader(&decoded, tmpFile); err != nil {
+		t.Fatalf("DecodeFromReader failed: %v", err)
+	}
+
+	// Verify roundtrip
+	if decoded != original {
+		t.Errorf("Roundtrip mismatch:\nOriginal: %+v\nDecoded:  %+v", original, decoded)
+	}
+}
+
+// TestStreamingGzipCompression tests encoding/decoding with gzip compression
+// Demonstrates: User composes EncodeXToWriter with compress/gzip
+func TestStreamingGzipCompression(t *testing.T) {
+	// Create test data with nested structs
+	scene := nested.Scene{
+		Name: "Test Scene",
+		MainRect: nested.Rectangle{
+			TopLeft:     nested.Point{X: 0, Y: 0},
+			BottomRight: nested.Point{X: 100, Y: 50},
+			Color:       0xFF0000,
+		},
+		Count: 2,
+	}
+
+	// ====================================================================
+	// User Code: Compression via composition
+	// ====================================================================
+	var compressedBuf bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressedBuf)
+
+	// Encode to gzip writer (NO compression in SDP - user composed it!)
+	if err := nested.EncodeSceneToWriter(&scene, gzipWriter); err != nil {
+		t.Fatalf("EncodeToWriter failed: %v", err)
+	}
+
+	// MUST close gzip writer to flush final blocks
+	if err := gzipWriter.Close(); err != nil {
+		t.Fatalf("gzip.Close failed: %v", err)
+	}
+
+	compressed := compressedBuf.Bytes()
+	// ====================================================================
+
+	// Verify compression actually happened
+	uncompressed, _ := nested.EncodeScene(&scene)
+	compressionRatio := float64(len(compressed)) / float64(len(uncompressed))
+	t.Logf("Uncompressed: %d bytes", len(uncompressed))
+	t.Logf("Compressed:   %d bytes", len(compressed))
+	t.Logf("Ratio:        %.2f%%", compressionRatio*100)
+
+	// For this small data, gzip might not reduce size (header overhead)
+	// But it demonstrates the composition pattern
+
+	// ====================================================================
+	// User Code: Decompression via composition
+	// ====================================================================
+	gzipReader, err := gzip.NewReader(bytes.NewReader(compressed))
+	if err != nil {
+		t.Fatalf("gzip.NewReader failed: %v", err)
+	}
+	defer gzipReader.Close()
+
+	// Decode from gzip reader (NO decompression in SDP - user composed it!)
+	var decoded nested.Scene
+	if err := nested.DecodeSceneFromReader(&decoded, gzipReader); err != nil {
+		t.Fatalf("DecodeFromReader failed: %v", err)
+	}
+	// ====================================================================
+
+	// Verify roundtrip
+	if decoded.Name != scene.Name {
+		t.Errorf("Name mismatch: got %q, want %q", decoded.Name, scene.Name)
+	}
+	if decoded.Count != scene.Count {
+		t.Errorf("Count mismatch: got %d, want %d", decoded.Count, scene.Count)
+	}
+	if decoded.MainRect != scene.MainRect {
+		t.Errorf("MainRect mismatch:\nOriginal: %+v\nDecoded:  %+v", scene.MainRect, decoded.MainRect)
+	}
+}
+
+// TestStreamingNetworkIO simulates network I/O using io.Pipe
+// Demonstrates: User composes EncodeXToWriter with net.Conn (simulated via pipe)
+func TestStreamingNetworkIO(t *testing.T) {
+	// Create test data
+	item := arrays.ArraysOfPrimitives{
+		U8Array:   []uint8{1, 2, 3, 4, 5},
+		U32Array:  []uint32{100, 200, 300},
+		F64Array:  []float64{1.1, 2.2, 3.3},
+		StrArray:  []string{"hello", "world", "streaming"},
+		BoolArray: []bool{true, false, true},
+	}
+
+	// Simulate network connection using io.Pipe
+	// In real code, this would be net.Conn
+	reader, writer := io.Pipe()
+
+	// Simulate server: Encode and send in goroutine
+	errChan := make(chan error, 1)
+	go func() {
+		defer writer.Close()
+		// Server encodes to network connection (simulated by pipe writer)
+		errChan <- arrays.EncodeArraysOfPrimitivesToWriter(&item, writer)
+	}()
+
+	// Simulate client: Receive and decode
+	var decoded arrays.ArraysOfPrimitives
+	if err := arrays.DecodeArraysOfPrimitivesFromReader(&decoded, reader); err != nil {
+		t.Fatalf("DecodeFromReader failed: %v", err)
+	}
+
+	// Check for encoding errors
+	if err := <-errChan; err != nil {
+		t.Fatalf("EncodeToWriter failed: %v", err)
+	}
+
+	// Verify roundtrip
+	if len(decoded.U8Array) != len(item.U8Array) {
+		t.Fatalf("U8Array length mismatch: got %d, want %d", len(decoded.U8Array), len(item.U8Array))
+	}
+	for i := range item.U8Array {
+		if decoded.U8Array[i] != item.U8Array[i] {
+			t.Errorf("U8Array[%d] mismatch: got %d, want %d", i, decoded.U8Array[i], item.U8Array[i])
+		}
+	}
+
+	if len(decoded.StrArray) != len(item.StrArray) {
+		t.Fatalf("StrArray length mismatch: got %d, want %d", len(decoded.StrArray), len(item.StrArray))
+	}
+	for i := range item.StrArray {
+		if decoded.StrArray[i] != item.StrArray[i] {
+			t.Errorf("StrArray[%d] mismatch: got %q, want %q", i, decoded.StrArray[i], item.StrArray[i])
+		}
+	}
+}
+
+// TestStreamingWithOptionalFields tests streaming I/O with optional struct fields
+func TestStreamingWithOptionalFields(t *testing.T) {
+	// Test both present and absent optional fields
+	tests := []struct {
+		name string
+		data optional.Request
+	}{
+		{
+			name: "OptionalPresent",
+			data: optional.Request{
+				Id: 42,
+				Metadata: &optional.Metadata{
+					UserId:   1001,
+					Username: "Alice",
+				},
+			},
+		},
+		{
+			name: "OptionalAbsent",
+			data: optional.Request{
+				Id:       99,
+				Metadata: nil,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+// Encode to buffer via io.Writer
+var buf bytes.Buffer
+if err := optional.EncodeRequestToWriter(&tt.data, &buf); err != nil {
+				t.Fatalf("EncodeToWriter failed: %v", err)
+			}
+
+			// Decode from buffer via io.Reader
+			var decoded optional.Request
+			if err := optional.DecodeRequestFromReader(&decoded, &buf); err != nil {
+				t.Fatalf("DecodeFromReader failed: %v", err)
+			}
+
+			// Verify roundtrip
+			if decoded.Id != tt.data.Id {
+				t.Errorf("Id mismatch: got %d, want %d", decoded.Id, tt.data.Id)
+			}
+
+			if (decoded.Metadata == nil) != (tt.data.Metadata == nil) {
+				t.Errorf("Metadata presence mismatch: got %v, want %v", decoded.Metadata != nil, tt.data.Metadata != nil)
+			}
+
+			if tt.data.Metadata != nil {
+				if decoded.Metadata.UserId != tt.data.Metadata.UserId {
+					t.Errorf("Metadata.UserId mismatch: got %d, want %d", decoded.Metadata.UserId, tt.data.Metadata.UserId)
+				}
+				if decoded.Metadata.Username != tt.data.Metadata.Username {
+					t.Errorf("Metadata.Username mismatch: got %q, want %q", decoded.Metadata.Username, tt.data.Metadata.Username)
+				}
+			}
+		})
+	}
 }
