@@ -9,25 +9,25 @@ func TestParseSimpleStruct(t *testing.T) {
 		id: u32,
 		name: str,
 	}`
-	
+
 	schema, err := ParseSchema(input)
 	if err != nil {
 		t.Fatalf("ParseSchema failed: %v", err)
 	}
-	
+
 	if len(schema.Structs) != 1 {
 		t.Fatalf("Expected 1 struct, got %d", len(schema.Structs))
 	}
-	
+
 	s := schema.Structs[0]
 	if s.Name != "Device" {
 		t.Errorf("Expected struct name 'Device', got %q", s.Name)
 	}
-	
+
 	if len(s.Fields) != 2 {
 		t.Fatalf("Expected 2 fields, got %d", len(s.Fields))
 	}
-	
+
 	// Check first field
 	if s.Fields[0].Name != "id" {
 		t.Errorf("Expected field name 'id', got %q", s.Fields[0].Name)
@@ -35,7 +35,7 @@ func TestParseSimpleStruct(t *testing.T) {
 	if s.Fields[0].Type.String() != "u32" {
 		t.Errorf("Expected field type 'u32', got %q", s.Fields[0].Type.String())
 	}
-	
+
 	// Check second field
 	if s.Fields[1].Name != "name" {
 		t.Errorf("Expected field name 'name', got %q", s.Fields[1].Name)
@@ -55,26 +55,26 @@ func TestParseNestedTypes(t *testing.T) {
 		name: str,
 		value: f64,
 	}`
-	
+
 	schema, err := ParseSchema(input)
 	if err != nil {
 		t.Fatalf("ParseSchema failed: %v", err)
 	}
-	
+
 	if len(schema.Structs) != 2 {
 		t.Fatalf("Expected 2 structs, got %d", len(schema.Structs))
 	}
-	
+
 	// Check Plugin struct
 	plugin := schema.Structs[0]
 	if plugin.Name != "Plugin" {
 		t.Errorf("Expected struct name 'Plugin', got %q", plugin.Name)
 	}
-	
+
 	if len(plugin.Fields) != 2 {
 		t.Fatalf("Expected 2 fields in Plugin, got %d", len(plugin.Fields))
 	}
-	
+
 	// Check parameters field is array of Parameter
 	paramField := plugin.Fields[1]
 	if paramField.Name != "parameters" {
@@ -92,21 +92,21 @@ func TestParseArrayField(t *testing.T) {
 	input := `struct List {
 		items: []u32,
 	}`
-	
+
 	schema, err := ParseSchema(input)
 	if err != nil {
 		t.Fatalf("ParseSchema failed: %v", err)
 	}
-	
+
 	if len(schema.Structs) != 1 {
 		t.Fatalf("Expected 1 struct, got %d", len(schema.Structs))
 	}
-	
+
 	s := schema.Structs[0]
 	if len(s.Fields) != 1 {
 		t.Fatalf("Expected 1 field, got %d", len(s.Fields))
 	}
-	
+
 	field := s.Fields[0]
 	if field.Type.Kind != TypeKindArray {
 		t.Errorf("Expected array type, got %v", field.Type.Kind)
@@ -128,30 +128,30 @@ func TestParseDocComments(t *testing.T) {
 		/// Device name.
 		name: str,
 	}`
-	
+
 	schema, err := ParseSchema(input)
 	if err != nil {
 		t.Fatalf("ParseSchema failed: %v", err)
 	}
-	
+
 	if len(schema.Structs) != 1 {
 		t.Fatalf("Expected 1 struct, got %d", len(schema.Structs))
 	}
-	
+
 	s := schema.Structs[0]
 	expectedStructComment := "A device structure.\nContains device information."
 	if s.Comment != expectedStructComment {
 		t.Errorf("Expected struct comment %q, got %q", expectedStructComment, s.Comment)
 	}
-	
+
 	if len(s.Fields) != 2 {
 		t.Fatalf("Expected 2 fields, got %d", len(s.Fields))
 	}
-	
+
 	if s.Fields[0].Comment != "Device identifier." {
 		t.Errorf("Expected field comment 'Device identifier.', got %q", s.Fields[0].Comment)
 	}
-	
+
 	if s.Fields[1].Comment != "Device name." {
 		t.Errorf("Expected field comment 'Device name.', got %q", s.Fields[1].Comment)
 	}
@@ -194,7 +194,7 @@ func TestParseSyntaxError(t *testing.T) {
 			description: "missing struct keyword",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		_, err := ParseSchema(tc.input)
 		if tc.shouldError && err == nil {
@@ -208,21 +208,21 @@ func TestParseSyntaxError(t *testing.T) {
 
 func TestParseEmptyStruct(t *testing.T) {
 	input := `struct Empty {}`
-	
+
 	schema, err := ParseSchema(input)
 	if err != nil {
 		t.Fatalf("ParseSchema failed: %v", err)
 	}
-	
+
 	if len(schema.Structs) != 1 {
 		t.Fatalf("Expected 1 struct, got %d", len(schema.Structs))
 	}
-	
+
 	s := schema.Structs[0]
 	if s.Name != "Empty" {
 		t.Errorf("Expected struct name 'Empty', got %q", s.Name)
 	}
-	
+
 	if len(s.Fields) != 0 {
 		t.Errorf("Expected 0 fields, got %d", len(s.Fields))
 	}
@@ -240,16 +240,16 @@ func TestParseMultipleStructs(t *testing.T) {
 	struct Third {
 		c: bool,
 	}`
-	
+
 	schema, err := ParseSchema(input)
 	if err != nil {
 		t.Fatalf("ParseSchema failed: %v", err)
 	}
-	
+
 	if len(schema.Structs) != 3 {
 		t.Fatalf("Expected 3 structs, got %d", len(schema.Structs))
 	}
-	
+
 	names := []string{"First", "Second", "Third"}
 	for i, s := range schema.Structs {
 		if s.Name != names[i] {
@@ -276,7 +276,7 @@ func TestParseTrailingComma(t *testing.T) {
 			description: "no trailing comma",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		_, err := ParseSchema(tc.input)
 		if err != nil {
@@ -300,27 +300,27 @@ func TestParseAllPrimitives(t *testing.T) {
 		bool_field: bool,
 		str_field: str,
 	}`
-	
+
 	schema, err := ParseSchema(input)
 	if err != nil {
 		t.Fatalf("ParseSchema failed: %v", err)
 	}
-	
+
 	if len(schema.Structs) != 1 {
 		t.Fatalf("Expected 1 struct, got %d", len(schema.Structs))
 	}
-	
+
 	s := schema.Structs[0]
 	if len(s.Fields) != 12 {
 		t.Fatalf("Expected 12 fields, got %d", len(s.Fields))
 	}
-	
+
 	expectedTypes := []string{
 		"u8", "u16", "u32", "u64",
 		"i8", "i16", "i32", "i64",
 		"f32", "f64", "bool", "str",
 	}
-	
+
 	for i, field := range s.Fields {
 		if field.Type.String() != expectedTypes[i] {
 			t.Errorf("Field %d: expected type %q, got %q", i, expectedTypes[i], field.Type.String())
@@ -339,25 +339,25 @@ func TestParseWithComments(t *testing.T) {
 		/// Doc comment for field
 		id: u32,
 	}`
-	
+
 	schema, err := ParseSchema(input)
 	if err != nil {
 		t.Fatalf("ParseSchema failed: %v", err)
 	}
-	
+
 	if len(schema.Structs) != 1 {
 		t.Fatalf("Expected 1 struct, got %d", len(schema.Structs))
 	}
-	
+
 	s := schema.Structs[0]
 	if s.Comment != "Doc comment for struct" {
 		t.Errorf("Expected struct doc comment, got %q", s.Comment)
 	}
-	
+
 	if len(s.Fields) != 1 {
 		t.Fatalf("Expected 1 field, got %d", len(s.Fields))
 	}
-	
+
 	if s.Fields[0].Comment != "Doc comment for field" {
 		t.Errorf("Expected field doc comment, got %q", s.Fields[0].Comment)
 	}
@@ -365,12 +365,12 @@ func TestParseWithComments(t *testing.T) {
 
 func TestParseMixedComments(t *testing.T) {
 	testCases := []struct {
-		name                 string
-		input                string
-		expectedStructs      int
-		expectedStructName   string
+		name                  string
+		input                 string
+		expectedStructs       int
+		expectedStructName    string
 		expectedStructComment string
-		expectedFieldCount   int
+		expectedFieldCount    int
 		expectedFieldComments []string
 	}{
 		{
@@ -381,10 +381,10 @@ func TestParseMixedComments(t *testing.T) {
 			struct Device {
 				id: u32,
 			}`,
-			expectedStructs:      1,
-			expectedStructName:   "Device",
+			expectedStructs:       1,
+			expectedStructName:    "Device",
 			expectedStructComment: "First doc line\nSecond doc line",
-			expectedFieldCount:   1,
+			expectedFieldCount:    1,
 			expectedFieldComments: []string{""},
 		},
 		{
@@ -395,10 +395,10 @@ func TestParseMixedComments(t *testing.T) {
 			struct Device {
 				id: u32,
 			}`,
-			expectedStructs:      1,
-			expectedStructName:   "Device",
+			expectedStructs:       1,
+			expectedStructName:    "Device",
 			expectedStructComment: "",
-			expectedFieldCount:   1,
+			expectedFieldCount:    1,
 			expectedFieldComments: []string{""},
 		},
 		{
@@ -411,10 +411,10 @@ func TestParseMixedComments(t *testing.T) {
 			struct Second {
 				b: str,
 			}`,
-			expectedStructs:      2,
-			expectedStructName:   "Second",
+			expectedStructs:       2,
+			expectedStructName:    "Second",
 			expectedStructComment: "",
-			expectedFieldCount:   1,
+			expectedFieldCount:    1,
 			expectedFieldComments: []string{""},
 		},
 		{
@@ -426,10 +426,10 @@ func TestParseMixedComments(t *testing.T) {
 				name: str,
 				// Comment after last field
 			}`,
-			expectedStructs:      1,
-			expectedStructName:   "Device",
+			expectedStructs:       1,
+			expectedStructName:    "Device",
 			expectedStructComment: "",
-			expectedFieldCount:   2,
+			expectedFieldCount:    2,
 			expectedFieldComments: []string{"", ""},
 		},
 		{
@@ -439,10 +439,10 @@ func TestParseMixedComments(t *testing.T) {
 				// Regular comment
 				id: u32,
 			}`,
-			expectedStructs:      1,
-			expectedStructName:   "Device",
+			expectedStructs:       1,
+			expectedStructName:    "Device",
 			expectedStructComment: "",
-			expectedFieldCount:   1,
+			expectedFieldCount:    1,
 			expectedFieldComments: []string{"Doc comment for id"},
 		},
 		{
@@ -452,10 +452,10 @@ func TestParseMixedComments(t *testing.T) {
 				/// Doc comment for id
 				id: u32,
 			}`,
-			expectedStructs:      1,
-			expectedStructName:   "Device",
+			expectedStructs:       1,
+			expectedStructName:    "Device",
 			expectedStructComment: "",
-			expectedFieldCount:   1,
+			expectedFieldCount:    1,
 			expectedFieldComments: []string{"Doc comment for id"},
 		},
 		{
@@ -470,10 +470,10 @@ func TestParseMixedComments(t *testing.T) {
 				// Just regular
 				status: bool,
 			}`,
-			expectedStructs:      1,
-			expectedStructName:   "Device",
+			expectedStructs:       1,
+			expectedStructName:    "Device",
 			expectedStructComment: "",
-			expectedFieldCount:   3,
+			expectedFieldCount:    3,
 			expectedFieldComments: []string{"Doc for id", "Doc for name", ""},
 		},
 		{
@@ -485,10 +485,10 @@ func TestParseMixedComments(t *testing.T) {
 				/// Field doc 2
 				id: u32,
 			}`,
-			expectedStructs:      1,
-			expectedStructName:   "Device",
+			expectedStructs:       1,
+			expectedStructName:    "Device",
 			expectedStructComment: "This should be collected\nThis too",
-			expectedFieldCount:   1,
+			expectedFieldCount:    1,
 			expectedFieldComments: []string{"Field doc 1\nField doc 2"},
 		},
 	}

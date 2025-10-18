@@ -331,7 +331,7 @@ This enables Rust syntax highlighting, which works because `.sdp` files ARE vali
 - Circular reference detection
 - Empty struct detection
 - Duplicate field names
-- Reserved keyword usage
+- Reserved keyword usage (see section 3.5.1)
 
 **Schema Composition Model:**
 
@@ -411,6 +411,98 @@ struct Plugin {
 // ❌ Reserved keyword
 struct Plugin {
     type: u32,  // 'type' reserved in Go/Rust
+}
+```
+
+#### 3.5.1 Reserved Keywords and Problematic Identifiers
+
+**The generator rejects struct names and field names that would cause compilation errors, warnings, or ambiguous code in target languages.**
+
+Validation includes:
+- **Language keywords** - reserved by language specification (compilation errors)
+- **Future reserved words** - reserved for future language versions (compilation errors)
+- **Built-in types and functions** - would shadow standard library (warnings/errors)
+- **Common attributes** - would conflict with language features (ambiguous code)
+
+**Rationale:** Generated code must:
+1. Compile without errors
+2. Show no warnings
+3. Be unambiguous (no shadowing, no confusing names)
+
+This requires conservative validation against all identifiers that could cause problems in any target language.
+
+**Go - Reserved and Built-in Identifiers:**
+- **Keywords (25):** break, case, chan, const, continue, default, defer, else, fallthrough, for, func, go, goto, if, import, interface, map, package, range, return, select, struct, switch, type, var
+- **Built-in types:** bool, byte, complex64, complex128, error, float32, float64, int, int8, int16, int32, int64, rune, string, uint, uint8, uint16, uint32, uint64, uintptr
+- **Constants:** true, false, iota, nil
+- **Built-in functions:** append, cap, close, complex, copy, delete, imag, len, make, new, panic, print, println, real, recover
+- **Special identifiers:** main, init
+
+**Rust - Keywords and Common Types:**
+- **Strict keywords (35):** as, break, const, continue, crate, else, enum, extern, false, fn, for, if, impl, in, let, loop, match, mod, move, mut, pub, ref, return, self, Self, static, struct, super, trait, true, type, unsafe, use, where, while
+- **Reserved keywords (15):** abstract, async, await, become, box, do, final, macro, override, priv, try, typeof, unsized, virtual, yield
+- **Weak keywords (3):** union, dyn, raw
+- **Common types:** Option, Result, Some, None, Ok, Err, String, Vec, Box, Rc, Arc
+- **Common traits:** Copy, Clone, Send, Sync, Sized
+
+**C - Keywords and Standard Types (C11/C23):**
+- **Keywords (32):** auto, break, case, char, const, continue, default, do, double, else, enum, extern, float, for, goto, if, inline, int, long, register, restrict, return, short, signed, sizeof, static, struct, switch, typedef, union, unsigned, void, volatile, while
+- **C11 extensions (10):** _Alignas, _Alignof, _Atomic, _Bool, _Complex, _Generic, _Imaginary, _Noreturn, _Static_assert, _Thread_local
+- **C23 additions (4):** _BitInt, _Decimal32, _Decimal64, _Decimal128
+- **Standard types:** bool, true, false, NULL, size_t, ptrdiff_t, wchar_t
+- **Fixed-width integers:** int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t, uint32_t, uint64_t
+- **Standard identifiers:** FILE, EOF
+
+**Swift - Keywords, Attributes, and Common Types:**
+- **Declaration keywords (24):** associatedtype, class, deinit, enum, extension, fileprivate, func, import, init, inout, internal, let, open, operator, private, precedencegroup, protocol, public, rethrows, static, struct, subscript, typealias, var
+- **Statement keywords (17):** break, case, catch, continue, default, defer, do, else, fallthrough, for, guard, if, in, repeat, return, switch, throw, where, while
+- **Expression keywords (9):** as, false, is, nil, self, Self, super, throws, true, try
+- **Context keywords (6):** async, await, didSet, get, set, willSet
+- **Declaration modifiers (11):** dynamic, final, lazy, optional, required, convenience, override, mutating, nonmutating, weak, unowned
+- **Special identifiers (4):** _, Any, Type, Protocol
+- **Compiler directives (16):** #available, #colorLiteral, #column, #else, #elseif, #endif, #error, #file, #fileLiteral, #fileID, #filePath, #function, #if, #imageLiteral, #line, #selector, #sourceLocation, #warning
+- **Attributes (without @ prefix - 18):** available, objc, nonobjc, discardableResult, dynamicCallable, dynamicMemberLookup, escaping, autoclosure, convention, IBAction, IBOutlet, IBDesignable, IBInspectable, NSCopying, NSManaged, UIApplicationMain, NSApplicationMain, testable, warn_unqualified_access, frozen, unknown
+- **Common types:** Int, Int8, Int16, Int32, Int64, UInt, UInt8, UInt16, UInt32, UInt64, Float, Double, Bool, String, Character, Array, Dictionary, Set, Optional, Error, Result
+
+**Validation Rules:**
+1. Struct names must not be reserved (case-insensitive)
+2. Field names must not be reserved (case-insensitive)
+3. Error messages indicate which language(s) reserve the identifier
+4. Multiple errors collected and reported together
+
+**Examples:**
+
+```rust
+// ❌ Rejected - struct name is Go/Rust/C/Swift keyword
+struct type {
+    id: u32,
+}
+
+// ❌ Rejected - field name would shadow Go built-in
+struct Config {
+    len: u32,  // 'len' is a Go built-in function
+}
+
+// ❌ Rejected - field name is Rust keyword
+struct Settings {
+    async: bool,  // 'async' reserved in Rust
+}
+
+// ❌ Rejected - would shadow Rust common type
+struct Message {
+    Result: u32,  // 'Result' is a common Rust type
+}
+
+// ❌ Rejected - Swift attribute name
+struct Header {
+    available: bool,  // 'available' is a Swift attribute
+}
+
+// ✓ Accepted - not reserved in any target language
+struct Device {
+    id: u32,
+    name: str,
+    enabled: bool,
 }
 ```
 
