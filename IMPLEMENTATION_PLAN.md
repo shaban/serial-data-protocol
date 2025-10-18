@@ -541,23 +541,37 @@ func TestValidateArrayOfUnknownType(t *testing.T)      // Array element type val
 **Goal:** Generate Go decoder from schema.
 
 ### Task 4.1: Type Name Mapping
-**Status:** `[ ]`
+**Status:** `[✓]`
 
 **Work:**
-1. Create `internal/generator/go/types.go`:
-   - `MapSchemaTypeToGo(schemaType string) string`
-   - Map: `u32` → `uint32`, `str` → `string`, etc.
-   - Handle arrays: `[]T` → `[]GoType`
+1. Create `internal/generator/golang/types.go` (package renamed from 'go' to avoid keyword):
+   - `MapTypeToGo(typeExpr *TypeExpr) (string, error)`
+   - Map all 12 primitive types: `u32` → `uint32`, `str` → `string`, etc.
+   - Handle arrays recursively: `[]T` → `[]GoType`
+   - Preserve named types as-is (defer PascalCase to Task 4.2)
+   - Return errors (not panic, not os.Exit) for testability
 
-**Tests:** `internal/generator/go/types_test.go`
+**Tests:** `internal/generator/golang/types_test.go` (10 test functions, 35 subtests)
 ```go
-func TestMapPrimitives(t *testing.T)
-func TestMapArrays(t *testing.T)
-func TestMapStructs(t *testing.T)
+func TestMapPrimitiveTypes(t *testing.T)        // All 12 primitives with subtests
+func TestMapUnknownPrimitive(t *testing.T)      // Error handling
+func TestMapNamedTypes(t *testing.T)            // Struct names preserved (various cases)
+func TestMapArrayOfPrimitives(t *testing.T)     // Arrays of primitives
+func TestMapArrayOfStructs(t *testing.T)        // Arrays of named types
+func TestMapNestedArrays(t *testing.T)          // Multi-dimensional arrays
+func TestMapArrayWithoutElement(t *testing.T)   // Malformed array error
+func TestMapArrayWithInvalidElement(t *testing.T) // Error propagation
+func TestMapNilTypeExpr(t *testing.T)           // Nil input handling
+func TestMapUnknownTypeKind(t *testing.T)       // Invalid type kind
 ```
 
 **Verification:**
-- All type mappings correct per DESIGN_SPEC.md Section 3.3
+- ✓ All 12 primitive type mappings correct per DESIGN_SPEC.md Section 3.3
+- ✓ Array types mapped recursively (including nested arrays)
+- ✓ Named types preserved as-is (snake_case, camelCase, PascalCase)
+- ✓ Comprehensive error handling (unknown types, nil inputs, malformed arrays)
+- ✓ All 35 tests passing with 100% coverage
+- ✓ Follows testing strategy: unit tests only, integration deferred
 
 **Time:** 1 hour
 
@@ -567,13 +581,13 @@ func TestMapStructs(t *testing.T)
 **Status:** `[ ]`
 
 **Work:**
-1. Add to `internal/generator/go/types.go`:
+1. Add to `internal/generator/golang/types.go`:
    - `ToGoStructName(name string) string` - PascalCase
    - `ToGoFieldName(name string) string` - PascalCase
    - Preserve existing capitals
    - Handle underscores
 
-**Tests:** `internal/generator/go/types_test.go`
+**Tests:** `internal/generator/golang/types_test.go`
 ```go
 func TestToGoStructName(t *testing.T)
 func TestToGoFieldName(t *testing.T)
