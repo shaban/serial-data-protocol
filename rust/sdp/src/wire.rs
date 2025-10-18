@@ -94,6 +94,30 @@ impl<W: Write> Encoder<W> {
         Ok(())
     }
 
+    /// Encode an 8-bit signed integer
+    pub fn write_i8(&mut self, value: i8) -> Result<()> {
+        self.writer.write_i8(value)?;
+        Ok(())
+    }
+
+    /// Encode a 16-bit signed integer (little-endian)
+    pub fn write_i16(&mut self, value: i16) -> Result<()> {
+        self.writer.write_i16::<LittleEndian>(value)?;
+        Ok(())
+    }
+
+    /// Encode a 32-bit signed integer (little-endian)
+    pub fn write_i32(&mut self, value: i32) -> Result<()> {
+        self.writer.write_i32::<LittleEndian>(value)?;
+        Ok(())
+    }
+
+    /// Encode a 64-bit signed integer (little-endian)
+    pub fn write_i64(&mut self, value: i64) -> Result<()> {
+        self.writer.write_i64::<LittleEndian>(value)?;
+        Ok(())
+    }
+
     /// Encode a 32-bit IEEE 754 float (little-endian)
     pub fn write_f32(&mut self, value: f32) -> Result<()> {
         self.writer.write_f32::<LittleEndian>(value)?;
@@ -159,6 +183,26 @@ impl<R: Read> Decoder<R> {
     /// Decode a 64-bit unsigned integer (little-endian)
     pub fn read_u64(&mut self) -> Result<u64> {
         Ok(self.reader.read_u64::<LittleEndian>()?)
+    }
+
+    /// Decode an 8-bit signed integer
+    pub fn read_i8(&mut self) -> Result<i8> {
+        Ok(self.reader.read_i8()?)
+    }
+
+    /// Decode a 16-bit signed integer (little-endian)
+    pub fn read_i16(&mut self) -> Result<i16> {
+        Ok(self.reader.read_i16::<LittleEndian>()?)
+    }
+
+    /// Decode a 32-bit signed integer (little-endian)
+    pub fn read_i32(&mut self) -> Result<i32> {
+        Ok(self.reader.read_i32::<LittleEndian>()?)
+    }
+
+    /// Decode a 64-bit signed integer (little-endian)
+    pub fn read_i64(&mut self) -> Result<i64> {
+        Ok(self.reader.read_i64::<LittleEndian>()?)
     }
 
     /// Decode a 32-bit IEEE 754 float (little-endian)

@@ -7,34 +7,47 @@ use std::process::Command;
 /// AST types matching Go parser output
 #[derive(Debug, Deserialize, Serialize)]
 struct Schema {
+    #[serde(rename = "Structs")]
     structs: Vec<Struct>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Struct {
+    #[serde(rename = "Name")]
     name: String,
+    #[serde(rename = "Comment")]
+    comment: String,
+    #[serde(rename = "Fields")]
     fields: Vec<Field>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Field {
+    #[serde(rename = "Name")]
     name: String,
-    #[serde(rename = "type")]
-    field_type: Type,
+    #[serde(rename = "Type")]
+    field_type: TypeExpr,
+    #[serde(rename = "Comment")]
+    comment: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-#[serde(tag = "kind")]
-enum Type {
-    #[serde(rename = "primitive")]
-    Primitive { name: String },
-    #[serde(rename = "array")]
-    Array { element: Box<Type> },
-    #[serde(rename = "struct")]
-    Struct { name: String },
-    #[serde(rename = "optional")]
-    Optional { inner: Box<Type> },
+struct TypeExpr {
+    #[serde(rename = "Kind")]
+    kind: i32, // 0 = Primitive, 1 = Named, 2 = Array
+    #[serde(rename = "Name")]
+    name: String,
+    #[serde(rename = "Elem")]
+    elem: Option<Box<TypeExpr>>,
+    #[serde(rename = "Optional")]
+    optional: bool,
+    #[serde(rename = "Boxed")]
+    boxed: bool,
 }
+
+const TYPE_KIND_PRIMITIVE: i32 = 0;
+const TYPE_KIND_NAMED: i32 = 1;
+const TYPE_KIND_ARRAY: i32 = 2;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -80,10 +93,9 @@ fn main() {
 
 /// Call Go parser to get AST as JSON
 fn get_ast_from_go(schema_path: &str) -> io::Result<String> {
-    // TODO: For now, use sdp-gen from Go to output JSON
-    // Later: implement parser in Rust or use C bindings
-    let output = Command::new("../cmd/sdp-gen/sdp-gen")
-        .args(&["--ast-json", schema_path])
+    // Use Go sdp-gen with --ast-json flag
+    let output = Command::new("./cmd/sdp-gen/sdp-gen")
+        .args(&["-schema", schema_path, "-ast-json"])
         .output()?;
 
     if !output.status.success() {
@@ -203,169 +215,225 @@ fn generate_lib(schema: &Schema) -> String {
 }
 
 /// Map SDP type to Rust type
-fn map_type_to_rust(t: &Type) -> String {
-    match t {
-        Type::Primitive { name } => match name.as_str() {
+fn map_type_to_rust(t: &TypeExpr) -> String {
+    if t.optional {
+        return format!("Option<{}>", map_type_to_rust_inner(t));
+    }
+    map_type_to_rust_inner(t)
+}
+
+fn map_type_to_rust_inner(t: &TypeExpr) -> String {
+    match t.kind {
+        TYPE_KIND_PRIMITIVE => match t.name.as_str() {
             "bool" => "bool".to_string(),
             "u8" => "u8".to_string(),
             "u16" => "u16".to_string(),
             "u32" => "u32".to_string(),
             "u64" => "u64".to_string(),
+            "i8" => "i8".to_string(),
+            "i16" => "i16".to_string(),
+            "i32" => "i32".to_string(),
+            "i64" => "i64".to_string(),
             "f32" => "f32".to_string(),
             "f64" => "f64".to_string(),
-            "string" => "String".to_string(),
+            "str" => "String".to_string(),
             "bytes" => "Vec<u8>".to_string(),
-            _ => panic!("Unknown primitive type: {}", name),
+            _ => panic!("Unknown primitive type: {}", t.name),
         },
-        Type::Array { element } => format!("Vec<{}>", map_type_to_rust(element)),
-        Type::Struct { name } => name.clone(),
-        Type::Optional { inner } => format!("Option<{}>", map_type_to_rust(inner)),
+        TYPE_KIND_ARRAY => {
+            let elem = t.elem.as_ref().expect("Array type must have element");
+            format!("Vec<{}>", map_type_to_rust(elem))
+        }
+        TYPE_KIND_NAMED => t.name.clone(),
+        _ => panic!("Unknown type kind: {}", t.kind),
     }
 }
 
 /// Generate encoding code for a field
-fn generate_field_encode(field_name: &str, field_type: &Type) -> String {
-    match field_type {
-        Type::Primitive { name } => match name.as_str() {
+fn generate_field_encode(field_name: &str, field_type: &TypeExpr) -> String {
+    if field_type.optional {
+        return format!(
+            "        enc.write_bool(self.{}.is_some())?;\n        if let Some(ref value) = self.{} {{\n{}\n        }}\n",
+            field_name,
+            field_name,
+            generate_optional_encode("value", field_type)
+        );
+    }
+
+    match field_type.kind {
+        TYPE_KIND_PRIMITIVE => match field_type.name.as_str() {
             "bool" => format!("        enc.write_bool(self.{})?\n", field_name),
             "u8" => format!("        enc.write_u8(self.{})?\n", field_name),
             "u16" => format!("        enc.write_u16(self.{})?\n", field_name),
             "u32" => format!("        enc.write_u32(self.{})?\n", field_name),
             "u64" => format!("        enc.write_u64(self.{})?\n", field_name),
+            "i8" => format!("        enc.write_i8(self.{})?\n", field_name),
+            "i16" => format!("        enc.write_i16(self.{})?\n", field_name),
+            "i32" => format!("        enc.write_i32(self.{})?\n", field_name),
+            "i64" => format!("        enc.write_i64(self.{})?\n", field_name),
             "f32" => format!("        enc.write_f32(self.{})?\n", field_name),
             "f64" => format!("        enc.write_f64(self.{})?\n", field_name),
-            "string" => format!("        enc.write_string(&self.{})?\n", field_name),
+            "str" => format!("        enc.write_string(&self.{})?\n", field_name),
             "bytes" => format!("        enc.write_bytes(&self.{})?\n", field_name),
-            _ => panic!("Unknown primitive: {}", name),
+            _ => panic!("Unknown primitive: {}", field_type.name),
         },
-        Type::Array { element } => {
-            let elem_encode = generate_array_element_encode(element);
+        TYPE_KIND_ARRAY => {
+            let elem = field_type.elem.as_ref().expect("Array must have element");
+            let elem_encode = generate_array_element_encode(elem);
             format!(
                 "        enc.write_u32(self.{}.len() as u32)?;\n        for item in &self.{} {{\n{}\n        }}\n",
                 field_name, field_name, elem_encode
             )
         }
-        Type::Struct { .. } => {
+        TYPE_KIND_NAMED => {
             format!("        self.{}.encode(&mut enc.writer)?;\n", field_name)
         }
-        Type::Optional { inner } => {
-            format!(
-                "        enc.write_bool(self.{}.is_some())?;\n        if let Some(ref value) = self.{} {{\n{}\n        }}\n",
-                field_name,
-                field_name,
-                generate_optional_encode("value", inner)
-            )
-        }
+        _ => panic!("Unknown type kind: {}", field_type.kind),
     }
 }
 
-fn generate_array_element_encode(element_type: &Type) -> String {
-    match element_type {
-        Type::Primitive { name } => match name.as_str() {
+fn generate_array_element_encode(element_type: &TypeExpr) -> String {
+    if element_type.optional {
+        panic!("Optional array elements not yet supported");
+    }
+
+    match element_type.kind {
+        TYPE_KIND_PRIMITIVE => match element_type.name.as_str() {
             "bool" => "            enc.write_bool(*item)?;".to_string(),
             "u8" => "            enc.write_u8(*item)?;".to_string(),
             "u16" => "            enc.write_u16(*item)?;".to_string(),
             "u32" => "            enc.write_u32(*item)?;".to_string(),
             "u64" => "            enc.write_u64(*item)?;".to_string(),
+            "i8" => "            enc.write_i8(*item)?;".to_string(),
+            "i16" => "            enc.write_i16(*item)?;".to_string(),
+            "i32" => "            enc.write_i32(*item)?;".to_string(),
+            "i64" => "            enc.write_i64(*item)?;".to_string(),
             "f32" => "            enc.write_f32(*item)?;".to_string(),
             "f64" => "            enc.write_f64(*item)?;".to_string(),
-            "string" => "            enc.write_string(item)?;".to_string(),
+            "str" => "            enc.write_string(item)?;".to_string(),
             "bytes" => "            enc.write_bytes(item)?;".to_string(),
-            _ => panic!("Unknown primitive: {}", name),
+            _ => panic!("Unknown primitive: {}", element_type.name),
         },
-        Type::Struct { .. } => "            item.encode(&mut enc.writer)?;".to_string(),
-        _ => panic!("Unsupported array element type"),
+        TYPE_KIND_NAMED => "            item.encode(&mut enc.writer)?;".to_string(),
+        TYPE_KIND_ARRAY => panic!("Nested arrays not yet supported"),
+        _ => panic!("Unknown type kind: {}", element_type.kind),
     }
 }
 
-fn generate_optional_encode(var_name: &str, inner_type: &Type) -> String {
-    match inner_type {
-        Type::Primitive { name } => match name.as_str() {
+fn generate_optional_encode(var_name: &str, inner_type: &TypeExpr) -> String {
+    match inner_type.kind {
+        TYPE_KIND_PRIMITIVE => match inner_type.name.as_str() {
             "bool" => format!("            enc.write_bool(*{})?;", var_name),
             "u8" => format!("            enc.write_u8(*{})?;", var_name),
             "u16" => format!("            enc.write_u16(*{})?;", var_name),
             "u32" => format!("            enc.write_u32(*{})?;", var_name),
             "u64" => format!("            enc.write_u64(*{})?;", var_name),
+            "i8" => format!("            enc.write_i8(*{})?;", var_name),
+            "i16" => format!("            enc.write_i16(*{})?;", var_name),
+            "i32" => format!("            enc.write_i32(*{})?;", var_name),
+            "i64" => format!("            enc.write_i64(*{})?;", var_name),
             "f32" => format!("            enc.write_f32(*{})?;", var_name),
             "f64" => format!("            enc.write_f64(*{})?;", var_name),
-            "string" => format!("            enc.write_string({})?;", var_name),
+            "str" => format!("            enc.write_string({})?;", var_name),
             "bytes" => format!("            enc.write_bytes({})?;", var_name),
-            _ => panic!("Unknown primitive: {}", name),
+            _ => panic!("Unknown primitive: {}", inner_type.name),
         },
-        Type::Struct { .. } => format!("            {}.encode(&mut enc.writer)?;", var_name),
-        _ => panic!("Unsupported optional type"),
+        TYPE_KIND_NAMED => format!("            {}.encode(&mut enc.writer)?;", var_name),
+        TYPE_KIND_ARRAY => panic!("Optional arrays not yet supported"),
+        _ => panic!("Unknown type kind: {}", inner_type.kind),
     }
 }
 
 /// Generate decoding code for a field
-fn generate_field_decode(field_name: &str, field_type: &Type) -> String {
-    match field_type {
-        Type::Primitive { name } => match name.as_str() {
+fn generate_field_decode(field_name: &str, field_type: &TypeExpr) -> String {
+    if field_type.optional {
+        return format!(
+            "        let {} = if dec.read_bool()? {{\n{}\n            Some(value)\n        }} else {{\n            None\n        }};\n",
+            field_name,
+            generate_optional_decode(field_type)
+        );
+    }
+
+    match field_type.kind {
+        TYPE_KIND_PRIMITIVE => match field_type.name.as_str() {
             "bool" => format!("        let {} = dec.read_bool()?;\n", field_name),
             "u8" => format!("        let {} = dec.read_u8()?;\n", field_name),
             "u16" => format!("        let {} = dec.read_u16()?;\n", field_name),
             "u32" => format!("        let {} = dec.read_u32()?;\n", field_name),
             "u64" => format!("        let {} = dec.read_u64()?;\n", field_name),
+            "i8" => format!("        let {} = dec.read_i8()?;\n", field_name),
+            "i16" => format!("        let {} = dec.read_i16()?;\n", field_name),
+            "i32" => format!("        let {} = dec.read_i32()?;\n", field_name),
+            "i64" => format!("        let {} = dec.read_i64()?;\n", field_name),
             "f32" => format!("        let {} = dec.read_f32()?;\n", field_name),
             "f64" => format!("        let {} = dec.read_f64()?;\n", field_name),
-            "string" => format!("        let {} = dec.read_string()?;\n", field_name),
+            "str" => format!("        let {} = dec.read_string()?;\n", field_name),
             "bytes" => format!("        let {} = dec.read_bytes()?;\n", field_name),
-            _ => panic!("Unknown primitive: {}", name),
+            _ => panic!("Unknown primitive: {}", field_type.name),
         },
-        Type::Array { element } => {
-            let elem_decode = generate_array_element_decode(element);
+        TYPE_KIND_ARRAY => {
+            let elem = field_type.elem.as_ref().expect("Array must have element");
+            let elem_decode = generate_array_element_decode(elem);
             format!(
                 "        let len = dec.read_u32()?;\n        let mut {} = Vec::with_capacity(len as usize);\n        for _ in 0..len {{\n{}\n            {}.push(item);\n        }}\n",
                 field_name, elem_decode, field_name
             )
         }
-        Type::Struct { name } => {
-            format!("        let {} = {}::decode(&mut dec.reader)?;\n", field_name, name)
+        TYPE_KIND_NAMED => {
+            format!("        let {} = {}::decode(&mut dec.reader)?;\n", field_name, field_type.name)
         }
-        Type::Optional { inner } => {
-            format!(
-                "        let {} = if dec.read_bool()? {{\n{}\n            Some(value)\n        }} else {{\n            None\n        }};\n",
-                field_name,
-                generate_optional_decode(inner)
-            )
-        }
+        _ => panic!("Unknown type kind: {}", field_type.kind),
     }
 }
 
-fn generate_array_element_decode(element_type: &Type) -> String {
-    match element_type {
-        Type::Primitive { name } => match name.as_str() {
+fn generate_array_element_decode(element_type: &TypeExpr) -> String {
+    if element_type.optional {
+        panic!("Optional array elements not yet supported");
+    }
+
+    match element_type.kind {
+        TYPE_KIND_PRIMITIVE => match element_type.name.as_str() {
             "bool" => "            let item = dec.read_bool()?;".to_string(),
             "u8" => "            let item = dec.read_u8()?;".to_string(),
             "u16" => "            let item = dec.read_u16()?;".to_string(),
             "u32" => "            let item = dec.read_u32()?;".to_string(),
             "u64" => "            let item = dec.read_u64()?;".to_string(),
+            "i8" => "            let item = dec.read_i8()?;".to_string(),
+            "i16" => "            let item = dec.read_i16()?;".to_string(),
+            "i32" => "            let item = dec.read_i32()?;".to_string(),
+            "i64" => "            let item = dec.read_i64()?;".to_string(),
             "f32" => "            let item = dec.read_f32()?;".to_string(),
             "f64" => "            let item = dec.read_f64()?;".to_string(),
-            "string" => "            let item = dec.read_string()?;".to_string(),
+            "str" => "            let item = dec.read_string()?;".to_string(),
             "bytes" => "            let item = dec.read_bytes()?;".to_string(),
-            _ => panic!("Unknown primitive: {}", name),
+            _ => panic!("Unknown primitive: {}", element_type.name),
         },
-        Type::Struct { name } => format!("            let item = {}::decode(&mut dec.reader)?;", name),
-        _ => panic!("Unsupported array element type"),
+        TYPE_KIND_NAMED => format!("            let item = {}::decode(&mut dec.reader)?;", element_type.name),
+        TYPE_KIND_ARRAY => panic!("Nested arrays not yet supported"),
+        _ => panic!("Unknown type kind: {}", element_type.kind),
     }
 }
 
-fn generate_optional_decode(inner_type: &Type) -> String {
-    match inner_type {
-        Type::Primitive { name } => match name.as_str() {
+fn generate_optional_decode(inner_type: &TypeExpr) -> String {
+    match inner_type.kind {
+        TYPE_KIND_PRIMITIVE => match inner_type.name.as_str() {
             "bool" => "            let value = dec.read_bool()?;".to_string(),
             "u8" => "            let value = dec.read_u8()?;".to_string(),
             "u16" => "            let value = dec.read_u16()?;".to_string(),
             "u32" => "            let value = dec.read_u32()?;".to_string(),
             "u64" => "            let value = dec.read_u64()?;".to_string(),
+            "i8" => "            let value = dec.read_i8()?;".to_string(),
+            "i16" => "            let value = dec.read_i16()?;".to_string(),
+            "i32" => "            let value = dec.read_i32()?;".to_string(),
+            "i64" => "            let value = dec.read_i64()?;".to_string(),
             "f32" => "            let value = dec.read_f32()?;".to_string(),
             "f64" => "            let value = dec.read_f64()?;".to_string(),
-            "string" => "            let value = dec.read_string()?;".to_string(),
+            "str" => "            let value = dec.read_string()?;".to_string(),
             "bytes" => "            let value = dec.read_bytes()?;".to_string(),
-            _ => panic!("Unknown primitive: {}", name),
+            _ => panic!("Unknown primitive: {}", inner_type.name),
         },
-        Type::Struct { name } => format!("            let value = {}::decode(&mut dec.reader)?;", name),
-        _ => panic!("Unsupported optional type"),
+        TYPE_KIND_NAMED => format!("            let value = {}::decode(&mut dec.reader)?;", inner_type.name),
+        TYPE_KIND_ARRAY => panic!("Optional arrays not yet supported"),
+        _ => panic!("Unknown type kind: {}", inner_type.kind),
     }
 }

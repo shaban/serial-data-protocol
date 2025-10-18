@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -22,6 +23,7 @@ func main() {
 		lang         = flag.String("lang", "go", "Target language: go, c")
 		packageName  = flag.String("package", "", "Package name for generated code (Go only, defaults to output dir basename)")
 		validateOnly = flag.Bool("validate-only", false, "Only validate schema without generating code")
+		astJSON      = flag.Bool("ast-json", false, "Output AST as JSON instead of generating code (for other language generators)")
 		verbose      = flag.Bool("verbose", false, "Enable verbose output")
 		showVersion  = flag.Bool("version", false, "Show version and exit")
 	)
@@ -55,8 +57,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !*validateOnly && *outputDir == "" {
-		fmt.Fprintf(os.Stderr, "Error: -output flag is required (or use -validate-only)\n\n")
+	if !*validateOnly && !*astJSON && *outputDir == "" {
+		fmt.Fprintf(os.Stderr, "Error: -output flag is required (or use -validate-only or -ast-json)\n\n")
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -74,7 +76,7 @@ func main() {
 	}
 
 	// Run the generator
-	if err := run(*schemaPath, *outputDir, *lang, *packageName, *validateOnly, *verbose); err != nil {
+	if err := run(*schemaPath, *outputDir, *lang, *packageName, *validateOnly, *astJSON, *verbose); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
@@ -82,7 +84,7 @@ func main() {
 	os.Exit(0)
 }
 
-func run(schemaPath, outputDir, lang, packageName string, validateOnly, verbose bool) error {
+func run(schemaPath, outputDir, lang, packageName string, validateOnly, astJSON, verbose bool) error {
 	// Step 1: Load schema
 	if verbose {
 		fmt.Printf("Loading schema from: %s\n", schemaPath)
@@ -113,6 +115,16 @@ func run(schemaPath, outputDir, lang, packageName string, validateOnly, verbose 
 	// If validate-only mode, we're done
 	if validateOnly {
 		fmt.Println("Schema validation passed")
+		return nil
+	}
+
+	// If ast-json mode, output AST as JSON and exit
+	if astJSON {
+		encoder := json.NewEncoder(os.Stdout)
+		encoder.SetIndent("", "  ")
+		if err := encoder.Encode(schema); err != nil {
+			return fmt.Errorf("failed to encode AST as JSON: %w", err)
+		}
 		return nil
 	}
 
