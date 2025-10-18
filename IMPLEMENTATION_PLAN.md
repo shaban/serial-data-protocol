@@ -184,7 +184,7 @@ func TestSchemaStructure(t *testing.T)
 ---
 
 ### Task 2.2: Lexer
-**Status:** `[ ]`
+**Status:** `[✓]`
 
 **Work:**
 1. Create `internal/parser/lexer.go`:
@@ -195,6 +195,7 @@ func TestSchemaStructure(t *testing.T)
    - Recognize operators: `{`, `}`, `,`, `:`
    - Recognize identifiers
    - Handle `[]` for arrays
+   - Track line and column numbers
 
 **Tests:** `internal/parser/lexer_test.go`
 ```go
@@ -202,12 +203,19 @@ func TestLexStruct(t *testing.T)
 func TestLexDocComment(t *testing.T)
 func TestLexArray(t *testing.T)
 func TestLexIdentifiers(t *testing.T)
+func TestLexKeyword(t *testing.T)
+func TestLexComments(t *testing.T)
+func TestLexLineNumbers(t *testing.T)
+func TestLexError(t *testing.T)
+func TestLexEmpty(t *testing.T)
+func TestLexWhitespace(t *testing.T)
 ```
 
 **Verification:**
-- All token types recognized
-- Comments extracted correctly
-- Line numbers tracked
+- ✓ All token types recognized
+- ✓ Comments extracted correctly
+- ✓ Line numbers tracked
+- ✓ All tests pass
 
 **Time:** 3 hours
 
