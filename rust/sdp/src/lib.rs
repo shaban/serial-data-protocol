@@ -10,6 +10,15 @@
 //! - **Message mode**: Frame-based I/O with length prefixes
 //! - **Streaming mode**: Continuous data flow without framing overhead
 //!
+//! ## APIs
+//!
+//! Two wire format APIs are provided:
+//!
+//! - **`wire`**: Stream-based API using `Read`/`Write` traits (flexible, composable)
+//! - **`wire_slice`**: Direct byte slice API (faster, zero-abstraction overhead)
+//!
+//! Choose `wire_slice` for maximum performance in hot paths.
+//!
 //! ## Wire Format
 //!
 //! SDP uses a simple, efficient binary encoding:
@@ -45,6 +54,7 @@
 //! ```
 
 pub mod wire;
+pub mod wire_slice;
 
 pub use wire::{Encoder, Decoder, Error, Result};
 

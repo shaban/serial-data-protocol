@@ -24,3 +24,7 @@ harness = false
 [[bench]]
 name = "generated_bench"
 harness = false
+
+[[bench]]
+name = "api_comparison"
+harness = false
