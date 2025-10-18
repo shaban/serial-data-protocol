@@ -179,7 +179,51 @@ if len(snapshot.EngineConfig) > 0 {
 
 **File extension:** `.sdp` (Serial Data Protocol)
 
-**Syntax:** Rust-like (use Rust syntax highlighting in IDE)
+**Syntax:** **Rust subset** - `.sdp` files are valid Rust struct definitions
+
+**Language Specification:**
+
+`.sdp` files use Rust syntax for struct definitions. The generator parses a strict subset of Rust:
+
+**Supported Rust features:**
+- Struct definitions: `struct Name { ... }`
+- Field declarations: `field_name: Type`
+- Doc comments: `///` (attached to following declaration)
+- Line comments: `//` (ignored)
+- Array types: `[]Type`
+- Primitive types: `u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32`, `i64`, `f32`, `f64`, `bool`, `str`
+- Named types: References to other structs
+
+**Rust features NOT supported in v1.0:**
+- Generics, lifetimes, traits
+- Enums, unions, type aliases
+- Visibility modifiers (`pub`, `pub(crate)`, etc.)
+- Attributes (`#[derive(...)]`, etc.)
+- Block comments (`/* */`)
+- Expressions, statements, functions
+- Any non-struct items
+
+**Lexical Rules:**
+
+1. **Keywords:** Only `struct` is recognized as a keyword
+2. **Field separators:** Comma `,` required after each field, **optional after last field** (Rust-style)
+3. **Whitespace:** Not significant (spaces, tabs, newlines treated equally)
+4. **Comments:**
+   - `///` = Documentation comment (attached to next struct or field)
+   - `//` = Regular comment (ignored by parser)
+5. **Identifiers:** Must match `[a-zA-Z_][a-zA-Z0-9_]*`
+6. **String type:** Use `str` (consistent with Rust's string slice type)
+
+**Grammar (EBNF):**
+```ebnf
+Schema      = { Struct } ;
+Struct      = [ DocComment ] "struct" Ident "{" [ FieldList ] "}" ;
+FieldList   = Field { "," Field } [ "," ] ;
+Field       = [ DocComment ] Ident ":" TypeExpr ;
+TypeExpr    = Ident | "[" "]" TypeExpr ;
+DocComment  = "///" text "\n" { "///" text "\n" } ;
+Ident       = letter { letter | digit | "_" } ;
+```
 
 **Example:**
 ```rust
@@ -212,7 +256,7 @@ struct Parameter {
     name: str,
     
     /// Parameter type identifier.
-    type: u8,
+    param_type: u8,
     
     /// Whether parameter can be automated.
     automatable: bool,
@@ -222,6 +266,8 @@ struct Parameter {
 }
 ```
 
+**Note:** Field `param_type` renamed from `type` since `type` is a Rust keyword.
+
 **IDE Setup (VSCode):**
 ```json
 {
@@ -230,6 +276,8 @@ struct Parameter {
   }
 }
 ```
+
+This enables Rust syntax highlighting, which works because `.sdp` files ARE valid Rust code.
 
 ### 3.2 Schema Compiler
 

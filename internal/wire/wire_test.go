@@ -120,7 +120,7 @@ func TestEncodeDecodeI64(t *testing.T) {
 func TestEncodeDecodeF32(t *testing.T) {
 	buf := make([]byte, 4)
 	testCases := []float32{
-		0.0, -0.0, 1.0, -1.0, 3.14159, -3.14159,
+		0.0, 1.0, -1.0, 3.14159, -3.14159,
 		math.MaxFloat32, -math.MaxFloat32,
 		math.SmallestNonzeroFloat32,
 		float32(math.Inf(1)), float32(math.Inf(-1)),
@@ -145,7 +145,7 @@ func TestEncodeDecodeF32(t *testing.T) {
 func TestEncodeDecodeF64(t *testing.T) {
 	buf := make([]byte, 8)
 	testCases := []float64{
-		0.0, -0.0, 1.0, -1.0, 3.14159265358979323846,
+		0.0, 1.0, -1.0, 3.14159265358979323846,
 		math.MaxFloat64, -math.MaxFloat64,
 		math.SmallestNonzeroFloat64,
 		math.Inf(1), math.Inf(-1),

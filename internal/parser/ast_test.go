@@ -7,7 +7,7 @@ func TestTypeExprIsPrimitive(t *testing.T) {
 		"u8", "u16", "u32", "u64",
 		"i8", "i16", "i32", "i64",
 		"f32", "f64",
-		"bool", "string",
+		"bool", "str",
 	}
 
 	for _, name := range primitives {
@@ -55,10 +55,10 @@ func TestTypeExprString(t *testing.T) {
 				Kind: TypeKindArray,
 				Elem: &TypeExpr{
 					Kind: TypeKindArray,
-					Elem: &TypeExpr{Kind: TypeKindPrimitive, Name: "string"},
+					Elem: &TypeExpr{Kind: TypeKindPrimitive, Name: "str"},
 				},
 			},
-			expected: "[][]string",
+			expected: "[][]str",
 		},
 	}
 
@@ -85,7 +85,7 @@ func TestSchemaStructure(t *testing.T) {
 					},
 					{
 						Name:    "name",
-						Type:    TypeExpr{Kind: TypeKindPrimitive, Name: "string"},
+						Type:    TypeExpr{Kind: TypeKindPrimitive, Name: "str"},
 						Comment: "Device name",
 					},
 				},

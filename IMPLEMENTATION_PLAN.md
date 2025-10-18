@@ -158,33 +158,26 @@ func TestDecodeArrayHeaderErrors(t *testing.T)
 **Goal:** Parse `.sdp` schema files into AST.
 
 ### Task 2.1: Schema AST Types
-**Status:** `[ ]`
+**Status:** `[✓]`
 
 **Work:**
 1. Create `internal/parser/ast.go`:
-   ```go
-   type Schema struct {
-       Structs []Struct
-   }
-   
-   type Struct struct {
-       Name    string
-       Comment string
-       Fields  []Field
-   }
-   
-   type Field struct {
-       Name    string
-       Type    string
-       Comment string
-   }
-   ```
+   - Schema, Struct, Field types
+   - TypeExpr for representing type expressions
+   - TypeKind for distinguishing primitive/named/array types
+   - Helper methods: IsPrimitive(), String()
 
-**Tests:** None (data structures)
+**Tests:** `internal/parser/ast_test.go`
+```go
+func TestTypeExprIsPrimitive(t *testing.T)
+func TestTypeExprString(t *testing.T)
+func TestSchemaStructure(t *testing.T)
+```
 
 **Verification:**
-- Types compile
-- Fields match DESIGN_SPEC.md Section 3
+- ✓ Types compile
+- ✓ Fields match DESIGN_SPEC.md Section 3
+- ✓ 80% test coverage
 
 **Time:** 30 minutes
 

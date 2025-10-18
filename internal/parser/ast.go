@@ -9,7 +9,7 @@ type Schema struct {
 // Struct represents a struct definition in the schema.
 type Struct struct {
 	Name    string
-	Comment string   // Doc comment (from /// lines)
+	Comment string // Doc comment (from /// lines)
 	Fields  []Field
 }
 
@@ -17,13 +17,13 @@ type Struct struct {
 type Field struct {
 	Name    string
 	Type    TypeExpr
-	Comment string   // Doc comment (from /// lines)
+	Comment string // Doc comment (from /// lines)
 }
 
 // TypeExpr represents a type expression (primitive, array, or named type).
 type TypeExpr struct {
 	Kind TypeKind
-	Name string   // For Named types (e.g., "MyStruct", "u32")
+	Name string    // For Named types (e.g., "MyStruct", "u32")
 	Elem *TypeExpr // For Array types, points to element type
 }
 
@@ -31,7 +31,7 @@ type TypeExpr struct {
 type TypeKind int
 
 const (
-	TypeKindPrimitive TypeKind = iota // u8, u16, u32, u64, i8, i16, i32, i64, f32, f64, bool, string
+	TypeKindPrimitive TypeKind = iota // u8, u16, u32, u64, i8, i16, i32, i64, f32, f64, bool, str
 	TypeKindNamed                     // User-defined struct type
 	TypeKindArray                     // []T
 )
@@ -45,7 +45,7 @@ func (t *TypeExpr) IsPrimitive() bool {
 		"u8": true, "u16": true, "u32": true, "u64": true,
 		"i8": true, "i16": true, "i32": true, "i64": true,
 		"f32": true, "f64": true,
-		"bool": true, "string": true,
+		"bool": true, "str": true,
 	}
 	return primitives[t.Name]
 }
