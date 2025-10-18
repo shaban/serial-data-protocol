@@ -9,7 +9,7 @@ import (
 
 	"github.com/shaban/serial-data-protocol/benchmarks/fb"
 	pb "github.com/shaban/serial-data-protocol/benchmarks/pb"
-	"github.com/shaban/serial-data-protocol/testdata/audiounit"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/audiounit/go"
 )
 
 // Memory profiling benchmarks to measure actual heap usage and GC pressure

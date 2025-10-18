@@ -12,12 +12,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/shaban/serial-data-protocol/testdata/arrays"
-	"github.com/shaban/serial-data-protocol/testdata/audiounit"
-	"github.com/shaban/serial-data-protocol/testdata/complex"
-	"github.com/shaban/serial-data-protocol/testdata/nested"
-	"github.com/shaban/serial-data-protocol/testdata/optional"
-	"github.com/shaban/serial-data-protocol/testdata/primitives"
+	arrays "github.com/shaban/serial-data-protocol/testdata/arrays/go"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/audiounit/go"
+	complex "github.com/shaban/serial-data-protocol/testdata/complex/go"
+	nested "github.com/shaban/serial-data-protocol/testdata/nested/go"
+	optional "github.com/shaban/serial-data-protocol/testdata/optional/go"
+	primitives "github.com/shaban/serial-data-protocol/testdata/primitives/go"
 )
 
 const (
@@ -49,12 +49,12 @@ func TestMain(m *testing.M) {
 // cleanGeneratedPackages removes previously generated packages
 func cleanGeneratedPackages() {
 	dirs := []string{
-		"testdata/primitives",
-		"testdata/nested",
-		"testdata/arrays",
-		"testdata/complex",
-		"testdata/audiounit",
-		"testdata/optional",
+		"testdata/primitives/go",
+		"testdata/nested/go",
+		"testdata/arrays/go",
+		"testdata/complex/go",
+		"testdata/audiounit/go",
+		"testdata/optional/go",
 	}
 
 	for _, dir := range dirs {
@@ -82,12 +82,12 @@ func generateTestPackages() error {
 		outputDir  string
 		pkgName    string
 	}{
-		{"testdata/primitives.sdp", "testdata/primitives", "primitives"},
-		{"testdata/nested.sdp", "testdata/nested", "nested"},
-		{"testdata/arrays.sdp", "testdata/arrays", "arrays"},
-		{"testdata/complex.sdp", "testdata/complex", "complex"},
-		{"testdata/audiounit.sdp", "testdata/audiounit", "audiounit"},
-		{"testdata/optional.sdp", "testdata/optional", "optional"},
+		{"testdata/primitives.sdp", "testdata/primitives/go", "primitives"},
+		{"testdata/nested.sdp", "testdata/nested/go", "nested"},
+		{"testdata/arrays.sdp", "testdata/arrays/go", "arrays"},
+		{"testdata/complex.sdp", "testdata/complex/go", "complex"},
+		{"testdata/audiounit.sdp", "testdata/audiounit/go", "audiounit"},
+		{"testdata/optional.sdp", "testdata/optional/go", "optional"},
 	}
 
 	for _, s := range schemas {
@@ -118,10 +118,10 @@ func generateTestPackages() error {
 // Test that generator successfully creates packages
 func TestGeneratorCreatesPackages(t *testing.T) {
 	packages := []string{
-		"testdata/primitives",
-		"testdata/nested",
-		"testdata/arrays",
-		"testdata/complex",
+		"testdata/primitives/go",
+		"testdata/nested/go",
+		"testdata/arrays/go",
+		"testdata/complex/go",
 	}
 
 	for _, pkg := range packages {
@@ -3494,9 +3494,9 @@ func TestStreamingWithOptionalFields(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-// Encode to buffer via io.Writer
-var buf bytes.Buffer
-if err := optional.EncodeRequestToWriter(&tt.data, &buf); err != nil {
+			// Encode to buffer via io.Writer
+			var buf bytes.Buffer
+			if err := optional.EncodeRequestToWriter(&tt.data, &buf); err != nil {
 				t.Fatalf("EncodeToWriter failed: %v", err)
 			}
 

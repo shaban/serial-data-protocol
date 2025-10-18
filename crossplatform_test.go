@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/shaban/serial-data-protocol/testdata/primitives"
+	primitives "github.com/shaban/serial-data-protocol/testdata/primitives/go"
 )
 
 // TestCrossPlatformCompatibility verifies that our wire format is truly portable

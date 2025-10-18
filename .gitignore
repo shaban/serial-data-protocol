@@ -38,10 +38,9 @@ Thumbs.db
 # Test outputs
 /testdata/output/
 /testdata/fixtures/generated/
-/testdata/primitives/
-/testdata/nested/
-/testdata/arrays/
-/testdata/complex/
-/testdata/audiounit/
+/testdata/*/go/
+/testdata/*/rust/
+/testdata/*/python/
+/testdata/*/c/
 /testdata/sdp-gen
 /sdp-gen

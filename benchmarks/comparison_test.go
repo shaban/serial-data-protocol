@@ -10,7 +10,7 @@ import (
 
 	"github.com/shaban/serial-data-protocol/benchmarks/fb"
 	pb "github.com/shaban/serial-data-protocol/benchmarks/pb"
-	"github.com/shaban/serial-data-protocol/testdata/audiounit"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/audiounit/go"
 )
 
 // loadTestData loads the real-world AudioUnit plugin data from JSON
