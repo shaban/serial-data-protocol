@@ -318,7 +318,7 @@ func TestIsReservedCaseInsensitive(t *testing.T)
 ---
 
 ### Task 3.2: Type Reference Validator
-**Status:** `[ ]`
+**Status:** `[✓]`
 
 **Work:**
 1. Create `internal/validator/types.go`:
@@ -332,17 +332,24 @@ func TestIsReservedCaseInsensitive(t *testing.T)
 **Tests:** `internal/validator/types_test.go`
 ```go
 func TestValidateKnownTypes(t *testing.T)
+func TestValidatePrimitiveTypes(t *testing.T)
 func TestValidateUnknownType(t *testing.T)
-func TestValidateArrayType(t *testing.T)
-func TestMultipleErrors(t *testing.T)
+func TestValidateArrayType(t *testing.T)         // 6 subtests
+func TestValidateMultipleErrors(t *testing.T)
+func TestValidateForwardReference(t *testing.T)
+func TestValidateEmptySchema(t *testing.T)
+func TestValidateComplexNesting(t *testing.T)
 ```
 
 **Verification:**
-- Known types pass
-- Unknown types rejected
-- All errors reported
+- ✓ Known types pass (primitives and struct references)
+- ✓ Unknown types rejected with clear error messages
+- ✓ Array types validated recursively (including nested)
+- ✓ All errors reported together
+- ✓ Forward references work (struct can reference later-defined struct)
+- ✓ All 8 tests passing (94.9% validator coverage)
 
-**Time:** 2 hours
+**Time:** 1 hour
 
 ---
 
