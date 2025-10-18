@@ -108,8 +108,8 @@ func TestGenerateErrorsAlignment(t *testing.T) {
 		}
 	}
 
-	if len(errorLines) != 6 {
-		t.Fatalf("expected 6 error declaration lines, got %d", len(errorLines))
+	if len(errorLines) != 9 {
+		t.Fatalf("expected 9 error declaration lines, got %d", len(errorLines))
 	}
 
 	// Check that all '=' are at similar positions (allowing some variation for alignment)
@@ -171,10 +171,10 @@ func TestGenerateErrorsNoExtraContent(t *testing.T) {
 		t.Error("should not contain import statements")
 	}
 
-	// Should have exactly 6 error variable declarations (5 from original + ErrInvalidData for RC optional fields)
+	// Should have exactly 9 error variable declarations (5 original + 1 optional + 3 message mode)
 	errorCount := strings.Count(result, "errors.New(")
-	if errorCount != 6 {
-		t.Errorf("expected 6 errors.New() calls, got %d", errorCount)
+	if errorCount != 9 {
+		t.Errorf("expected 9 errors.New() calls, got %d", errorCount)
 	}
 }
 
