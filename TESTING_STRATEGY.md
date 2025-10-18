@@ -329,6 +329,33 @@ func TestEncodeEmptyArray(t *testing.T) {
 
 ## 5. Generator Tests (Level 2)
 
+**CRITICAL TESTING COMMITMENT:**
+
+Generator components are tested in two phases:
+
+**Phase 1: Unit Tests (during development)**
+- Test individual generator functions in isolation
+- Focus on correctness of type mapping, name conversion, template logic
+- Fast feedback loop during implementation
+- Example: `TestMapTypeToGo()`, `TestToGoFieldName()`, `TestGenerateStructDefinition()`
+
+**Phase 2: Integration Tests (after generator complete)**
+- Run full generator on test schemas
+- Compile generated code and verify it works end-to-end
+- Test against wire format fixtures
+- Deferred until generator pipeline is complete
+
+**Error Handling Convention:**
+- Generator functions return `(result, error)` - never call `os.Exit()` directly
+- CLI layer (`cmd/sdp-gen/main.go`) handles error printing and exit codes:
+  ```go
+  if err != nil {
+      fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+      os.Exit(1)  // Non-zero for errors (0 = success)
+  }
+  ```
+- This keeps generator package testable and reusable
+
 ### 5.1 Template Rendering Tests
 
 **Test:** `internal/generator/go_test.go`
