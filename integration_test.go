@@ -2333,18 +2333,18 @@ func TestOptionalDecodeErrors(t *testing.T) {
 // TestMessageModeRoundtripPrimitives tests message encoding/decoding with primitives
 func TestMessageModeRoundtripPrimitives(t *testing.T) {
 	original := primitives.AllPrimitives{
-		U8Field:    255,
-		U16Field:   65535,
-		U32Field:   4294967295,
-		U64Field:   18446744073709551615,
-		I8Field:    -128,
-		I16Field:   -32768,
-		I32Field:   -2147483648,
-		I64Field:   -9223372036854775808,
-		F32Field:   3.14159,
-		F64Field:   2.718281828459045,
-		BoolField:  true,
-		StrField:   "Hello, SDP Message Mode!",
+		U8Field:   255,
+		U16Field:  65535,
+		U32Field:  4294967295,
+		U64Field:  18446744073709551615,
+		I8Field:   -128,
+		I16Field:  -32768,
+		I32Field:  -2147483648,
+		I64Field:  -9223372036854775808,
+		F32Field:  3.14159,
+		F64Field:  2.718281828459045,
+		BoolField: true,
+		StrField:  "Hello, SDP Message Mode!",
 	}
 
 	// Encode to message format
@@ -2748,7 +2748,7 @@ func TestMessageModeEmptyPayload(t *testing.T) {
 // TestMessageModeMultipleTypes tests dispatcher with different message types
 func TestMessageModeMultipleTypes(t *testing.T) {
 	// Test with nested schema which has multiple types: Point, Rectangle, Scene
-	
+
 	// Type 1: Point
 	point := nested.Point{
 		X: 10.5,
@@ -2777,9 +2777,9 @@ func TestMessageModeMultipleTypes(t *testing.T) {
 
 	// Type 2: Rectangle
 	rect := nested.Rectangle{
-		TopLeft: nested.Point{X: 0, Y: 0},
+		TopLeft:     nested.Point{X: 0, Y: 0},
 		BottomRight: nested.Point{X: 100, Y: 100},
-		Color: 0xFF0000,
+		Color:       0xFF0000,
 	}
 
 	rectMsg, err := nested.EncodeRectangleMessage(&rect)
@@ -2877,4 +2877,404 @@ func TestMessageModeHeaderSize(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ============================================================================
+// Optional Fields Performance Benchmarks
+// ============================================================================
+
+// BenchmarkEncodeOptionalPresent benchmarks encoding with optional field present
+func BenchmarkEncodeOptionalPresent(b *testing.B) {
+	data := optional.Request{
+		Id: 12345,
+		Metadata: &optional.Metadata{
+			UserId:   999,
+			Username: "benchmark_user",
+		},
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err := optional.EncodeRequest(&data)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkEncodeOptionalAbsent benchmarks encoding with optional field absent
+func BenchmarkEncodeOptionalAbsent(b *testing.B) {
+	data := optional.Request{
+		Id:       12345,
+		Metadata: nil, // Absent
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err := optional.EncodeRequest(&data)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkDecodeOptionalPresent benchmarks decoding with optional field present
+func BenchmarkDecodeOptionalPresent(b *testing.B) {
+	data := optional.Request{
+		Id: 12345,
+		Metadata: &optional.Metadata{
+			UserId:   999,
+			Username: "benchmark_user",
+		},
+	}
+	encoded, _ := optional.EncodeRequest(&data)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		var decoded optional.Request
+		err := optional.DecodeRequest(&decoded, encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkDecodeOptionalAbsent benchmarks decoding with optional field absent
+func BenchmarkDecodeOptionalAbsent(b *testing.B) {
+	data := optional.Request{
+		Id:       12345,
+		Metadata: nil,
+	}
+	encoded, _ := optional.EncodeRequest(&data)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		var decoded optional.Request
+		err := optional.DecodeRequest(&decoded, encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkOptionalRoundtripPresent benchmarks full roundtrip with optional present
+func BenchmarkOptionalRoundtripPresent(b *testing.B) {
+	data := optional.Request{
+		Id: 12345,
+		Metadata: &optional.Metadata{
+			UserId:   999,
+			Username: "benchmark_user",
+		},
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		encoded, err := optional.EncodeRequest(&data)
+		if err != nil {
+			b.Fatal(err)
+		}
+		var decoded optional.Request
+		err = optional.DecodeRequest(&decoded, encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkOptionalRoundtripAbsent benchmarks full roundtrip with optional absent
+func BenchmarkOptionalRoundtripAbsent(b *testing.B) {
+	data := optional.Request{
+		Id:       12345,
+		Metadata: nil,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		encoded, err := optional.EncodeRequest(&data)
+		if err != nil {
+			b.Fatal(err)
+		}
+		var decoded optional.Request
+		err = optional.DecodeRequest(&decoded, encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// ============================================================================
+// Message Mode Performance Benchmarks
+// ============================================================================
+
+// BenchmarkEncodeMessagePrimitives benchmarks message mode encoding
+func BenchmarkEncodeMessagePrimitives(b *testing.B) {
+	data := primitives.AllPrimitives{
+		U8Field:   255,
+		U16Field:  65535,
+		U32Field:  4294967295,
+		U64Field:  18446744073709551615,
+		I8Field:   -128,
+		I16Field:  -32768,
+		I32Field:  -2147483648,
+		I64Field:  -9223372036854775808,
+		F32Field:  3.14159,
+		F64Field:  2.718281828459045,
+		BoolField: true,
+		StrField:  "Hello, SDP!",
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err := primitives.EncodeAllPrimitivesMessage(&data)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkDecodeMessagePrimitives benchmarks message mode decoding
+func BenchmarkDecodeMessagePrimitives(b *testing.B) {
+	data := primitives.AllPrimitives{
+		U8Field:   255,
+		U16Field:  65535,
+		U32Field:  4294967295,
+		U64Field:  18446744073709551615,
+		I8Field:   -128,
+		I16Field:  -32768,
+		I32Field:  -2147483648,
+		I64Field:  -9223372036854775808,
+		F32Field:  3.14159,
+		F64Field:  2.718281828459045,
+		BoolField: true,
+		StrField:  "Hello, SDP!",
+	}
+	encoded, _ := primitives.EncodeAllPrimitivesMessage(&data)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err := primitives.DecodeAllPrimitivesMessage(encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkMessageDispatcher benchmarks the message dispatcher
+func BenchmarkMessageDispatcher(b *testing.B) {
+	data := primitives.AllPrimitives{
+		U8Field:  255,
+		StrField: "Hello, SDP!",
+	}
+	encoded, _ := primitives.EncodeAllPrimitivesMessage(&data)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err := primitives.DecodeMessage(encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkMessageRoundtripPrimitives benchmarks full message mode roundtrip
+func BenchmarkMessageRoundtripPrimitives(b *testing.B) {
+	data := primitives.AllPrimitives{
+		U8Field:   255,
+		U16Field:  65535,
+		U32Field:  4294967295,
+		U64Field:  18446744073709551615,
+		I8Field:   -128,
+		I16Field:  -32768,
+		I32Field:  -2147483648,
+		I64Field:  -9223372036854775808,
+		F32Field:  3.14159,
+		F64Field:  2.718281828459045,
+		BoolField: true,
+		StrField:  "Hello, SDP!",
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		encoded, err := primitives.EncodeAllPrimitivesMessage(&data)
+		if err != nil {
+			b.Fatal(err)
+		}
+		_, err = primitives.DecodeAllPrimitivesMessage(encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkMessageRoundtripNested benchmarks message mode with nested structs
+func BenchmarkMessageRoundtripNested(b *testing.B) {
+	data := nested.Scene{
+		Name: "Benchmark Scene",
+		MainRect: nested.Rectangle{
+			TopLeft:     nested.Point{X: 0, Y: 0},
+			BottomRight: nested.Point{X: 1920, Y: 1080},
+			Color:       0xFF00FF,
+		},
+		Count: 42,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		encoded, err := nested.EncodeSceneMessage(&data)
+		if err != nil {
+			b.Fatal(err)
+		}
+		_, err = nested.DecodeSceneMessage(encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkMessageRoundtripArrays benchmarks message mode with arrays
+func BenchmarkMessageRoundtripArrays(b *testing.B) {
+	data := arrays.ArraysOfPrimitives{
+		U8Array:   []uint8{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+		U32Array:  []uint32{100, 200, 300, 400, 500},
+		F64Array:  []float64{1.1, 2.2, 3.3, 4.4, 5.5},
+		StrArray:  []string{"one", "two", "three", "four", "five"},
+		BoolArray: []bool{true, false, true, false, true},
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		encoded, err := arrays.EncodeArraysOfPrimitivesMessage(&data)
+		if err != nil {
+			b.Fatal(err)
+		}
+		_, err = arrays.DecodeArraysOfPrimitivesMessage(encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// ============================================================================
+// Direct Comparison: Regular vs Message Mode
+// ============================================================================
+
+// BenchmarkRegularEncodePrimitives benchmarks regular encode (no header)
+func BenchmarkRegularEncodePrimitives(b *testing.B) {
+	data := primitives.AllPrimitives{
+		U8Field:   255,
+		U16Field:  65535,
+		U32Field:  4294967295,
+		U64Field:  18446744073709551615,
+		I8Field:   -128,
+		I16Field:  -32768,
+		I32Field:  -2147483648,
+		I64Field:  -9223372036854775808,
+		F32Field:  3.14159,
+		F64Field:  2.718281828459045,
+		BoolField: true,
+		StrField:  "Hello, SDP!",
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err := primitives.EncodeAllPrimitives(&data)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkRegularDecodePrimitives benchmarks regular decode (no header)
+func BenchmarkRegularDecodePrimitives(b *testing.B) {
+	data := primitives.AllPrimitives{
+		U8Field:   255,
+		U16Field:  65535,
+		U32Field:  4294967295,
+		U64Field:  18446744073709551615,
+		I8Field:   -128,
+		I16Field:  -32768,
+		I32Field:  -2147483648,
+		I64Field:  -9223372036854775808,
+		F32Field:  3.14159,
+		F64Field:  2.718281828459045,
+		BoolField: true,
+		StrField:  "Hello, SDP!",
+	}
+	encoded, _ := primitives.EncodeAllPrimitives(&data)
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		var decoded primitives.AllPrimitives
+		err := primitives.DecodeAllPrimitives(&decoded, encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkRegularRoundtripPrimitives benchmarks regular roundtrip (no header)
+func BenchmarkRegularRoundtripPrimitives(b *testing.B) {
+	data := primitives.AllPrimitives{
+		U8Field:   255,
+		U16Field:  65535,
+		U32Field:  4294967295,
+		U64Field:  18446744073709551615,
+		I8Field:   -128,
+		I16Field:  -32768,
+		I32Field:  -2147483648,
+		I64Field:  -9223372036854775808,
+		F32Field:  3.14159,
+		F64Field:  2.718281828459045,
+		BoolField: true,
+		StrField:  "Hello, SDP!",
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		encoded, err := primitives.EncodeAllPrimitives(&data)
+		if err != nil {
+			b.Fatal(err)
+		}
+		var decoded primitives.AllPrimitives
+		err = primitives.DecodeAllPrimitives(&decoded, encoded)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// ============================================================================
+// Size Overhead Benchmarks
+// ============================================================================
+
+// BenchmarkMessageSizeOverhead measures the size difference
+func BenchmarkMessageSizeOverhead(b *testing.B) {
+	data := primitives.AllPrimitives{
+		U8Field:  1,
+		StrField: "test",
+	}
+
+	regularEncoded, _ := primitives.EncodeAllPrimitives(&data)
+	messageEncoded, _ := primitives.EncodeAllPrimitivesMessage(&data)
+
+	overhead := len(messageEncoded) - len(regularEncoded)
+	b.ReportMetric(float64(len(regularEncoded)), "regular_bytes")
+	b.ReportMetric(float64(len(messageEncoded)), "message_bytes")
+	b.ReportMetric(float64(overhead), "overhead_bytes")
+	b.ReportMetric(float64(overhead)/float64(len(regularEncoded))*100, "overhead_%")
 }
