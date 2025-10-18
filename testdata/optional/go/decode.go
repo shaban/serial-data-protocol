@@ -1,8 +1,8 @@
 package optional
 
 import (
-	"io"
 	"encoding/binary"
+	"io"
 )
 
 // Size limit constants for decode validation

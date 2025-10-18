@@ -56,7 +56,7 @@ const MAX_ARRAY_SIZE: u32 = 10_000_000;
 
 /// Encoder for SDP wire format
 pub struct Encoder<W: Write> {
-    writer: W,
+    pub writer: W,
 }
 
 impl<W: Write> Encoder<W> {
@@ -148,7 +148,7 @@ impl<W: Write> Encoder<W> {
 
 /// Decoder for SDP wire format
 pub struct Decoder<R: Read> {
-    reader: R,
+    pub reader: R,
 }
 
 impl<R: Read> Decoder<R> {
