@@ -41,12 +41,17 @@ SDP does NOT provide:
 
 ### 1.5 Performance Characteristics
 
-Real measurements from production-like workloads:
+**Verified benchmarks** from real-world workloads (see [benchmarks/](benchmarks/) for methodology):
 
-**Large dataset (62 plugins, 1759 parameters, 115 KB):**
-- Encode: 37.5 µs (1 allocation)
-- Decode: 85.2 µs (4,638 allocations - one per struct/string)
-- ~10× faster than Protocol Buffers for this use case
+**Large dataset (62 plugins, 1,759 parameters, 115 KB wire size):**
+- Encode: 39.3 µs (1 allocation)
+- Decode: 98.1 µs (4,638 allocations - one per struct/string)
+- Roundtrip: 141.0 µs (4,639 allocations)
+- Peak RAM: 313 KB (112 KB encode, 201 KB decode)
+- **6.1× faster encoding than Protocol Buffers** (39.3 µs vs 240.7 µs)
+- **3.2× faster decoding than Protocol Buffers** (98.1 µs vs 313.1 µs)
+- **3.9× faster roundtrip than Protocol Buffers** (141.0 µs vs 552.3 µs)
+- **30% less RAM than Protocol Buffers** (313 KB vs 446 KB peak)
 
 **Small messages (primitives, ~50 bytes):**
 - Regular mode: 44.25 ns roundtrip
@@ -54,7 +59,7 @@ Real measurements from production-like workloads:
 - Optional present: 58.38 ns roundtrip
 - Optional absent: 15.55 ns roundtrip (65% faster than present)
 
-See PERFORMANCE_ANALYSIS.md for detailed measurements.
+See [benchmarks/RESULTS.md](benchmarks/RESULTS.md) and [benchmarks/MEMORY_ANALYSIS.md](benchmarks/MEMORY_ANALYSIS.md) for detailed measurements.
 
 ## 2. Type System
 

@@ -111,17 +111,33 @@ Comprehensive benchmarking of optional fields and message mode features.
 
 ## 4. Real-World Impact Analysis
 
-### Audio Unit Benchmark (Real-World Data: 62 plugins, 1759 parameters)
+### Audio Unit Benchmark (Real-World Data: 62 plugins, 1,759 parameters)
 
-| Operation | Time | Memory | Allocs |
-|-----------|------|--------|--------|
-| **Encode Only** | 37.5 µs | 115 KB | 1 |
-| **Decode Only** | 85.2 µs | 205 KB | 4638 |
-| **Full Roundtrip** | 127 µs | 320 KB | 4639 |
+**Verified cross-protocol benchmarks** (see [benchmarks/RESULTS.md](benchmarks/RESULTS.md)):
+
+| Operation | SDP | Protocol Buffers | FlatBuffers |
+|-----------|-----|------------------|-------------|
+| **Encode** | 39.3 µs | 240.7 µs | 338.3 µs |
+| **Decode** | 98.1 µs | 313.1 µs | 8.8 ns* |
+| **Roundtrip** | 141.0 µs | 552.3 µs | 339.1 µs |
+| **Memory (encode)** | 112 KB | 136 KB | 900 KB |
+| **Memory (decode)** | 201 KB | 310 KB | 0 KB* |
+| **Peak RAM total** | 313 KB | 446 KB | 900 KB |
+| **Allocations (encode)** | 1 | 1 | 51 |
+| **Allocations (decode)** | 4,638 | 6,651 | 0* |
+
+\* FlatBuffers uses zero-copy decode (returns accessors, not deserialized structs)
+
+**Key Findings:**
+- **SDP is 6.1× faster than Protocol Buffers** for encoding (39.3 µs vs 240.7 µs)
+- **SDP is 3.9× faster than Protocol Buffers** for roundtrip (141.0 µs vs 552.3 µs)
+- **SDP uses 30% less RAM than Protocol Buffers** (313 KB vs 446 KB peak)
+- **SDP uses 65% less RAM than FlatBuffers** (313 KB vs 900 KB peak)
+- **SDP has 30% fewer allocations** than Protocol Buffers during decode
 
 **Estimated Message Mode Impact** (based on primitives overhead):
-- Encode: +37.5 µs → ~67 µs (+80%)
-- Decode: +85.2 µs → ~169 µs (+98%)
+- Encode: +39.3 µs → ~69 µs (+76%)
+- Decode: +98.1 µs → ~195 µs (+99%)
 - **10-byte header overhead on 115KB payload: 0.009%**
 
 **Conclusion**: Message mode overhead becomes **insignificant** for large payloads.

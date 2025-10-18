@@ -249,16 +249,18 @@ func DecodeMessage(data []byte) (interface{}, error) {
 
 ### Performance Impact
 
-**Benchmark estimates**:
+**Verified benchmarks** (see [benchmarks/RESULTS.md](benchmarks/RESULTS.md)):
 ```
-Byte mode (current):
-  BenchmarkRealWorldAudioUnit-8    9,258   128,280 ns/op
+Byte mode (current - AudioUnit 62 plugins, 1,759 params):
+  Encode: 39.3 µs (6.1× faster than Protocol Buffers)
+  Decode: 98.1 µs (3.2× faster than Protocol Buffers)
+  Roundtrip: 141.0 µs (3.9× faster than Protocol Buffers)
 
-Message mode (estimated):
-  BenchmarkRealWorldMessage-8      8,500   135,000 ns/op   (+5%)
+Message mode (estimated from primitives overhead):
+  Roundtrip: ~240 µs (+70%, still 2.3× faster than Protocol Buffers)
 ```
 
-**Still 9× faster than Protocol Buffers** (135µs vs 1,300µs)
+**Still significantly faster than Protocol Buffers** even with message mode overhead.
 
 ### Migration Guide
 

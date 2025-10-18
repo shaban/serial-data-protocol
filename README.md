@@ -35,18 +35,23 @@ SDP works well for:
 
 ### Performance Characteristics
 
-Real measurements from production-like data (62 audio plugins, 1759 parameters, 115 KB):
+**Verified benchmarks** from real-world data (62 audio plugins, 1,759 parameters, 115 KB):
 
-| Operation | Time | Allocations | Notes |
-|-----------|------|-------------|-------|
-| Encode | 37.5 µs | 1 | Single allocation, known size |
-| Decode | 85.2 µs | 4,638 | One per struct/string |
-| Full roundtrip | 127 µs | 4,639 | ~10× faster than Protocol Buffers |
+| Operation | Time | Allocations | vs Protocol Buffers | vs FlatBuffers |
+|-----------|------|-------------|---------------------|----------------|
+| **Encode** | 39.3 µs | 1 | **6.1× faster** | **8.6× faster** |
+| **Decode** | 98.1 µs | 4,638 | **3.2× faster** | 11,000× slower* |
+| **Roundtrip** | 141.0 µs | 4,639 | **3.9× faster** | **2.4× faster** |
+| **Memory usage** | 313 KB peak | — | **30% less RAM** | **65% less RAM** |
+
+\* FlatBuffers has zero-copy decode (8.8 ns) but returns accessors, not native structs
 
 Small message overhead (primitives):
 - Byte mode: 51 bytes, 44 ns roundtrip
 - Message mode: 61 bytes, 85 ns roundtrip (+19% size, +93% time)
 - Optional absent: 3.15 ns decode (10× faster than present)
+
+See [benchmarks/](benchmarks/) for detailed cross-protocol comparison and methodology.
 
 ---
 
@@ -66,8 +71,8 @@ SDP is **not appropriate** for:
 | Format | Use Case | SDP Advantage | SDP Disadvantage |
 |--------|----------|---------------|------------------|
 | **JSON** | Human-readable APIs | 17.5% the size, 50× faster | No human readability |
-| **Protocol Buffers** | Public APIs, evolution | 10× faster encode/decode | No schema evolution |
-| **FlatBuffers** | Zero-copy access | Simpler, no vtables | No random access |
+| **Protocol Buffers** | Public APIs, evolution | **6.1× faster encode, 3.9× faster roundtrip, 30% less RAM** | No schema evolution |
+| **FlatBuffers** | Zero-copy access | **2.4× faster roundtrip, simpler API** | No zero-copy (returns structs) |
 | **MessagePack** | Dynamic typing | Faster, known schema | No dynamic types |
 | **Cap'n Proto** | RPC frameworks | Simpler wire format | No RPC features |
 
