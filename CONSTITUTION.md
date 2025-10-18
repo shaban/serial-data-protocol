@@ -1,196 +1,291 @@
 # Project Constitution
 
-**Version:** 1.0.0  
-**Date:** October 18, 2025
+**Version:** 2.0.0  
+**Date:** October 18, 2025  
+**Status:** Active (Release Candidate 0.2.0-rc1)
 
 ## 1. Purpose
 
-This constitution defines the governance, principles, and rules for the Serial Data Protocol project.
+This constitution defines the governance, principles, and rules for the Serial Data Protocol project. It captures the **design principles that helped us succeed** while updating documentation structure to reflect project maturity.
 
-## 2. Core Documents
+## 2. Core Documentation
 
-### 2.1 Canonical Documents
+### 2.1 Documentation Structure
 
-The project maintains **exactly five canonical documents**:
+The project maintains **focused, non-redundant documentation** organized in three tiers:
 
-1. **DESIGN_SPEC.md** - Technical specification for version 1.0
-2. **TESTING_STRATEGY.md** - Comprehensive testing approach
-3. **DOCUMENTATION_GUIDELINES.md** - Documentation standards and practices
-4. **IMPLEMENTATION_PLAN.md** - Step-by-step implementation tasks
-5. **CONSTITUTION.md** - This document (project governance)
+**Tier 1: Essential User Documentation**
+1. **README.md** - Entry point: features, quickstart, installation
+2. **DESIGN_SPEC.md** - Wire format specification (language-agnostic, authoritative)
+3. **QUICK_REFERENCE.md** - API reference with practical examples
+4. **CHANGELOG.md** - Version history and migration guides
 
-### 2.2 Document Authority
+**Tier 2: Performance & Safety**
+5. **PERFORMANCE_ANALYSIS.md** - Benchmark methodology and detailed results
+6. **BYTE_MODE_SAFETY.md** - Safety guide (when to use byte vs message mode)
 
-**These five documents are the sole source of truth** for project design, testing, documentation, implementation, and governance.
+**Tier 3: Contributor Documentation**
+7. **LANGUAGE_IMPLEMENTATION_GUIDE.md** - Guide for implementing new language bindings
+8. **DOCUMENTATION_GUIDELINES.md** - Documentation standards and practices
+9. **TESTING_STRATEGY.md** - Cross-language testing approach
 
-### 2.3 Prohibited Documents
+**Tier 4: Language-Specific Documentation**
+- `go/README.md` - Go-specific setup, idioms, examples
+- `c/README.md` - C-specific setup, build system, platform considerations
+- `rust/README.md` - Rust-specific setup, idiomatic usage
+- etc.
 
-The following document types are **explicitly prohibited** without amendment to this constitution:
+**Archive:**
+- `archive/v0.1.0/` - Historical implementation plans for initial release
+- `archive/v0.2.0-rc1/` - Historical RC planning documents
+- `archive/analysis/` - Design exploration documents
 
-- ❌ Overview documents
-- ❌ Summary documents
-- ❌ Quick reference documents
-- ❌ Cheat sheets
-- ❌ Roadmap documents (future versions)
-- ❌ Architecture decision records (use inline in DESIGN_SPEC.md)
-- ❌ Separate changelog (use git history)
+### 2.2 Single Source of Truth Principle
 
-**Rationale:** Duplicate information sources lead to inconsistency, confusion, and maintenance burden.
+**Each piece of information exists in exactly one authoritative location.**
 
-### 2.4 Allowed Documents
-
-The following are **permitted** as they serve distinct purposes:
-
-- ✅ `README.md` - Project introduction with links to canonical docs
-- ✅ `LICENSE` - Legal licensing information
-- ✅ `examples/*/README.md` - Example-specific instructions
-- ✅ `docs/user-guide.md` - End-user guide (distinct from specification)
-- ✅ `.gitignore`, `.editorconfig`, etc. - Tool configuration
-
-## 3. Design Principles
-
-### 3.1 Version Focus
-
-**The project focuses exclusively on version 1.0.**
-
-- ❌ No mentions of "v2", "future work", or "enhancements"
-- ❌ No "deferred to later" features in specification
-- ✅ Clear statement of current limitations in DESIGN_SPEC.md Section 11.5
-- ✅ Workarounds documented for missing features
-
-**Rationale:** Premature planning for future versions distracts from shipping v1.
-
-### 3.2 Scope Discipline
-
-**Version 1.0 scope is locked:**
-
-- Schema format: Rust-like syntax
-- Type system: Primitives, strings, arrays, structs
-- Wire format: Little-endian, densely packed
-- Encoder: C, with flexible field ordering
-- Decoder: Go, with size limits
-- Testing: Wire format based, no CGO in tests
-- Target: Same-machine IPC only
-
-**Any addition to scope requires constitution amendment.**
-
-### 3.3 Simplicity Bias
-
-**When in doubt, choose simplicity over features:**
-
-- Fewer types > more types
-- Fewer wire format features > more flexibility
-- Fewer configuration options > more configurability
-
-**Example:** Optional fields use array workaround (simple) rather than new `?` syntax (complex).
-
-## 4. Decision Making
-
-### 4.1 Design Decisions
-
-**Process for design changes:**
-
-1. **Identify issue** - What problem needs solving?
-2. **Propose solution** - How to solve within v1 scope?
-3. **Consider alternatives** - What are trade-offs?
-4. **Update DESIGN_SPEC.md** - Document decision
-5. **Update tests if needed** - Reflect in TESTING_STRATEGY.md
-
-**No separate ADR (Architecture Decision Record) documents.**
-
-### 4.2 Amendment Process
-
-**To amend this constitution:**
-
-1. Propose specific change to this document
-2. Justify why change serves project goals
-3. Update constitution with clear rationale
-4. Update dependent documents if needed
-
-**Threshold:** Unanimous agreement of active contributors.
-
-## 5. Documentation Rules
-
-### 5.1 Single Source of Truth
-
-**Each piece of information exists in exactly one canonical document:**
-
-| Information | Location |
-|-------------|----------|
-| Wire format spec | DESIGN_SPEC.md Section 6 |
-| Schema syntax | DESIGN_SPEC.md Section 3 |
-| Encoder API | DESIGN_SPEC.md Section 4 |
-| Decoder API | DESIGN_SPEC.md Section 5 |
-| Size limits | DESIGN_SPEC.md Section 5.5 |
+| Information | Authoritative Location |
+|-------------|----------------------|
+| Wire format specification | DESIGN_SPEC.md Section 6 |
+| RC features (optional, message mode, streaming) | DESIGN_SPEC.md Section 3 |
+| Schema syntax | DESIGN_SPEC.md Section 2 |
+| API examples | QUICK_REFERENCE.md |
+| Performance numbers | PERFORMANCE_ANALYSIS.md + benchmarks/ |
+| Safety guidelines | BYTE_MODE_SAFETY.md |
 | Testing approach | TESTING_STRATEGY.md |
+| Language porting guide | LANGUAGE_IMPLEMENTATION_GUIDE.md |
 | Documentation style | DOCUMENTATION_GUIDELINES.md |
-| Implementation tasks | IMPLEMENTATION_PLAN.md |
-| Project rules | CONSTITUTION.md (this document) |
+| Project governance | CONSTITUTION.md (this document) |
 
-### 5.2 Consistency Requirements
+**Cross-references are encouraged, duplication is prohibited.**
+
+### 2.3 Documentation Maintenance Rules
 
 **When updating information:**
-
-1. ✅ Update the single source of truth
-2. ❌ Do NOT duplicate information elsewhere
-3. ✅ Link to canonical source if needed
+1. ✅ Update the single authoritative source
+2. ✅ Link to authoritative source from related docs
+3. ❌ Do NOT duplicate information
+4. ❌ Do NOT create summaries that can go stale
 
 **Example:**
 ```markdown
-❌ Bad: Repeat size limits in multiple documents
-✅ Good: State in DESIGN_SPEC.md, link from elsewhere
+❌ Bad: Copy performance numbers into README.md
+✅ Good: "See PERFORMANCE_ANALYSIS.md for detailed benchmarks"
+
+❌ Bad: Repeat wire format details in QUICK_REFERENCE.md  
+✅ Good: "Wire format: see DESIGN_SPEC.md Section 6"
 ```
 
-### 5.3 Link Policy
+### 2.4 New Document Policy
 
-**Internal links:**
-- ✅ Link to specific sections: `[Size Limits](DESIGN_SPEC.md#55-size-limits)`
-- ❌ Do not copy-paste content
+**Before creating a new document, ask:**
+1. Does this information already exist? → Update existing doc
+2. Is this temporary? → Put in archive/ or delete after use
+3. Is this language-specific? → Put in `<language>/README.md`
+4. Is this genuinely new and permanent? → Add to core documentation
 
-**External links:**
-- ✅ Link to official documentation (e.g., Go spec, Rust book)
-- ❌ Link to blog posts or unofficial sources (they change)
+**Prohibited document types:**
+- ❌ Documents that duplicate existing information
+- ❌ "Overview" or "summary" documents (use README.md)
+- ❌ Architecture Decision Records (put rationale inline in DESIGN_SPEC.md)
+- ❌ Multiple changelogs (one CHANGELOG.md only)
 
-## 6. Code Organization
+## 3. Design Principles
 
-### 6.1 Repository Structure
+### 3.1 Focus on Current Version
 
+**The project focuses on the current version being developed.**
+
+✅ **Good practices:**
+- Clear documentation of current features
+- Honest limitations in README.md "When NOT to Use" section
+- Workarounds documented for missing features
+- Version history in CHANGELOG.md
+
+❌ **Avoid:**
+- Planning v2 features before v1 is released
+- "Future work" sections in specs (use GitHub issues instead)
+- Speculative features in documentation
+
+**Rationale:** Focus on shipping the current version. Gather real-world feedback before planning the next version.
+
+**Current status:** Version 0.2.0-rc1 (Release Candidate with optional fields, message mode, streaming I/O)
+
+### 3.2 Simplicity Bias
+
+**When in doubt, choose simplicity over features.**
+
+Examples from our development:
+- ✅ Fixed-width integers instead of variable-width (simpler, faster)
+- ✅ Little-endian only (simpler, most platforms)
+- ✅ No built-in compression (compose with gzip instead)
+- ✅ Generated code with zero dependencies
+
+**Decision framework:**
+1. Can we solve this by composing existing features?
+2. Does this add complexity to the wire format?
+3. Does this add dependencies to generated code?
+4. Can users implement this themselves if needed?
+
+**Bias:** Prefer "no" to feature requests unless they solve a core problem that users cannot solve themselves.
+
+### 3.3 Performance First
+
+**Performance is a core feature, not an optimization.**
+
+✅ **Maintained:**
+- Verified benchmarks (see benchmarks/ directory)
+- All performance claims backed by reproducible measurements
+- Honest comparisons with Protocol Buffers and FlatBuffers
+- Memory usage profiling
+
+❌ **Reject:**
+- Features that compromise performance without clear value
+- "We'll optimize later" mindset
+- Performance claims without benchmarks
+
+**Benchmark discipline:**
+- Use real-world data (not synthetic micro-benchmarks)
+- Fair comparisons (same data, standard APIs, no tricks)
+- Statistical confidence (multiple iterations)
+- Document trade-offs honestly
+
+### 3.4 Zero Dependencies for Generated Code
+
+**Generated code must have zero runtime dependencies.**
+
+✅ **Current state:**
+- Go generated code: stdlib only
+- C generated code: C11 stdlib only (planned)
+- No compression libraries, no network libraries, no serialization frameworks
+
+**Rationale:**
+- Users compose SDP with their choice of compression/transport
+- Reduces security surface area
+- No version conflicts
+- No supply chain risk
+
+**Unix philosophy:** Provide interfaces (io.Reader/Writer), not implementations.
+
+## 4. Decision Making
+
+### 4.1 Design Changes
+
+**Process for significant changes:**
+
+1. **Identify problem** - What real-world problem needs solving?
+2. **Check simplicity bias** - Can users solve this themselves?
+3. **Propose solution** - How to solve within current principles?
+4. **Document trade-offs** - What are the costs?
+5. **Update DESIGN_SPEC.md** - Document decision with rationale inline
+6. **Update tests** - Reflect in TESTING_STRATEGY.md
+7. **Update benchmarks** - Measure performance impact
+
+**No separate ADR (Architecture Decision Record) documents.** Rationale goes in DESIGN_SPEC.md.
+
+### 4.2 Amendment to This Constitution
+
+**Process:**
+1. Propose specific change to CONSTITUTION.md
+2. Justify why change serves project goals
+3. Update constitution with clear rationale
+4. Update amendment history (Section 15)
+
+**Examples of valid amendments:**
+- Updating documentation structure as project matures
+- Adding new design principles that prove valuable
+- Clarifying ambiguous governance rules
+
+**Invalid amendments:**
+- Removing simplicity bias
+- Allowing documentation duplication
+- Removing performance-first principle
+
+## 5. Repository Structure
+
+### 5.1 Multi-Language Organization
+
+**Root structure:**
 ```
 serial-data-protocol/
-  cmd/
-    sdp-gen/          # Generator binary
-      main.go
-  
-  internal/
-    parser/           # Schema parser
-    validator/        # Schema validation
-    generator/        # Code generation
-      go/
-      c/
-      rust/
-    wire/             # Wire format helpers
-  
-  testdata/           # Test schemas and fixtures (gitignored generated code)
-  examples/           # Runnable examples
-  
-  DESIGN_SPEC.md             # Canonical spec
-  TESTING_STRATEGY.md        # Canonical testing
-  DOCUMENTATION_GUIDELINES.md # Canonical docs guide
-  CONSTITUTION.md            # This document
-  README.md                  # Project introduction only
-  LICENSE                    # Legal
+├── README.md                          # Entry point
+├── DESIGN_SPEC.md                     # Wire format spec (language-agnostic)
+├── QUICK_REFERENCE.md                 # API examples
+├── CHANGELOG.md                       # Version history
+├── PERFORMANCE_ANALYSIS.md            # Benchmarks
+├── BYTE_MODE_SAFETY.md                # Safety guide
+├── LANGUAGE_IMPLEMENTATION_GUIDE.md   # Porting guide
+├── DOCUMENTATION_GUIDELINES.md        # Contributor docs
+├── TESTING_STRATEGY.md                # Testing approach
+├── CONSTITUTION.md                    # This document
+├── LICENSE                            # MIT
+│
+├── go/                                # Go implementation
+│   ├── README.md                      # Go-specific guide
+│   ├── go.mod
+│   ├── cmd/sdp-gen/                   # Generator
+│   ├── internal/                      # Parser, validator, codegen
+│   ├── integration_test.go
+│   └── crossplatform_test.go
+│
+├── c/                                 # C implementation (planned)
+│   ├── README.md                      # C-specific guide
+│   ├── Makefile
+│   └── cmd/sdp-gen-c/
+│
+├── rust/                              # Rust implementation (future)
+│   ├── README.md
+│   └── Cargo.toml
+│
+├── testdata/                          # Shared test schemas
+│   ├── audiounit.sdp
+│   ├── plugins.json
+│   └── (generated code gitignored)
+│
+├── benchmarks/                        # Cross-language benchmarks
+│   ├── README.md
+│   ├── RESULTS.md
+│   ├── MEMORY_ANALYSIS.md
+│   └── (comparison tests)
+│
+└── archive/                           # Historical documentation
+    ├── v0.1.0/                        # Initial implementation
+    ├── v0.2.0-rc1/                    # RC planning
+    └── analysis/                      # Design explorations
 ```
 
-### 6.2 Generated Code
+### 5.2 Language-Specific Documentation
 
-**Generated code is never checked into git (except in examples for demonstration).**
+**Each language implementation has its own README.md covering:**
+- Installation and setup
+- Build system (go.mod, Makefile, Cargo.toml, etc.)
+- Language-specific API idioms
+- Platform considerations
+- Examples in that language
+- Known limitations
 
-- `testdata/*/` - Gitignored, regenerated by TestMain
-- `examples/*/generated/` - Included for demonstration, marked as generated
+**Wire format documentation stays in root DESIGN_SPEC.md (language-agnostic).**
 
-## 7. Version Control
+### 5.3 Generated Code
 
-### 7.1 Commit Messages
+**Generated code is never committed (except examples for demonstration):**
+- `testdata/*/` - Gitignored, regenerated by tests
+- `benchmarks/pb/`, `benchmarks/fb/` - Gitignored, regenerated by Makefile
+- `go/examples/*/generated/` - May be committed for GitHub browsing
+
+**.gitignore includes:**
+```
+*_generated.go
+*_generated.c
+*_generated.h
+/testdata/primitives/
+/testdata/audiounit/
+# etc.
+```
+
+## 6. Version Control
+
+### 6.1 Commit Messages
 
 **Format:**
 ```
@@ -203,226 +298,141 @@ serial-data-protocol/
 
 **Types:**
 - `spec:` - Changes to DESIGN_SPEC.md
-- `test:` - Changes to TESTING_STRATEGY.md or test code
-- `docs:` - Changes to DOCUMENTATION_GUIDELINES.md
-- `gen:` - Changes to generator code
-- `parser:` - Changes to schema parser
+- `test:` - Changes to tests or TESTING_STRATEGY.md
+- `docs:` - Documentation updates
+- `gen:` - Generator code changes
+- `bench:` - Benchmark updates
 - `fix:` - Bug fixes
 - `refactor:` - Code restructuring
+- `archive:` - Moving docs to archive/
 
 **Example:**
 ```
-spec: Add field reordering semantics
+spec: Add optional fields wire format
 
-Document that scalar fields can be written in any order and are
-reordered to schema definition order on commit. Update encoder
-architecture section with tentative field storage design.
+Document presence byte encoding for Option<T> fields.
+Updated section 3.1 with wire format examples and decoder logic.
 
-Refs: DESIGN_SPEC.md Section 4.1, 4.4
+Refs: DESIGN_SPEC.md Section 3.1.2
 ```
 
-### 7.2 Branch Strategy
+### 6.2 Branch Strategy
 
-**Main branch:**
-- `main` - Always deployable, all tests pass
+**Simple flow:**
+- `main` - Always releasable, all tests pass
+- Feature branches: `feature/c-codegen`, `fix/parser-strings`
+- Merge to main when: tests pass, docs updated, benchmarks run
 
-**Development:**
-- Feature branches: `feature/field-reordering`
-- Fix branches: `fix/parser-error-messages`
+## 7. Testing Requirements
 
-**Merge requirements:**
-- All tests pass
-- Documentation updated
-- Single source of truth maintained
+**Follow TESTING_STRATEGY.md exclusively.**
 
-## 8. Testing Requirements
-
-### 8.1 Test Coverage
-
-**Minimum coverage by component:**
-
-- Parser: 90%
-- Validator: 90%
-- Generator: 85%
-- Wire format helpers: 95%
+**Minimum standards:**
+- Parser/Validator: 90% coverage
+- Generator: 85% coverage  
 - Integration tests: All happy paths + major error cases
+- Cross-language: Wire format compatibility
 
-**Enforcement:** CI fails if coverage drops below thresholds.
-
-### 8.2 Test Organization
-
-**Follow TESTING_STRATEGY.md exclusively:**
-
+**Test organization:**
 - Level 1: Unit tests (no generated code)
 - Level 2: Generator tests
-- Level 3: Integration tests (generated code)
+- Level 3: Integration tests (generated packages)
 - Level 4: Cross-language tests
 
-**No ad-hoc test organization.**
+## 8. Release Process
 
-## 9. Release Process
+### 8.1 Version Numbering
 
-### 9.1 Version 1.0 Release Criteria
+**Semantic versioning:** `MAJOR.MINOR.PATCH`
 
-**Must complete:**
+- **MAJOR:** Wire format breaking changes (rare!)
+- **MINOR:** New features (optional fields, message mode, etc.)
+- **PATCH:** Bug fixes, documentation
 
-- ✅ All sections of DESIGN_SPEC.md implemented
-- ✅ All tests in TESTING_STRATEGY.md passing
-- ✅ Documentation in DOCUMENTATION_GUIDELINES.md followed
-- ✅ Examples work and are documented
-- ✅ Generator produces valid Go and C code
-- ✅ Wire format specification complete and tested
-- ✅ Cross-language tests pass (C→Go, Rust→Go)
+**Current:** 0.2.0-rc1 (Release Candidate)
 
-**Tag:** `v1.0.0`
+### 8.2 Release Checklist
 
-### 9.2 Post-1.0
+**Before release:**
+- ✅ All tests pass (go test ./...)
+- ✅ Benchmarks run successfully
+- ✅ Documentation updated
+- ✅ CHANGELOG.md has entry for version
+- ✅ Performance claims verified
+- ✅ Examples work
 
-**After 1.0 release:**
+**Release tag:** `git tag v0.2.0-rc1`
 
-1. Update constitution to allow version 2.0 planning
-2. Create new documents if needed for v2 design
-3. Maintain v1.0 as stable branch
+## 9. Conflict Resolution
 
-**Until then:** No v2 planning, no future work discussions in canonical documents.
-
-## 10. Conflict Resolution
-
-### 10.1 Document Conflicts
-
-**If canonical documents contradict each other:**
+**If documentation contains contradictions:**
 
 1. Identify conflicting statements
-2. Determine which is correct
-3. Update incorrect document
-4. Add clarifying cross-references
+2. Determine which is correct (check implementation, tests, benchmarks)
+3. Update incorrect documentation
+4. Add clarifying note if needed
 
-**Precedence (if unclear):**
-1. CONSTITUTION.md (highest)
-2. DESIGN_SPEC.md
-3. TESTING_STRATEGY.md
-4. DOCUMENTATION_GUIDELINES.md
+**Precedence (if truly ambiguous):**
+1. CONSTITUTION.md (governance)
+2. DESIGN_SPEC.md (wire format is authoritative)
+3. Benchmarks (performance claims must match reality)
+4. Other documentation
 
-### 10.2 Specification Ambiguity
+## 10. What Made This Project Successful
 
-**If DESIGN_SPEC.md is ambiguous:**
+**Principles that helped us ship 0.2.0-rc1:**
 
-1. Clarify intended behavior
-2. Update spec with precise language
-3. Add example if helpful
-4. Update tests to match
+✅ **Focus over features** - We shipped optional fields, message mode, and streaming instead of endlessly planning
 
-**Do NOT create separate clarification document.**
+✅ **Simplicity bias** - Fixed-width integers, no built-in compression, zero dependencies kept us fast
 
-## 11. Enforcement
+✅ **Performance first** - Fair benchmarks proved 6.1× faster encoding, 30% less RAM than Protocol Buffers
 
-### 11.1 Pre-Commit Checks
+✅ **Single source of truth** - DESIGN_SPEC.md is authoritative for wire format, no contradictions
 
-**Automated checks:**
-- Verify no prohibited documents added
-- Verify generated code not committed (except examples)
-- Verify links in canonical documents are valid
+✅ **Test-driven** - 415 tests passing gave confidence to iterate quickly
 
-### 11.2 Pull Request Requirements
+✅ **Honest trade-offs** - "When NOT to Use" section builds trust, prevents misuse
 
-**Every PR must:**
-- Update relevant canonical document(s)
-- Include tests per TESTING_STRATEGY.md
-- Follow DOCUMENTATION_GUIDELINES.md
-- Maintain single source of truth
+**Principles to maintain:**
+- Keep docs focused and non-redundant
+- Verify all performance claims with benchmarks
+- Maintain zero dependencies in generated code
+- Document limitations honestly
+- Prefer composition over built-in features
 
-**Reviewer checklist:**
-- [ ] Changes documented in canonical docs
-- [ ] No duplicate information created
-- [ ] Tests added/updated
-- [ ] Constitution respected
+## 11. Amendment History
 
-## 12. Maintenance
+### Version 2.0.0 - October 18, 2025
 
-### 12.1 Document Reviews
+**Major update after RC completion:**
 
-**Quarterly review of canonical documents:**
-- Check for internal consistency
-- Verify implementation matches specification
-- Update examples if API changed
-- Fix broken links
+- Updated documentation structure from "exactly five canonical documents" to three-tier system
+- Added Tier 1 (user docs), Tier 2 (performance/safety), Tier 3 (contributor), Tier 4 (language-specific)
+- Removed prohibition on quick reference and changelog (they proved valuable)
+- Added "Performance First" and "Zero Dependencies" principles
+- Updated repository structure for multi-language support
+- Archived IMPLEMENTATION_PLAN.md and RC_IMPLEMENTATION_PLAN.md (complete)
+- Simplified release process section
+- Added "What Made This Project Successful" section capturing lessons learned
 
-### 12.2 Cleanup
-
-**If prohibited documents appear:**
-1. Identify information source
-2. Merge useful information into canonical docs
-3. Delete prohibited document
-4. Update links if any
-
-## 13. Rationale
-
-### 13.1 Why Four Documents?
-
-**DESIGN_SPEC.md:**
-- Technical truth about how system works
-- Wire format, API, algorithms
-- Implementation guide
-
-**TESTING_STRATEGY.md:**
-- How to verify correctness
-- Test organization, fixtures, cross-language
-- Quality assurance approach
-
-**DOCUMENTATION_GUIDELINES.md:**
-- How to write docs
-- Style, examples, maintenance
-- User-facing documentation
-
-**CONSTITUTION.md:**
-- Project governance
-- Decision-making rules
-- Document discipline
-
-**Four is sufficient, more would fragment truth.**
-
-### 13.2 Why No Version 2 Planning?
-
-**Focus principle:** Planning future versions before shipping v1 is premature.
-
-**Problems with future planning:**
-- Distracts from completing v1
-- Creates ambiguity ("is this v1 or v2?")
-- Tempts feature creep
-- Wastes effort on speculative design
-
-**Better approach:** Ship v1, gather feedback, then plan v2.
-
-### 13.3 Why Prohibit Summary Documents?
-
-**Problem:** Summaries become outdated and contradict canonical docs.
-
-**Example scenario:**
-1. Create "Quick Reference" with wire format summary
-2. Update wire format in DESIGN_SPEC.md
-3. Forget to update Quick Reference
-4. Users confused by conflicting information
-
-**Solution:** No summaries. Link to canonical docs.
-
-### 14. Amendment History
+**Rationale:** Constitution v1.0 helped us stay focused during initial development. V2.0 updates rules to reflect project maturity while preserving core principles that worked.
 
 ### Version 1.0.1 - October 18, 2025
 
 - Added IMPLEMENTATION_PLAN.md as fifth canonical document
-- Updated document count from four to five
 
 ### Version 1.0.0 - October 18, 2025
 
 - Initial constitution
-- Established four canonical documents
+- Established governance rules
 - Prohibited unauthorized documents
-- Focused on version 1.0 exclusively
+- Focused exclusively on version 1.0
 
 ---
 
 **End of Constitution**
 
-**This document may only be amended by unanimous consent of active contributors.**
+**This document captures the principles and practices that helped us succeed. Update it when those principles evolve, but don't discard what works.**
 
-**Last amended:** October 18, 2025
+**Last amended:** October 18, 2025 (Version 2.0.0)

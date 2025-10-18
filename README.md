@@ -66,6 +66,8 @@ SDP is **not appropriate** for:
 ❌ **Variable-size integers** - Uses fixed u32/u64, not space-efficient for small numbers  
 ❌ **Maximum compression** - Simpler than Protocol Buffers but larger (compose with gzip for 68% reduction)
 
+> **Safety Note:** See [BYTE_MODE_SAFETY.md](BYTE_MODE_SAFETY.md) for important guidance on when to use byte mode vs message mode.
+
 ### Comparison with Other Formats
 
 | Format | Use Case | SDP Advantage | SDP Disadvantage |
@@ -411,7 +413,7 @@ If you need schema evolution, use Protocol Buffers. If you need dynamic typing, 
 - **[DESIGN_SPEC.md](DESIGN_SPEC.md)** - Wire format specification and technical details
 - **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** - API reference and examples
 - **[PERFORMANCE_ANALYSIS.md](PERFORMANCE_ANALYSIS.md)** - Detailed performance measurements
-- **[RC_SPEC.md](RC_SPEC.md)** - Release candidate feature specification
+- **[BYTE_MODE_SAFETY.md](BYTE_MODE_SAFETY.md)** - Safety guide (byte mode vs message mode)
 - **[TESTING_STRATEGY.md](TESTING_STRATEGY.md)** - Testing approach
 
 ---
@@ -424,10 +426,10 @@ MIT License - See LICENSE file
 
 ## Contributing
 
-This project is in active development. Before contributing:
+This project is in active development (Release Candidate 0.2.0-rc1). Before contributing:
 
 1. Read `DESIGN_SPEC.md` for wire format details
-2. Check `RC_IMPLEMENTATION_PLAN.md` for current priorities
+2. Check `CHANGELOG.md` for recent changes and planned features
 3. Run tests: `go test ./...` (should see 415 tests pass)
 4. Follow existing code generation patterns
 
