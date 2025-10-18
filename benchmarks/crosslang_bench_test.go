@@ -43,9 +43,17 @@ func runRustBench(command string, args ...string) int64 {
 
 // Helper to run Swift benchmark binary and parse timing
 func runSwiftBench(command string, args ...string) int64 {
-	// Compile swift_bench if needed (release mode with optimizations)
+	// Compile swift_bench if needed (release mode with ALL optimizations)
 	if _, err := os.Stat("./swift_bench"); os.IsNotExist(err) {
-		cmd := exec.Command("swiftc", "-O", "-whole-module-optimization", "swift_bench.swift", "-o", "swift_bench")
+		cmd := exec.Command("swiftc",
+			"-O",
+			"-whole-module-optimization",
+			"-swift-version", "5",
+			"-cross-module-optimization",
+			"-remove-runtime-asserts",
+			"-enforce-exclusivity=unchecked",
+			"swift_bench.swift",
+			"-o", "swift_bench")
 		if err := cmd.Run(); err != nil {
 			panic("Failed to compile swift_bench: " + err.Error())
 		}
