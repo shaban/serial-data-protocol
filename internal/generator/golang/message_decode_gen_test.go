@@ -86,7 +86,7 @@ func TestGenerateMessageDecoders(t *testing.T) {
 					t.Errorf("missing payload extraction")
 				}
 				// Check payload decoding
-				if !strings.Contains(code, "return DecodePoint(payload)") {
+				if !strings.Contains(code, "DecodePoint(&result, payload)") {
 					t.Errorf("missing payload decode call")
 				}
 			},
@@ -157,7 +157,7 @@ func TestGenerateMessageDecoders(t *testing.T) {
 				if !strings.Contains(code, "func DecodeDataPacketMessage(") {
 					t.Errorf("expected DecodeDataPacketMessage, check name conversion")
 				}
-				if !strings.Contains(code, "return DecodeDataPacket(payload)") {
+				if !strings.Contains(code, "DecodeDataPacket(&result, payload)") {
 					t.Errorf("expected DecodeDataPacket call")
 				}
 			},

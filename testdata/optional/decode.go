@@ -400,3 +400,371 @@ func decodeTagList(dest *TagList, data []byte, offset *int, ctx *DecodeContext) 
 
 	return nil
 }
+
+
+// DecodeRequestMessage decodes a Request from self-describing message format.
+// The message must include a valid 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// Returns an error if the header is invalid or the payload cannot be decoded.
+func DecodeRequestMessage(data []byte) (*Request, error) {
+	// Check minimum message size
+	if len(data) < MessageHeaderSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Validate magic bytes
+	if string(data[0:3]) != MessageMagic {
+		return nil, ErrInvalidMagic
+	}
+
+	// Validate protocol version
+	if data[3] != MessageVersion {
+		return nil, ErrInvalidVersion
+	}
+
+	// Validate type ID
+	typeID := binary.LittleEndian.Uint16(data[4:6])
+	if typeID != 1 {
+		return nil, ErrUnknownMessageType
+	}
+
+	// Extract payload length
+	payloadLength := binary.LittleEndian.Uint32(data[6:10])
+
+	// Validate total message size
+	expectedSize := MessageHeaderSize + int(payloadLength)
+	if len(data) < expectedSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Extract payload
+	payload := data[MessageHeaderSize:expectedSize]
+
+	// Decode payload
+	var result Request
+	if err := DecodeRequest(&result, payload); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// DecodeMetadataMessage decodes a Metadata from self-describing message format.
+// The message must include a valid 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// Returns an error if the header is invalid or the payload cannot be decoded.
+func DecodeMetadataMessage(data []byte) (*Metadata, error) {
+	// Check minimum message size
+	if len(data) < MessageHeaderSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Validate magic bytes
+	if string(data[0:3]) != MessageMagic {
+		return nil, ErrInvalidMagic
+	}
+
+	// Validate protocol version
+	if data[3] != MessageVersion {
+		return nil, ErrInvalidVersion
+	}
+
+	// Validate type ID
+	typeID := binary.LittleEndian.Uint16(data[4:6])
+	if typeID != 2 {
+		return nil, ErrUnknownMessageType
+	}
+
+	// Extract payload length
+	payloadLength := binary.LittleEndian.Uint32(data[6:10])
+
+	// Validate total message size
+	expectedSize := MessageHeaderSize + int(payloadLength)
+	if len(data) < expectedSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Extract payload
+	payload := data[MessageHeaderSize:expectedSize]
+
+	// Decode payload
+	var result Metadata
+	if err := DecodeMetadata(&result, payload); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// DecodeConfigMessage decodes a Config from self-describing message format.
+// The message must include a valid 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// Returns an error if the header is invalid or the payload cannot be decoded.
+func DecodeConfigMessage(data []byte) (*Config, error) {
+	// Check minimum message size
+	if len(data) < MessageHeaderSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Validate magic bytes
+	if string(data[0:3]) != MessageMagic {
+		return nil, ErrInvalidMagic
+	}
+
+	// Validate protocol version
+	if data[3] != MessageVersion {
+		return nil, ErrInvalidVersion
+	}
+
+	// Validate type ID
+	typeID := binary.LittleEndian.Uint16(data[4:6])
+	if typeID != 3 {
+		return nil, ErrUnknownMessageType
+	}
+
+	// Extract payload length
+	payloadLength := binary.LittleEndian.Uint32(data[6:10])
+
+	// Validate total message size
+	expectedSize := MessageHeaderSize + int(payloadLength)
+	if len(data) < expectedSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Extract payload
+	payload := data[MessageHeaderSize:expectedSize]
+
+	// Decode payload
+	var result Config
+	if err := DecodeConfig(&result, payload); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// DecodeDatabaseConfigMessage decodes a DatabaseConfig from self-describing message format.
+// The message must include a valid 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// Returns an error if the header is invalid or the payload cannot be decoded.
+func DecodeDatabaseConfigMessage(data []byte) (*DatabaseConfig, error) {
+	// Check minimum message size
+	if len(data) < MessageHeaderSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Validate magic bytes
+	if string(data[0:3]) != MessageMagic {
+		return nil, ErrInvalidMagic
+	}
+
+	// Validate protocol version
+	if data[3] != MessageVersion {
+		return nil, ErrInvalidVersion
+	}
+
+	// Validate type ID
+	typeID := binary.LittleEndian.Uint16(data[4:6])
+	if typeID != 4 {
+		return nil, ErrUnknownMessageType
+	}
+
+	// Extract payload length
+	payloadLength := binary.LittleEndian.Uint32(data[6:10])
+
+	// Validate total message size
+	expectedSize := MessageHeaderSize + int(payloadLength)
+	if len(data) < expectedSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Extract payload
+	payload := data[MessageHeaderSize:expectedSize]
+
+	// Decode payload
+	var result DatabaseConfig
+	if err := DecodeDatabaseConfig(&result, payload); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// DecodeCacheConfigMessage decodes a CacheConfig from self-describing message format.
+// The message must include a valid 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// Returns an error if the header is invalid or the payload cannot be decoded.
+func DecodeCacheConfigMessage(data []byte) (*CacheConfig, error) {
+	// Check minimum message size
+	if len(data) < MessageHeaderSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Validate magic bytes
+	if string(data[0:3]) != MessageMagic {
+		return nil, ErrInvalidMagic
+	}
+
+	// Validate protocol version
+	if data[3] != MessageVersion {
+		return nil, ErrInvalidVersion
+	}
+
+	// Validate type ID
+	typeID := binary.LittleEndian.Uint16(data[4:6])
+	if typeID != 5 {
+		return nil, ErrUnknownMessageType
+	}
+
+	// Extract payload length
+	payloadLength := binary.LittleEndian.Uint32(data[6:10])
+
+	// Validate total message size
+	expectedSize := MessageHeaderSize + int(payloadLength)
+	if len(data) < expectedSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Extract payload
+	payload := data[MessageHeaderSize:expectedSize]
+
+	// Decode payload
+	var result CacheConfig
+	if err := DecodeCacheConfig(&result, payload); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// DecodeDocumentMessage decodes a Document from self-describing message format.
+// The message must include a valid 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// Returns an error if the header is invalid or the payload cannot be decoded.
+func DecodeDocumentMessage(data []byte) (*Document, error) {
+	// Check minimum message size
+	if len(data) < MessageHeaderSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Validate magic bytes
+	if string(data[0:3]) != MessageMagic {
+		return nil, ErrInvalidMagic
+	}
+
+	// Validate protocol version
+	if data[3] != MessageVersion {
+		return nil, ErrInvalidVersion
+	}
+
+	// Validate type ID
+	typeID := binary.LittleEndian.Uint16(data[4:6])
+	if typeID != 6 {
+		return nil, ErrUnknownMessageType
+	}
+
+	// Extract payload length
+	payloadLength := binary.LittleEndian.Uint32(data[6:10])
+
+	// Validate total message size
+	expectedSize := MessageHeaderSize + int(payloadLength)
+	if len(data) < expectedSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Extract payload
+	payload := data[MessageHeaderSize:expectedSize]
+
+	// Decode payload
+	var result Document
+	if err := DecodeDocument(&result, payload); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// DecodeTagListMessage decodes a TagList from self-describing message format.
+// The message must include a valid 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// Returns an error if the header is invalid or the payload cannot be decoded.
+func DecodeTagListMessage(data []byte) (*TagList, error) {
+	// Check minimum message size
+	if len(data) < MessageHeaderSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Validate magic bytes
+	if string(data[0:3]) != MessageMagic {
+		return nil, ErrInvalidMagic
+	}
+
+	// Validate protocol version
+	if data[3] != MessageVersion {
+		return nil, ErrInvalidVersion
+	}
+
+	// Validate type ID
+	typeID := binary.LittleEndian.Uint16(data[4:6])
+	if typeID != 7 {
+		return nil, ErrUnknownMessageType
+	}
+
+	// Extract payload length
+	payloadLength := binary.LittleEndian.Uint32(data[6:10])
+
+	// Validate total message size
+	expectedSize := MessageHeaderSize + int(payloadLength)
+	if len(data) < expectedSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Extract payload
+	payload := data[MessageHeaderSize:expectedSize]
+
+	// Decode payload
+	var result TagList
+	if err := DecodeTagList(&result, payload); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+
+
+// DecodeMessage decodes a message and returns the struct type based on the type ID in the header.
+// This is the main entry point for decoding self-describing messages.
+// Returns the decoded struct as an interface{} which can be type-asserted to the specific type.
+func DecodeMessage(data []byte) (interface{}, error) {
+	// Check minimum message size
+	if len(data) < MessageHeaderSize {
+		return nil, ErrUnexpectedEOF
+	}
+
+	// Validate magic bytes
+	if string(data[0:3]) != MessageMagic {
+		return nil, ErrInvalidMagic
+	}
+
+	// Validate protocol version
+	if data[3] != MessageVersion {
+		return nil, ErrInvalidVersion
+	}
+
+	// Extract type ID
+	typeID := binary.LittleEndian.Uint16(data[4:6])
+
+	// Dispatch to specific decoder
+	switch typeID {
+	case 1:
+		return DecodeRequestMessage(data)
+	case 2:
+		return DecodeMetadataMessage(data)
+	case 3:
+		return DecodeConfigMessage(data)
+	case 4:
+		return DecodeDatabaseConfigMessage(data)
+	case 5:
+		return DecodeCacheConfigMessage(data)
+	case 6:
+		return DecodeDocumentMessage(data)
+	case 7:
+		return DecodeTagListMessage(data)
+	default:
+		return nil, ErrUnknownMessageType
+	}
+}

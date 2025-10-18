@@ -301,3 +301,187 @@ func encodeTagList(src *TagList, buf []byte, offset *int) error {
 	}
 	return nil
 }
+
+
+// EncodeRequestMessage encodes a Request to self-describing message format.
+// The message includes a 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// This format is suitable for persistence, network transmission, and cross-service communication.
+func EncodeRequestMessage(src *Request) ([]byte, error) {
+	// Encode payload
+	payload, err := EncodeRequest(src)
+	if err != nil {
+		return nil, err
+	}
+
+	// Allocate message buffer (header + payload)
+	messageSize := MessageHeaderSize + len(payload)
+	message := make([]byte, messageSize)
+
+	// Write header
+	copy(message[0:3], MessageMagic)  // Magic bytes 'SDP'
+	message[3] = MessageVersion       // Protocol version '2'
+	binary.LittleEndian.PutUint16(message[4:6], 1)  // Type ID
+	binary.LittleEndian.PutUint32(message[6:10], uint32(len(payload)))  // Payload length
+
+	// Copy payload
+	copy(message[10:], payload)
+
+	return message, nil
+}
+
+// EncodeMetadataMessage encodes a Metadata to self-describing message format.
+// The message includes a 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// This format is suitable for persistence, network transmission, and cross-service communication.
+func EncodeMetadataMessage(src *Metadata) ([]byte, error) {
+	// Encode payload
+	payload, err := EncodeMetadata(src)
+	if err != nil {
+		return nil, err
+	}
+
+	// Allocate message buffer (header + payload)
+	messageSize := MessageHeaderSize + len(payload)
+	message := make([]byte, messageSize)
+
+	// Write header
+	copy(message[0:3], MessageMagic)  // Magic bytes 'SDP'
+	message[3] = MessageVersion       // Protocol version '2'
+	binary.LittleEndian.PutUint16(message[4:6], 2)  // Type ID
+	binary.LittleEndian.PutUint32(message[6:10], uint32(len(payload)))  // Payload length
+
+	// Copy payload
+	copy(message[10:], payload)
+
+	return message, nil
+}
+
+// EncodeConfigMessage encodes a Config to self-describing message format.
+// The message includes a 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// This format is suitable for persistence, network transmission, and cross-service communication.
+func EncodeConfigMessage(src *Config) ([]byte, error) {
+	// Encode payload
+	payload, err := EncodeConfig(src)
+	if err != nil {
+		return nil, err
+	}
+
+	// Allocate message buffer (header + payload)
+	messageSize := MessageHeaderSize + len(payload)
+	message := make([]byte, messageSize)
+
+	// Write header
+	copy(message[0:3], MessageMagic)  // Magic bytes 'SDP'
+	message[3] = MessageVersion       // Protocol version '2'
+	binary.LittleEndian.PutUint16(message[4:6], 3)  // Type ID
+	binary.LittleEndian.PutUint32(message[6:10], uint32(len(payload)))  // Payload length
+
+	// Copy payload
+	copy(message[10:], payload)
+
+	return message, nil
+}
+
+// EncodeDatabaseConfigMessage encodes a DatabaseConfig to self-describing message format.
+// The message includes a 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// This format is suitable for persistence, network transmission, and cross-service communication.
+func EncodeDatabaseConfigMessage(src *DatabaseConfig) ([]byte, error) {
+	// Encode payload
+	payload, err := EncodeDatabaseConfig(src)
+	if err != nil {
+		return nil, err
+	}
+
+	// Allocate message buffer (header + payload)
+	messageSize := MessageHeaderSize + len(payload)
+	message := make([]byte, messageSize)
+
+	// Write header
+	copy(message[0:3], MessageMagic)  // Magic bytes 'SDP'
+	message[3] = MessageVersion       // Protocol version '2'
+	binary.LittleEndian.PutUint16(message[4:6], 4)  // Type ID
+	binary.LittleEndian.PutUint32(message[6:10], uint32(len(payload)))  // Payload length
+
+	// Copy payload
+	copy(message[10:], payload)
+
+	return message, nil
+}
+
+// EncodeCacheConfigMessage encodes a CacheConfig to self-describing message format.
+// The message includes a 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// This format is suitable for persistence, network transmission, and cross-service communication.
+func EncodeCacheConfigMessage(src *CacheConfig) ([]byte, error) {
+	// Encode payload
+	payload, err := EncodeCacheConfig(src)
+	if err != nil {
+		return nil, err
+	}
+
+	// Allocate message buffer (header + payload)
+	messageSize := MessageHeaderSize + len(payload)
+	message := make([]byte, messageSize)
+
+	// Write header
+	copy(message[0:3], MessageMagic)  // Magic bytes 'SDP'
+	message[3] = MessageVersion       // Protocol version '2'
+	binary.LittleEndian.PutUint16(message[4:6], 5)  // Type ID
+	binary.LittleEndian.PutUint32(message[6:10], uint32(len(payload)))  // Payload length
+
+	// Copy payload
+	copy(message[10:], payload)
+
+	return message, nil
+}
+
+// EncodeDocumentMessage encodes a Document to self-describing message format.
+// The message includes a 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// This format is suitable for persistence, network transmission, and cross-service communication.
+func EncodeDocumentMessage(src *Document) ([]byte, error) {
+	// Encode payload
+	payload, err := EncodeDocument(src)
+	if err != nil {
+		return nil, err
+	}
+
+	// Allocate message buffer (header + payload)
+	messageSize := MessageHeaderSize + len(payload)
+	message := make([]byte, messageSize)
+
+	// Write header
+	copy(message[0:3], MessageMagic)  // Magic bytes 'SDP'
+	message[3] = MessageVersion       // Protocol version '2'
+	binary.LittleEndian.PutUint16(message[4:6], 6)  // Type ID
+	binary.LittleEndian.PutUint32(message[6:10], uint32(len(payload)))  // Payload length
+
+	// Copy payload
+	copy(message[10:], payload)
+
+	return message, nil
+}
+
+// EncodeTagListMessage encodes a TagList to self-describing message format.
+// The message includes a 10-byte header: [SDP:3][version:1][type_id:2][length:4][payload:N]
+// This format is suitable for persistence, network transmission, and cross-service communication.
+func EncodeTagListMessage(src *TagList) ([]byte, error) {
+	// Encode payload
+	payload, err := EncodeTagList(src)
+	if err != nil {
+		return nil, err
+	}
+
+	// Allocate message buffer (header + payload)
+	messageSize := MessageHeaderSize + len(payload)
+	message := make([]byte, messageSize)
+
+	// Write header
+	copy(message[0:3], MessageMagic)  // Magic bytes 'SDP'
+	message[3] = MessageVersion       // Protocol version '2'
+	binary.LittleEndian.PutUint16(message[4:6], 7)  // Type ID
+	binary.LittleEndian.PutUint32(message[6:10], uint32(len(payload)))  // Payload length
+
+	// Copy payload
+	copy(message[10:], payload)
+
+	return message, nil
+}
+

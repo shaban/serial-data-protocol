@@ -53,7 +53,7 @@ func generateMessageDecoder(buf *strings.Builder, s *parser.Struct, typeID uint1
 	// Check minimum size
 	buf.WriteString("\t// Check minimum message size\n")
 	buf.WriteString("\tif len(data) < MessageHeaderSize {\n")
-	buf.WriteString("\t\treturn nil, ErrInsufficientData\n")
+	buf.WriteString("\t\treturn nil, ErrUnexpectedEOF\n")
 	buf.WriteString("\t}\n\n")
 
 	// Validate magic bytes
@@ -83,7 +83,7 @@ func generateMessageDecoder(buf *strings.Builder, s *parser.Struct, typeID uint1
 	buf.WriteString("\t// Validate total message size\n")
 	buf.WriteString("\texpectedSize := MessageHeaderSize + int(payloadLength)\n")
 	buf.WriteString("\tif len(data) < expectedSize {\n")
-	buf.WriteString("\t\treturn nil, ErrInsufficientData\n")
+	buf.WriteString("\t\treturn nil, ErrUnexpectedEOF\n")
 	buf.WriteString("\t}\n\n")
 
 	// Extract payload
@@ -92,9 +92,15 @@ func generateMessageDecoder(buf *strings.Builder, s *parser.Struct, typeID uint1
 
 	// Decode payload
 	buf.WriteString("\t// Decode payload\n")
-	buf.WriteString("\treturn ")
+	buf.WriteString("\tvar result ")
+	buf.WriteString(structName)
+	buf.WriteString("\n")
+	buf.WriteString("\tif err := ")
 	buf.WriteString(decoderFunc)
-	buf.WriteString("(payload)\n")
+	buf.WriteString("(&result, payload); err != nil {\n")
+	buf.WriteString("\t\treturn nil, err\n")
+	buf.WriteString("\t}\n\n")
+	buf.WriteString("\treturn &result, nil\n")
 	buf.WriteString("}\n")
 
 	return nil
@@ -118,7 +124,7 @@ func GenerateMessageDispatcher(schema *parser.Schema) (string, error) {
 	// Check minimum size
 	buf.WriteString("\t// Check minimum message size\n")
 	buf.WriteString("\tif len(data) < MessageHeaderSize {\n")
-	buf.WriteString("\t\treturn nil, ErrInsufficientData\n")
+	buf.WriteString("\t\treturn nil, ErrUnexpectedEOF\n")
 	buf.WriteString("\t}\n\n")
 
 	// Validate magic bytes

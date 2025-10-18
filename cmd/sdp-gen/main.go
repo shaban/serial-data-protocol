@@ -201,15 +201,33 @@ func generateGo(schema *parser.Schema, packageName string) (map[string]string, e
 		return nil, fmt.Errorf("failed to generate decode helpers: %w", err)
 	}
 
+	// Generate message mode encoders
+	messageEncoders, err := golang.GenerateMessageEncoders(schema)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate message encoders: %w", err)
+	}
+
+	// Generate message mode decoders
+	messageDecoders, err := golang.GenerateMessageDecoders(schema)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate message decoders: %w", err)
+	}
+
+	// Generate message dispatcher
+	messageDispatcher, err := golang.GenerateMessageDispatcher(schema)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate message dispatcher: %w", err)
+	}
+
 	// Generate errors and context
 	errors := golang.GenerateErrors()
 	context := golang.GenerateDecodeContext()
 
-	// Combine encoder code
-	encodeCode := encoder + "\n\n" + encodeHelpers
+	// Combine encoder code (regular + message mode)
+	encodeCode := encoder + "\n\n" + encodeHelpers + "\n\n" + messageEncoders
 
-	// Combine decoder code
-	decodeCode := context + "\n\n" + decoder + "\n\n" + decodeHelpers
+	// Combine decoder code (context + regular + helpers + message mode + dispatcher)
+	decodeCode := context + "\n\n" + decoder + "\n\n" + decodeHelpers + "\n\n" + messageDecoders + "\n\n" + messageDispatcher
 
 	// Determine imports based on content
 	files["types.go"] = formatGoFileWithAutoImports(packageName, structs)
