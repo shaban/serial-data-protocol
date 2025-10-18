@@ -1,57 +1,60 @@
 # Serial Data Protocol - Design Specification
 
-**Version:** 1.0.0  
+**Version:** 0.2.0-rc1  
 **Date:** October 18, 2025  
-**Status:** Draft
+**Status:** Release Candidate
 
 ## 1. Overview
 
 ### 1.1 Purpose
 
-A binary serialization protocol optimized for same-machine IPC between languages via FFI (Foreign Function Interface), specifically targeting CGO bridges between C/C++/Swift/Rust and Go.
+Serial Data Protocol (SDP) is a binary serialization format for efficient cross-language data transfer in controlled environments. It generates encoders and decoders from schema definitions, producing predictable binary output with fixed-width integers.
 
-### 1.2 Design Goals
+### 1.2 Design Principles
 
-- **Performance:** Minimize allocations, enable bulk data transfer
-- **Simplicity:** Limited type system, flexible field write order
-- **Type Safety:** Schema-driven code generation
-- **Ergonomics:** Generated types match idiomatic language patterns
-- **Single-pass serialization:** Build and serialize simultaneously
+- **Predictable performance:** Fixed-width integers, single allocation encoding, known buffer sizes
+- **Simple wire format:** No varint encoding, no padding, straightforward byte layout
+- **Type safety:** Schema-driven code generation with compile-time checks
+- **Zero dependencies:** Generated code uses only language standard libraries
+- **Composability:** Provides stdlib interfaces (io.Writer/Reader), not implementations
 
-### 1.3 Non-Goals
+### 1.3 Target Use Cases
 
-- Cross-platform serialization (different architectures)
-- Network protocol (versioning, endianness handling)
-- Long-term storage format
-- Zero-copy deserialization
-- Schema versioning or evolution
+SDP is designed for:
 
-### 1.4 Use Case
+- **IPC (Inter-Process Communication)** - Same-machine data transfer between processes
+- **FFI scenarios** - Crossing language boundaries (C ↔ Go, Swift ↔ Go, etc.)
+- **Bulk data transfer** - Moving large datasets efficiently (audio plugin lists, device info, etc.)
+- **Known schemas** - Both encoder and decoder compiled from identical schema
+- **Trusted environments** - Data sources under your control
 
-High-level orchestrator (Go/Rust) receiving bulk structured data from low-level workhorse (C/Swift/native). Example: Audio plugin enumeration, device discovery, configuration data.
+### 1.4 Explicit Non-Goals
 
-```
-Native Side (C/Swift)    →  Single FFI Call  →  Go Side
-Build + Serialize                               Deserialize once
-```
+SDP does NOT provide:
 
-### 1.5 Composition Architecture
+- **Schema evolution** - Breaking schema changes require recompilation of both sides
+- **Cross-platform serialization** - Same architecture assumed (little-endian)
+- **Network protocol features** - No versioning, negotiation, or endianness handling
+- **Long-term storage** - Schema changes make old data unreadable (use message mode + versioning)
+- **Maximum compression** - Fixed-width integers are larger than varint (compose with gzip for 68% reduction)
+- **Untrusted data validation** - Assumes trusted data sources
 
-**Protocol transmits primitives, application composes domain objects.**
+### 1.5 Performance Characteristics
 
-Native side enumerates distinct data sets independently (e.g., devices, plugins, configurations). Receiver decodes each as separate types, then composes application-specific domain models.
+Real measurements from production-like workloads:
 
-**Example:**
-```
-Native: EnumerateDevices() → DeviceList
-        EnumeratePlugins() → PluginList
+**Large dataset (62 plugins, 1759 parameters, 115 KB):**
+- Encode: 37.5 µs (1 allocation)
+- Decode: 85.2 µs (4,638 allocations - one per struct/string)
+- ~10× faster than Protocol Buffers for this use case
 
-Go:     Decode DeviceList
-        Decode PluginList
-        Compose: PluginWithDevice{Plugin, Device}
-```
+**Small messages (primitives, ~50 bytes):**
+- Regular mode: 44.25 ns roundtrip
+- Message mode: 85.54 ns roundtrip (+93% for type identification)
+- Optional present: 58.38 ns roundtrip
+- Optional absent: 15.55 ns roundtrip (65% faster than present)
 
-This separation allows wire format to remain simple while application expresses rich relationships.
+See PERFORMANCE_ANALYSIS.md for detailed measurements.
 
 ## 2. Type System
 
@@ -173,7 +176,225 @@ if len(snapshot.EngineConfig) > 0 {
 
 **Rationale:** Reuses existing array semantics, no additional wire format features needed.
 
-## 3. Schema Definition
+```
+
+---
+
+## 3. Release Candidate Features (0.2.0-rc1)
+
+### 3.1 Optional Struct Fields
+
+**Syntax:** `?Type` prefix indicates optional field
+
+**Schema:**
+```rust
+struct Plugin {
+    id: u32,           // Required
+    name: string,      // Required
+    metadata: ?Metadata,  // Optional
+}
+
+struct Metadata {
+    version: string,
+    author: string,
+}
+```
+
+**Wire Format:**
+```
+[presence: u8][data: variable bytes]  // if presence = 1
+[presence: u8]                        // if presence = 0 (no data follows)
+```
+
+**Generated Code (Go):**
+```go
+type Plugin struct {
+    ID       uint32
+    Name     string
+    Metadata *Metadata  // nil if absent
+}
+```
+
+**Encoding:**
+- Present: Write `0x01`, then encode the struct normally
+- Absent: Write `0x00`, done
+
+**Decoding:**
+- Read presence byte
+- If `0x01`: allocate struct, decode into it
+- If `0x00`: set pointer to nil
+
+**Performance cost** (measured):
+- Optional present: 31.49 ns decode (+48% vs required field)
+- Optional absent: 3.15 ns decode (10× faster than present, zero allocation)
+- Wire overhead: 1 byte per optional field
+
+**Restrictions:**
+- Only structs can be optional (no `?u32`, `?string`, `?[]T`)
+- Cannot have optional primitives or optional arrays
+- Cannot have arrays of optional items (`[]?Item`)
+
+**Use cases:**
+- Fields that may not be loaded yet
+- Backward-compatible schema additions
+- Recursive structures (linked lists, trees)
+
+### 3.2 Message Mode (Self-Describing)
+
+**Syntax:** Use `message` keyword instead of `struct`
+
+**Schema:**
+```rust
+message ErrorMsg {
+    code: u32,
+    text: string,
+}
+
+message DataMsg {
+    payload: []u8,
+}
+```
+
+**Wire Format:**
+```
+[type_id: u64][payload_size: u32][payload: variable bytes]
+```
+
+**Type ID calculation:**
+- FNV-1a hash of message name (e.g., `hash("ErrorMsg")`)
+- 64-bit hash ensures collision resistance
+- Deterministic across compilations
+
+**Generated Code (Go):**
+```go
+// Constants for message type identification
+const (
+    ErrorMsgTypeID uint64 = 0x... // FNV-1a hash
+    DataMsgTypeID  uint64 = 0x...
+)
+
+// Encoder includes type ID
+func EncodeErrorMsg(src *ErrorMsg) ([]byte, error)
+
+// Dispatcher routes by type ID
+func DispatchMessage(data []byte) (interface{}, error) {
+    typeID := binary.LittleEndian.Uint64(data[0:8])
+    switch typeID {
+    case ErrorMsgTypeID:
+        var msg ErrorMsg
+        err := DecodeErrorMsg(&msg, data)
+        return &msg, err
+    case DataMsgTypeID:
+        // ...
+    }
+}
+```
+
+**Performance cost** (measured):
+- Message overhead: 10 bytes header (8 type ID + 4 size)
+- Roundtrip: 85.54 ns vs 44.25 ns regular mode (+93%)
+- Size overhead: 19.6% for small payloads, negligible for large
+
+**Use cases:**
+- Persistent storage with multiple message types
+- Event streams with heterogeneous events
+- Protocol implementations needing type discrimination
+- RPC-style request/response pairs
+
+**When NOT to use:**
+- Single message type (no discrimination needed)
+- Performance-critical inner loops (use regular structs)
+
+### 3.3 Streaming I/O
+
+**Generated functions for stdlib composition:**
+
+```go
+// Every struct/message generates these functions
+func EncodePluginToWriter(src *Plugin, w io.Writer) error
+func DecodePluginFromReader(dest *Plugin, r io.Reader) error
+```
+
+**Implementation:**
+- Encoder: Calculate size → allocate buffer → encode → `w.Write(buf)`
+- Decoder: `io.ReadAll(r)` → decode from buffer
+- Zero new dependencies (uses existing encode/decode functions)
+
+**Composition examples:**
+
+**File I/O:**
+```go
+file, _ := os.Create("data.sdp")
+defer file.Close()
+EncodePluginToWriter(&plugin, file)
+```
+
+**Compression:**
+```go
+var buf bytes.Buffer
+gzipWriter := gzip.NewWriter(&buf)
+EncodePluginToWriter(&plugin, gzipWriter)
+gzipWriter.Close()
+```
+
+**Network:**
+```go
+conn, _ := net.Dial("tcp", "localhost:8080")
+EncodePluginToWriter(&plugin, conn)
+```
+
+**Design philosophy:**
+- SDP provides interfaces (io.Writer/Reader)
+- Users compose with their choice of libraries
+- No baked-in compression, file, or network code
+- Maximum flexibility via Unix-style composition
+
+---
+
+## 4. Schema Definition
+
+**File extension:** `.sdp` (Serial Data Protocol)
+
+**Syntax:** Rust-like with SDP extensions
+
+**Supported syntax:**
+- Regular structs: `struct Name { ... }`
+- Messages: `message Name { ... }` (self-describing)
+- Optional fields: `field: ?Type` (structs only)
+- Doc comments: `///` (attached to following declaration)
+- Line comments: `//` (ignored)
+
+**Example schema:**
+```rust
+// Regular struct (byte mode)
+struct Plugin {
+    id: u32,
+    name: string,
+    metadata: ?Metadata,  // Optional
+}
+
+struct Metadata {
+    version: string,
+    author: string,
+}
+
+// Self-describing message
+message PluginEvent {
+    timestamp: u64,
+    plugin_id: u32,
+    event_type: u8,
+}
+```
+
+### 4.1 Schema Format (Legacy)
+
+**File extension:** `.sdp` (Serial Data Protocol)
+
+**Syntax:** **Rust subset** - `.sdp` files are valid Rust struct definitions
+
+**Language Specification:**
+
+.sdp` files use Rust syntax for struct definitions. The generator parses a strict subset of Rust:
 
 ### 3.1 Schema Format
 

@@ -1,53 +1,615 @@
-# SDP Language Implementation Quick Reference
+# SDP Quick Reference
 
-**Use this for tomorrow's C and Swift implementations**
-
----
-
-## 🎯 Implementation Order (4 hours each)
-
-### Hour 1: Setup + Types
-- [ ] Create `internal/generator/{lang}/` directory structure
-- [ ] Implement type generator (structs → native types)
-- [ ] Write 10 unit tests for type generation
-- [ ] Verify generated code compiles
-
-### Hour 2: Encoder
-- [ ] Implement size calculator generator
-- [ ] Implement encoder generator (all types)
-- [ ] Write 10 unit tests for encoder generation
-- [ ] Verify generated encoders compile
-
-### Hour 3: Decoder + Errors
-- [ ] Implement decoder generator (all types)
-- [ ] Implement error types generator
-- [ ] Write 10 unit tests for decoder generation
-- [ ] Verify generated decoders compile
-
-### Hour 4: Integration + Performance
-- [ ] Set up TestMain with test schemas
-- [ ] Add 11 wire format tests
-- [ ] Add 8 roundtrip tests
-- [ ] Add performance benchmarks
-- [ ] Test with plugins.json
+**Version:** 0.2.0-rc1  
+**For:** Developers using SDP-generated code
 
 ---
 
-## 📝 Wire Format Cheat Sheet
+## Table of Contents
 
-| Type | Size | Encode | Decode |
-|------|------|--------|--------|
-| `u8` | 1 | `buf[off] = val` | `val = data[off]` |
-| `u16` | 2 | Write LE uint16 | Read LE uint16 |
-| `u32` | 4 | Write LE uint32 | Read LE uint32 |
-| `u64` | 8 | Write LE uint64 | Read LE uint64 |
-| `i8` | 1 | `buf[off] = (u8)val` | `val = (i8)data[off]` |
-| `i16` | 2 | Write LE, cast from i16 | Read LE, cast to i16 |
-| `i32` | 4 | Write LE, cast from i32 | Read LE, cast to i32 |
-| `i64` | 8 | Write LE, cast from i64 | Read LE, cast to i64 |
-| `f32` | 4 | Write bits as LE u32 | Read LE u32 as bits |
-| `f64` | 8 | Write bits as LE u64 | Read LE u64 as bits |
-| `bool` | 1 | `buf[off] = val?1:0` | `val = data[off]!=0` |
+1. [Schema Syntax](#schema-syntax)
+2. [Generated Code (Go)](#generated-code-go)
+3. [Regular Structs](#regular-structs)
+4. [Optional Fields](#optional-fields)
+5. [Message Mode](#message-mode)
+6. [Streaming I/O](#streaming-io)
+7. [Error Handling](#error-handling)
+8. [Common Patterns](#common-patterns)
+
+---
+
+## Schema Syntax
+
+### Basic Struct
+
+```rust
+struct Plugin {
+    id: u32,
+    name: string,
+    vendor: string,
+}
+```
+
+### With Optional Fields
+
+```rust
+struct Plugin {
+    id: u32,
+    name: string,
+    metadata: ?Metadata,  // Optional - may be absent
+}
+
+struct Metadata {
+    version: string,
+    author: string,
+}
+```
+
+### Message (Self-Describing)
+
+```rust
+message PluginEvent {
+    timestamp: u64,
+    plugin_id: u32,
+    event_type: u8,
+}
+```
+
+### Primitive Types
+
+| Schema Type | Go Type | Size |
+|------------|---------|------|
+| `u8` | `uint8` | 1 byte |
+| `u16` | `uint16` | 2 bytes |
+| `u32` | `uint32` | 4 bytes |
+| `u64` | `uint64` | 8 bytes |
+| `i32` | `int32` | 4 bytes |
+| `i64` | `int64` | 8 bytes |
+| `f32` | `float32` | 4 bytes |
+| `f64` | `float64` | 8 bytes |
+| `string` | `string` | 4 + len |
+| `[]T` | `[]T` | 4 + elements |
+
+---
+
+## Generated Code (Go)
+
+For schema file `plugin.sdp`, generate with:
+
+```bash
+sdp-gen -schema plugin.sdp -output ./plugin -lang go
+```
+
+Generated files:
+- `types.go` - Struct definitions
+- `encode.go` - Encoding functions + streaming writers
+- `decode.go` - Decoding functions + streaming readers
+- `errors.go` - Error types and size limits
+
+---
+
+## Regular Structs
+
+### Encoding
+
+```go
+import "yourproject/plugin"
+
+p := plugin.Plugin{
+    ID:     1,
+    Name:   "Compressor",
+    Vendor: "AudioCo",
+}
+
+// Direct encoding (single allocation)
+bytes, err := plugin.EncodePlugin(&p)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Use bytes for FFI, file, network, etc.
+```
+
+### Decoding
+
+```go
+var p plugin.Plugin
+
+err := plugin.DecodePlugin(&p, bytes)
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("Plugin: %s by %s\n", p.Name, p.Vendor)
+```
+
+### Arrays
+
+```rust
+struct PluginList {
+    plugins: []Plugin,
+}
+```
+
+```go
+list := plugin.PluginList{
+    Plugins: []plugin.Plugin{
+        {ID: 1, Name: "Reverb", Vendor: "AudioCo"},
+        {ID: 2, Name: "Delay", Vendor: "FXCorp"},
+    },
+}
+
+bytes, err := plugin.EncodePluginList(&list)
+```
+
+---
+
+## Optional Fields
+
+### Schema
+
+```rust
+struct Config {
+    port: u32,             // Required
+    tls_config: ?TLSConfig,  // Optional
+}
+
+struct TLSConfig {
+    cert_path: string,
+    key_path: string,
+}
+```
+
+### Encoding with Optional Present
+
+```go
+cfg := plugin.Config{
+    Port: 8080,
+    TLSConfig: &plugin.TLSConfig{  // Provide pointer
+        CertPath: "/etc/certs/server.crt",
+        KeyPath:  "/etc/certs/server.key",
+    },
+}
+
+bytes, err := plugin.EncodeConfig(&cfg)
+```
+
+### Encoding with Optional Absent
+
+```go
+cfg := plugin.Config{
+    Port:      8080,
+    TLSConfig: nil,  // Explicitly nil (or omit)
+}
+
+bytes, err := plugin.EncodeConfig(&cfg)
+// Wire format: 1 byte smaller (just presence=0)
+```
+
+### Decoding and Checking
+
+```go
+var cfg plugin.Config
+err := plugin.DecodeConfig(&cfg, bytes)
+
+if cfg.TLSConfig != nil {
+    fmt.Printf("TLS enabled: %s\n", cfg.TLSConfig.CertPath)
+} else {
+    fmt.Println("TLS disabled")
+}
+```
+
+### Performance
+
+- **Absent:** 3.15 ns decode (10× faster, zero allocation)
+- **Present:** 31.49 ns decode (+48% vs required field)
+- Use absent optionals for maximum performance
+
+---
+
+## Message Mode
+
+### Schema
+
+```rust
+message ErrorMsg {
+    code: u32,
+    text: string,
+}
+
+message DataMsg {
+    payload: []u8,
+}
+```
+
+### Encoding Messages
+
+```go
+// Encode error message
+err := plugin.ErrorMsg{
+    Code: 404,
+    Text: "Plugin not found",
+}
+
+bytes, err := plugin.EncodeErrorMsg(&err)
+// Wire format includes 10-byte header (type ID + size)
+```
+
+### Decoding with Dispatcher
+
+```go
+// Received bytes from file, network, etc.
+msg, err := plugin.DispatchMessage(bytes)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Type assertion to get concrete type
+switch m := msg.(type) {
+case *plugin.ErrorMsg:
+    fmt.Printf("Error %d: %s\n", m.Code, m.Text)
+case *plugin.DataMsg:
+    fmt.Printf("Data: %d bytes\n", len(m.Payload))
+default:
+    fmt.Println("Unknown message type")
+}
+```
+
+### Type ID Constants
+
+```go
+// Generated automatically
+const (
+    ErrorMsgTypeID uint64 = 0x... // FNV-1a hash of "ErrorMsg"
+    DataMsgTypeID  uint64 = 0x...
+)
+
+// Check type ID directly
+typeID := binary.LittleEndian.Uint64(bytes[0:8])
+if typeID == plugin.ErrorMsgTypeID {
+    // It's an error message
+}
+```
+
+### Use Cases
+
+- **Event streams:** Mix different event types in single stream
+- **Storage:** Save different message types to same file
+- **RPC:** Request/response with different message types
+- **Protocols:** Multiple packet types needing discrimination
+
+---
+
+## Streaming I/O
+
+All structs and messages generate streaming functions:
+
+```go
+func EncodePluginToWriter(src *Plugin, w io.Writer) error
+func DecodePluginFromReader(dest *Plugin, r io.Reader) error
+```
+
+### File I/O
+
+```go
+// Write to file
+file, err := os.Create("plugins.sdp")
+if err != nil {
+    log.Fatal(err)
+}
+defer file.Close()
+
+err = plugin.EncodePluginToWriter(&p, file)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+```go
+// Read from file
+file, err := os.Open("plugins.sdp")
+if err != nil {
+    log.Fatal(err)
+}
+defer file.Close()
+
+var p plugin.Plugin
+err = plugin.DecodePluginFromReader(&p, file)
+```
+
+### Compression
+
+```go
+import "compress/gzip"
+
+// Compress before writing
+var buf bytes.Buffer
+gzipWriter := gzip.NewWriter(&buf)
+
+err := plugin.EncodePluginToWriter(&p, gzipWriter)
+if err != nil {
+    log.Fatal(err)
+}
+
+gzipWriter.Close()
+
+// buf now contains compressed data (typically 68% smaller)
+```
+
+```go
+// Decompress while reading
+gzipReader, err := gzip.NewReader(&buf)
+if err != nil {
+    log.Fatal(err)
+}
+defer gzipReader.Close()
+
+var p plugin.Plugin
+err = plugin.DecodePluginFromReader(&p, gzipReader)
+```
+
+### Network I/O
+
+```go
+import "net"
+
+// Send over TCP
+conn, err := net.Dial("tcp", "localhost:8080")
+if err != nil {
+    log.Fatal(err)
+}
+defer conn.Close()
+
+err = plugin.EncodePluginToWriter(&p, conn)
+```
+
+```go
+// Receive over TCP
+listener, _ := net.Listen("tcp", ":8080")
+conn, _ := listener.Accept()
+defer conn.Close()
+
+var p plugin.Plugin
+err := plugin.DecodePluginFromReader(&p, conn)
+```
+
+### Pipe (In-Memory)
+
+```go
+// Simulate streaming between goroutines
+r, w := io.Pipe()
+
+go func() {
+    defer w.Close()
+    plugin.EncodePluginToWriter(&p, w)
+}()
+
+var received plugin.Plugin
+plugin.DecodePluginFromReader(&received, r)
+```
+
+---
+
+## Error Handling
+
+### Common Errors
+
+```go
+var p plugin.Plugin
+err := plugin.DecodePlugin(&p, bytes)
+
+// Error examples:
+// - "buffer too small: need 156 bytes, have 100"
+// - "decode Plugin.name: string too long: 15000000 bytes (max 10485760)"
+// - "decode Plugin.parameters: array too large: 200000 elements (max 100000)"
+// - "unknown message type: 0x123456789abcdef0"
+```
+
+### Size Limits (Built-in)
+
+| Limit | Value | Constant |
+|-------|-------|----------|
+| Max string size | 10 MB | `MaxStringSize` |
+| Max array elements | 100,000 | `MaxArraySize` |
+| Max nesting depth | 20 levels | `MaxNestingDepth` |
+
+### Error Types
+
+```go
+import "errors"
+
+err := plugin.DecodePlugin(&p, bytes)
+
+if errors.Is(err, plugin.ErrUnexpectedEOF) {
+    // Buffer too small
+}
+
+if errors.Is(err, plugin.ErrStringSizeExceeded) {
+    // String exceeds 10 MB
+}
+
+if errors.Is(err, plugin.ErrArraySizeExceeded) {
+    // Array exceeds 100,000 elements
+}
+```
+
+### Validation Pattern
+
+```go
+var p plugin.Plugin
+err := plugin.DecodePlugin(&p, bytes)
+if err != nil {
+    return fmt.Errorf("decode failed: %w", err)
+}
+
+// SDP validates size limits, you validate business rules
+if p.Name == "" {
+    return errors.New("plugin name cannot be empty")
+}
+
+if p.ID == 0 {
+    return errors.New("plugin ID must be non-zero")
+}
+```
+
+---
+
+## Common Patterns
+
+### FFI (C to Go)
+
+**C side:**
+```c
+// Encode plugin in C
+plugin_t p = {.id = 1, .name = "Reverb"};
+uint8_t* bytes;
+size_t len;
+encode_plugin(&p, &bytes, &len);
+
+// Transfer to Go
+pass_to_go(bytes, len);
+```
+
+**Go side:**
+```go
+//export ReceivePlugin
+func ReceivePlugin(bytes *C.uint8_t, length C.size_t) {
+    data := C.GoBytes(unsafe.Pointer(bytes), C.int(length))
+    
+    var p plugin.Plugin
+    err := plugin.DecodePlugin(&p, data)
+    if err != nil {
+        log.Printf("FFI decode error: %v", err)
+        return
+    }
+    
+    // Use plugin in Go
+    processPlugin(&p)
+}
+```
+
+### Batching Multiple Items
+
+```go
+var buf bytes.Buffer
+
+// Write multiple plugins to buffer
+for _, p := range plugins {
+    err := plugin.EncodePluginToWriter(&p, &buf)
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+
+// Later: read them back
+reader := bytes.NewReader(buf.Bytes())
+for {
+    var p plugin.Plugin
+    err := plugin.DecodePluginFromReader(&p, reader)
+    if err == io.EOF {
+        break
+    }
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    processPlugin(&p)
+}
+```
+
+### Versioning with Message Mode
+
+```rust
+message PluginV1 {
+    id: u32,
+    name: string,
+}
+
+message PluginV2 {
+    id: u32,
+    name: string,
+    vendor: string,  // New field
+}
+```
+
+```go
+// Decoder handles both versions
+msg, err := plugin.DispatchMessage(bytes)
+
+switch m := msg.(type) {
+case *plugin.PluginV1:
+    // Handle old version
+    fmt.Printf("V1 Plugin: %s\n", m.Name)
+    
+case *plugin.PluginV2:
+    // Handle new version
+    fmt.Printf("V2 Plugin: %s by %s\n", m.Name, m.Vendor)
+}
+```
+
+### Compression Decision Tree
+
+```go
+func encodeWithOptionalCompression(p *plugin.Plugin, size int) []byte {
+    if size < 1024 {
+        // Small data: direct encoding (compression overhead not worth it)
+        bytes, _ := plugin.EncodePlugin(p)
+        return bytes
+    }
+    
+    // Large data: compress (68% reduction typical)
+    var buf bytes.Buffer
+    gzipWriter := gzip.NewWriter(&buf)
+    plugin.EncodePluginToWriter(p, gzipWriter)
+    gzipWriter.Close()
+    return buf.Bytes()
+}
+```
+
+---
+
+## Performance Tips
+
+1. **Use optional absent fields** - 10× faster than present (3.15 ns vs 31.49 ns)
+2. **Prefer regular structs over messages** - 2× faster (44 ns vs 85 ns roundtrip)
+3. **Compress large payloads** - 68% size reduction with gzip
+4. **Batch small messages** - Amortize overhead across multiple items
+5. **Reuse buffers** - Pool `[]byte` buffers for encoding
+
+---
+
+## Cross-Language Workflow
+
+### Generate code for both languages
+
+```bash
+# Generate Go code
+sdp-gen -schema plugin.sdp -output ./go/plugin -lang go
+
+# Generate C code (when available)
+sdp-gen -schema plugin.sdp -output ./c/plugin -lang c
+```
+
+### Wire format is language-agnostic
+
+- C encoder → bytes → Go decoder ✅
+- Go encoder → bytes → C decoder ✅
+- Both sides must use **identical schema version**
+
+---
+
+## Size Calculation
+
+```go
+// SDP generates size calculation functions
+size := plugin.CalculatePluginSize(&p)
+fmt.Printf("Wire size: %d bytes\n", size)
+
+// Useful for:
+// - Pre-allocating buffers
+// - Estimating storage requirements
+// - Deciding whether to compress
+```
 | `str` | Var | `[u32 len][UTF-8]` | Read len, read bytes |
 | `[]T` | Var | `[u32 count][elems]` | Read count, decode each |
 

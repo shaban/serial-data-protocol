@@ -906,7 +906,7 @@ func generateArrayPrimitiveElementDecodeForOptional(buf *strings.Builder, primit
 		if primitiveType == "bool" {
 			buf.WriteString("\t\t\tslice[i] = data[*offset] != 0\n")
 		} else {
-			goType, _ := primitiveTypeMap[primitiveType]
+			goType := primitiveTypeMap[primitiveType]
 			buf.WriteString(fmt.Sprintf("\t\t\tslice[i] = %s(data[*offset])\n", goType))
 		}
 		buf.WriteString(fmt.Sprintf("\t\t\t*offset += %d\n", size))
@@ -916,7 +916,7 @@ func generateArrayPrimitiveElementDecodeForOptional(buf *strings.Builder, primit
 		buf.WriteString(fmt.Sprintf("\t\t\tif *offset + %d > len(data) {\n", size))
 		buf.WriteString("\t\t\t\treturn ErrUnexpectedEOF\n")
 		buf.WriteString("\t\t\t}\n")
-		goType, _ := primitiveTypeMap[primitiveType]
+		goType := primitiveTypeMap[primitiveType]
 		buf.WriteString(fmt.Sprintf("\t\t\tslice[i] = %s(binary.LittleEndian.Uint16(data[*offset:]))\n", goType))
 		buf.WriteString(fmt.Sprintf("\t\t\t*offset += %d\n", size))
 
@@ -928,7 +928,7 @@ func generateArrayPrimitiveElementDecodeForOptional(buf *strings.Builder, primit
 		if primitiveType == "f32" {
 			buf.WriteString("\t\t\tslice[i] = math.Float32frombits(binary.LittleEndian.Uint32(data[*offset:]))\n")
 		} else {
-			goType, _ := primitiveTypeMap[primitiveType]
+			goType := primitiveTypeMap[primitiveType]
 			buf.WriteString(fmt.Sprintf("\t\t\tslice[i] = %s(binary.LittleEndian.Uint32(data[*offset:]))\n", goType))
 		}
 		buf.WriteString(fmt.Sprintf("\t\t\t*offset += %d\n", size))
@@ -941,7 +941,7 @@ func generateArrayPrimitiveElementDecodeForOptional(buf *strings.Builder, primit
 		if primitiveType == "f64" {
 			buf.WriteString("\t\t\tslice[i] = math.Float64frombits(binary.LittleEndian.Uint64(data[*offset:]))\n")
 		} else {
-			goType, _ := primitiveTypeMap[primitiveType]
+			goType := primitiveTypeMap[primitiveType]
 			buf.WriteString(fmt.Sprintf("\t\t\tslice[i] = %s(binary.LittleEndian.Uint64(data[*offset:]))\n", goType))
 		}
 		buf.WriteString(fmt.Sprintf("\t\t\t*offset += %d\n", size))
