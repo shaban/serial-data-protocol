@@ -1,7 +1,6 @@
 package validator
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/shaban/serial-data-protocol/internal/parser"
@@ -36,9 +35,8 @@ func DetectCycles(schema *parser.Schema) []error {
 	for _, s := range schema.Structs {
 		if !visited[s.Name] {
 			if cycle := findCycle(s.Name, graph, visited, recStack, path); cycle != nil {
-				errors = append(errors, ValidationError{
-					Message: fmt.Sprintf("circular reference detected: %s", strings.Join(cycle, " → ")),
-				})
+				cyclePath := strings.Join(cycle, " → ")
+				errors = append(errors, errCircularReference(cyclePath))
 			}
 		}
 	}

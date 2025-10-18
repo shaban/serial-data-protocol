@@ -1,8 +1,6 @@
 package validator
 
 import (
-	"fmt"
-
 	"github.com/shaban/serial-data-protocol/internal/parser"
 )
 
@@ -17,18 +15,14 @@ func ValidateStructure(schema *parser.Schema) []error {
 
 	// Check schema has at least one struct
 	if len(schema.Structs) == 0 {
-		errors = append(errors, ValidationError{
-			Message: "schema must define at least one struct",
-		})
+		errors = append(errors, errEmptySchema())
 		return errors // No point checking further if schema is empty
 	}
 
 	// Check each struct has at least one field
 	for _, s := range schema.Structs {
 		if len(s.Fields) == 0 {
-			errors = append(errors, ValidationError{
-				Message: fmt.Sprintf("struct %q cannot be empty (must have at least one field)", s.Name),
-			})
+			errors = append(errors, errEmptyStruct(s.Name))
 		}
 	}
 

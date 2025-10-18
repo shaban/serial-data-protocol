@@ -52,10 +52,7 @@ func validateTypeExpr(typeExpr *parser.TypeExpr, structNames map[string]bool, st
 	case parser.TypeKindNamed:
 		// Named type must be a defined struct
 		if !structNames[typeExpr.Name] {
-			return ValidationError{
-				Message: fmt.Sprintf("struct %q, field %q: unknown type %q (not a primitive or defined struct)",
-					structName, fieldName, typeExpr.Name),
-			}
+			return errUnknownType(structName, fieldName, typeExpr.Name)
 		}
 		return nil
 

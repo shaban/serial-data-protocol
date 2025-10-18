@@ -275,7 +275,7 @@ func TestMultipleErrors(t *testing.T) {
 	}
 
 	errors := ValidateNaming(schema)
-	
+
 	// Should have multiple errors:
 	// - struct "type" is reserved
 	// - field "len" is reserved
@@ -318,7 +318,7 @@ func TestCaseSensitiveNames(t *testing.T) {
 	}
 
 	errors := ValidateNaming(schema)
-	
+
 	// Should NOT have duplicate struct error (case-sensitive)
 	// But WILL have reserved keyword errors since "device" might be common
 	// Let's just check that if there are errors, they're not about duplicates
@@ -375,7 +375,7 @@ func TestUnderscorePrefix(t *testing.T) {
 	}
 
 	errors := ValidateNaming(schema)
-	
+
 	// Filter out reserved errors (underscore itself might be reserved in Swift)
 	// Check there are no "invalid character" or "must start with" errors
 	for _, e := range errors {
@@ -406,7 +406,7 @@ func TestMixedValidAndInvalid(t *testing.T) {
 	}
 
 	errors := ValidateNaming(schema)
-	
+
 	// Should have exactly 1 error (field "type" is reserved)
 	if len(errors) != 1 {
 		t.Errorf("Expected 1 error for reserved 'type', got %d: %v", len(errors), errors)
