@@ -13,11 +13,12 @@ The Release Candidate adds **three production-critical features** to SDP:
 
 1. ✅ **Optional Struct Fields** - Handle nullable/absent data structures
 2. ✅ **Self-Describing Message Mode** - Enable server routing and protocol multiplexing
-3. ✅ **Compression Support** - 68-75% size reduction via io.Writer/Reader
+3. ✅ **Streaming I/O** - Enable compression, file I/O, networking via stdlib interfaces (no baked-in compression)
 
 **Total Implementation Effort**: ~4-5 days  
 **Breaking Changes**: None (all features are additive)  
-**Performance Impact**: <10% slowdown for message mode, 0% for byte mode
+**Performance Impact**: <10% slowdown for message mode, 0% for byte mode  
+**Dependencies**: Zero - generated code has no compression/network/file dependencies
 
 ---
 
@@ -279,17 +280,37 @@ registry := msg.(*PluginRegistry)
 
 ---
 
-## Feature 3: Compression Support via io.Writer/Reader
+## Feature 3: Streaming I/O via stdlib interfaces (io.Writer/Reader)
 
 ### Problem Statement
 
-Binary format is 17.5% of JSON, but **compression** can reduce further:
+Binary format is 17.5% of JSON size, and **users want compression** for further reduction:
 - gzip: 68% reduction (110 KB → 35 KB = 31% of uncompressed)
 - zstd: 75% reduction (110 KB → 28 KB = 25% of uncompressed)
 
-Current API only supports `[]byte` - users must manually compress.
+Current API only supports `[]byte` - users must manually wrap with compression.
 
-### Solution: io.Writer/Reader APIs
+Additionally, users need:
+- File I/O (without intermediate buffers)
+- Network streaming (TCP, HTTP, WebSocket)
+- Custom transformations (encryption, metrics, throttling)
+
+### Solution: Stdlib Stream Interfaces (NOT Baked-in Compression)
+
+**Design Philosophy**:
+- ❌ **Do NOT bake compression into SDP** - That's not SDP's job
+- ✅ **Provide stdlib stream interfaces** - Users compose with their libraries
+- ✅ **Zero dependencies** - Generated code has no compression/network/file deps
+- ✅ **Language-idiomatic** - `io.Writer/Reader` (Go), `std::io::Write/Read` (Rust)
+- ✅ **Composable** - Users can chain: `file → encrypt → compress → encode`
+
+**What this enables** (via user composition, not built-in):
+- Compression with ANY library: gzip, zstd, lz4, snappy, brotli, etc.
+- File I/O: Direct write to `os.File`, no intermediate allocation
+- Network: Direct write to `net.Conn`, `http.ResponseWriter`, etc.
+- Encryption: Wrap with crypto libraries
+- Metrics: Count bytes, measure bandwidth
+- Anything that implements the stdlib stream interface
 
 **Generated Encoding APIs**:
 ```go
@@ -407,39 +428,58 @@ gzclose(f);
 
 | Task | Component | Lines | Time |
 |------|-----------|-------|------|
-| **3.1** | Encoder: Generate `EncodeXToWriter()` functions | ~120 | 3h |
-| **3.2** | Decoder: Generate `DecodeXFromReader()` functions | ~150 | 4h |
-| **3.3** | Size calculation: Support streaming mode | ~50 | 1h |
-| **3.4** | Tests: File I/O, compression, network simulation | ~100 | 3h |
-| **3.5** | Docs: Usage examples for gzip/zstd | ~30 | 1h |
+| **3.1** | Encoder: Generate `EncodeXToWriter()` functions (stdlib interface only) | ~120 | 3h |
+| **3.2** | Decoder: Generate `DecodeXFromReader()` functions (stdlib interface only) | ~150 | 4h |
+| **3.3** | Size calculation: Support streaming mode (for pre-allocation optimization) | ~50 | 1h |
+| **3.4** | Tests: File I/O, user-composed gzip compression, network simulation | ~100 | 3h |
+| **3.5** | Docs: Usage examples showing user composition with gzip/zstd (NOT built-in) | ~30 | 1h |
 | **Total** | | **~450 lines** | **~12h** |
+
+**Important**: We are NOT implementing compression. We are implementing stdlib stream interfaces that users can compose with compression libraries.
 
 ### Performance Characteristics
 
-**Compression ratios** (measured):
+**Size reduction potential** (when users compose with compression):
 ```
 Original JSON:     627 KB
 SDP Binary:        110 KB  (17.5% of JSON)
-SDP + gzip:         35 KB  (5.6% of JSON, 31% of SDP)
-SDP + zstd:         28 KB  (4.5% of JSON, 25% of SDP)
+SDP + gzip:         35 KB  (5.6% of JSON, 31% of SDP) ← User composes with compress/gzip
+SDP + zstd:         28 KB  (4.5% of JSON, 25% of SDP) ← User composes with github.com/klauspost/compress
 ```
 
 **Speed impact**:
-- Compression: ~10× slower (gzip overhead)
-- Decompression: ~5× slower (gzip overhead)
-- **Still faster than Protocol Buffers** for typical use cases
+- io.Writer/Reader overhead: Negligible (just interface call)
+- Compression overhead (when user adds it): ~10× slower encode, ~5× slower decode (gzip)
+- zstd (when user adds it): ~8× slower encode, ~3× slower decode
+
+**When users should add compression**:
+- ✅ Large messages (>10 KB) over network
+- ✅ File storage (persistent data)
+- ✅ Bandwidth-constrained environments
+- ❌ IPC (overhead not worth it)
+- ❌ Real-time audio (latency-sensitive)
 
 ### Design Decisions
 
-**Why io.Writer/Reader instead of []byte?**
-- ✅ Composable (gzip.Writer, file, network, etc.)
-- ✅ Streaming-friendly (no intermediate allocation)
-- ✅ Standard library pattern (encoding/json, encoding/binary use it)
-- ✅ Works with all Go libraries (net, os, compress/*)
+**Why io.Writer/Reader instead of baked-in compression?**
+- ✅ **Unix Philosophy**: Do one thing well (SDP = serialization, not compression)
+- ✅ **Zero dependencies**: Generated code has no compression dependencies
+- ✅ **User's choice**: gzip, zstd, lz4, snappy, brotli - user decides
+- ✅ **Composable**: Works with ANY io.Writer/Reader (files, network, encryption, metrics)
+- ✅ **Streaming-friendly**: No intermediate allocation required
+- ✅ **Standard library pattern**: Same as encoding/json, encoding/binary
+- ✅ **Cross-language**: Go (io.Writer), Rust (std::io::Write), C (callbacks)
+
+**Why NOT bake in compression?**
+- ❌ Couples SDP to specific compression algorithm
+- ❌ Different languages have different compression ecosystems
+- ❌ Forces dependency on users who don't need it
+- ❌ Prevents users from choosing optimal compression for their use case
+- ❌ Bloats generated code with compression logic
 
 **Backward compatibility**:
-- ✅ Keep existing `[]byte` API (90% of users)
-- ✅ Add `io.Writer/Reader` for advanced cases (compression, streaming)
+- ✅ Keep existing `[]byte` API (90% of users, simplest)
+- ✅ Add `io.Writer/Reader` for advanced cases (compression, streaming, networking)
 
 ---
 
@@ -463,12 +503,12 @@ SDP + zstd:         28 KB  (4.5% of JSON, 25% of SDP)
 - [ ] Tests: Header roundtrip, unknown type handling
 - [ ] Docs: Update wire format spec with message mode
 
-### Phase 3: Compression/Writer APIs (12 hours)
+### Phase 3: Streaming I/O APIs (12 hours)
 - [ ] Encoder: Generate `EncodeXToWriter()` functions
 - [ ] Decoder: Generate `DecodeXFromReader()` functions
 - [ ] Size calculation: Support streaming size estimation
-- [ ] Tests: File I/O, gzip compression, network simulation
-- [ ] Docs: Add compression examples to README
+- [ ] Tests: File I/O, gzip compression (user-composed), network simulation
+- [ ] Docs: Add compression examples to README (showing user composition with gzip)
 - [ ] Docs: Add io.Writer/Reader patterns to LANGUAGE_IMPLEMENTATION_GUIDE.md
 
 ### Phase 4: Integration & Documentation (8 hours)

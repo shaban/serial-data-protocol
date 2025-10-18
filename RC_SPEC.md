@@ -13,7 +13,7 @@
 1. [Overview](#overview)
 2. [Feature 1: Optional Struct Fields](#feature-1-optional-struct-fields)
 3. [Feature 2: Self-Describing Message Mode](#feature-2-self-describing-message-mode)
-4. [Feature 3: Compression via io.Writer/Reader](#feature-3-compression-via-iowriterreader)
+4. [Feature 3: Streaming I/O via stdlib interfaces](#feature-3-streaming-io-via-stdlib-interfaces-iowriterreader)
 5. [Backward Compatibility](#backward-compatibility)
 6. [Migration Guide](#migration-guide)
 7. [Performance Characteristics](#performance-characteristics)
@@ -28,7 +28,7 @@ The RC release adds **three production-critical features**:
 
 1. **Optional Struct Fields** - Handle nullable/absent data structures
 2. **Self-Describing Message Mode** - Enable server routing and protocol multiplexing  
-3. **Compression Support** - 68-75% size reduction via io.Writer/Reader
+3. **Streaming I/O** - Enable compression, file I/O, networking via stdlib interfaces (no baked-in dependencies)
 
 ### Design Principles
 
@@ -36,11 +36,13 @@ The RC release adds **three production-critical features**:
 - ✅ **Backward compatible** - 0.1.0 code continues to work
 - ✅ **Performance first** - <10% overhead for new features
 - ✅ **Cross-language** - All features work in Go, Rust, Swift, C
+- ✅ **Composable** - Provide interfaces, not implementations (Unix philosophy)
+- ✅ **Zero dependencies** - Generated code has no compression/network/file dependencies
 
 ### Version Compatibility Matrix
 
-| Version | Byte Mode | Message Mode | Optional Fields | Compression |
-|---------|-----------|--------------|-----------------|-------------|
+| Version | Byte Mode | Message Mode | Optional Fields | Streaming I/O |
+|---------|-----------|--------------|-----------------|---------------|
 | 0.1.0 | ✅ | ❌ | ❌ | ❌ |
 | 0.2.0-rc1 | ✅ | ✅ | ✅ | ✅ |
 
@@ -577,13 +579,28 @@ Still 9× faster than Protocol Buffers (1,300µs)
 
 ---
 
-## Feature 3: Compression via io.Writer/Reader
+## Feature 3: Streaming I/O via stdlib interfaces (io.Writer/Reader)
 
 ### Specification
 
-**Purpose**: Enable transparent compression without changing wire format.
+**Purpose**: Enable composable streaming operations (compression, file I/O, network) without baking compression into SDP.
+
+**Design Philosophy**: 
+- ✅ **Do NOT bake in compression** - SDP's job is serialization, not compression
+- ✅ **Provide stdlib stream interfaces** - Users compose with their preferred libraries
+- ✅ **Language-idiomatic** - `io.Writer/Reader` (Go), `std::io::Write/Read` (Rust), callbacks (C)
+- ✅ **Zero dependencies** - Generated code has no compression/network/file dependencies
+- ✅ **Maximum flexibility** - Works with gzip, zstd, lz4, files, network, encryption, metrics, etc.
 
 **Approach**: Generate additional API functions that write to `io.Writer` / read from `io.Reader`.
+
+**What this enables** (via composition, not built-in):
+- Compression: gzip, zstd, lz4, snappy, brotli, etc.
+- File I/O: `os.File`, buffered writers
+- Network: TCP, UDP, HTTP, WebSocket
+- Encryption: TLS, custom encryption wrappers
+- Metrics: Byte counters, bandwidth throttling
+- Pipelines: `file → encrypt → compress → encode`
 
 ### Generated API Functions
 
