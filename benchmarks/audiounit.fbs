@@ -1,0 +1,31 @@
+namespace audiounit;
+
+table Parameter {
+  address: uint64;
+  display_name: string;
+  identifier: string;
+  unit: string;
+  min_value: float;
+  max_value: float;
+  default_value: float;
+  current_value: float;
+  raw_flags: uint32;
+  is_writable: bool;
+  can_ramp: bool;
+}
+
+table Plugin {
+  name: string;
+  manufacturer_id: string;
+  component_type: string;
+  component_subtype: string;
+  parameters: [Parameter];
+}
+
+table PluginRegistry {
+  plugins: [Plugin];
+  total_plugin_count: uint32;
+  total_parameter_count: uint32;
+}
+
+root_type PluginRegistry;
