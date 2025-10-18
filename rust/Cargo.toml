@@ -1,5 +1,5 @@
 [workspace]
-members = ["sdp", "sdp-gen"]
+members = ["sdp"]
 resolver = "2"
 
 [workspace.package]

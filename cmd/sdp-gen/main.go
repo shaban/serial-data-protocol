@@ -70,7 +70,7 @@ func main() {
 		"rust": true,
 		"c":    false, // Not yet implemented
 	}
-	
+
 	if !validLangs[*lang] {
 		fmt.Fprintf(os.Stderr, "Error: -lang must be 'go' or 'rust' (c not yet implemented), got '%s'\n", *lang)
 		os.Exit(1)

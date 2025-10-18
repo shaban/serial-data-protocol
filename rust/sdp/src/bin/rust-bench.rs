@@ -6,7 +6,6 @@
 
 use std::env;
 use std::fs;
-use std::io::{self, Write};
 use std::time::Instant;
 
 #[path = "../../../../testdata/primitives/rust/lib.rs"]
@@ -92,8 +91,8 @@ fn bench_encode_primitives(iterations: usize) {
     
     let start = Instant::now();
     for _ in 0..iterations {
-        let mut buf = Vec::new();
-        data.encode(&mut buf).unwrap();
+        let mut buf = vec![0u8; data.encoded_size()];
+        data.encode_to_slice(&mut buf).unwrap();
         // Prevent optimization from removing the encode
         std::hint::black_box(buf);
     }
@@ -109,7 +108,7 @@ fn bench_decode_primitives(filename: &str, iterations: usize) {
     
     let start = Instant::now();
     for _ in 0..iterations {
-        let decoded = AllPrimitives::decode(&mut &data[..]).unwrap();
+        let decoded = AllPrimitives::decode_from_slice(&data).unwrap();
         std::hint::black_box(decoded);
     }
     let duration = start.elapsed();
@@ -123,8 +122,8 @@ fn bench_encode_audiounit(iterations: usize) {
     
     let start = Instant::now();
     for _ in 0..iterations {
-        let mut buf = Vec::new();
-        data.encode(&mut buf).unwrap();
+        let mut buf = vec![0u8; data.encoded_size()];
+        data.encode_to_slice(&mut buf).unwrap();
         std::hint::black_box(buf);
     }
     let duration = start.elapsed();
@@ -138,7 +137,7 @@ fn bench_decode_audiounit(filename: &str, iterations: usize) {
     
     let start = Instant::now();
     for _ in 0..iterations {
-        let decoded = PluginRegistry::decode(&mut &data[..]).unwrap();
+        let decoded = PluginRegistry::decode_from_slice(&data).unwrap();
         std::hint::black_box(decoded);
     }
     let duration = start.elapsed();

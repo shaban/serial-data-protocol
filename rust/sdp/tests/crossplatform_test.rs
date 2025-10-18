@@ -48,7 +48,7 @@ fn test_go_to_rust_primitives() {
     println!("Go encoded {} bytes", go_data.len());
     
     // Decode with Rust
-    let decoded = primitives::AllPrimitives::decode(&mut &go_data[..])
+    let decoded = primitives::AllPrimitives::decode_from_slice(&go_data)
         .expect("Rust failed to decode Go-encoded data");
     
     // Verify values (these match what Go encodes)
@@ -85,8 +85,8 @@ fn test_rust_to_go_primitives() {
     };
     
     // Encode with Rust
-    let mut buf = Vec::new();
-    original.encode(&mut buf).expect("Rust encode failed");
+    let mut buf = vec![0u8; original.encoded_size()];
+    original.encode_to_slice(&mut buf).expect("Rust encode failed");
     
     println!("Rust encoded {} bytes", buf.len());
     
@@ -114,8 +114,8 @@ fn test_wire_format_is_identical() {
     };
     
     // Encode with Rust
-    let mut rust_buf = Vec::new();
-    rust_data.encode(&mut rust_buf).expect("Rust encode failed");
+    let mut rust_buf = vec![0u8; rust_data.encoded_size()];
+    rust_data.encode_to_slice(&mut rust_buf).expect("Rust encode failed");
     
     // Get Go-encoded data
     let go_buf = go_encode_primitives();

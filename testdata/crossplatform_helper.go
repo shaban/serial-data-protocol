@@ -8,7 +8,7 @@ package main
 import (
 	"fmt"
 	"os"
-	
+
 	primitives "github.com/shaban/serial-data-protocol/testdata/primitives/go"
 )
 

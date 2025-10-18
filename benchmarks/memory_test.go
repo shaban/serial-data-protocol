@@ -16,12 +16,12 @@ import (
 
 func BenchmarkMemory_SDP_Encode(b *testing.B) {
 	b.ReportAllocs()
-	
+
 	// Force GC and get baseline
 	runtime.GC()
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		encoded, err := audiounit.EncodePluginRegistry(&testData)
@@ -31,12 +31,12 @@ func BenchmarkMemory_SDP_Encode(b *testing.B) {
 		_ = encoded
 	}
 	b.StopTimer()
-	
+
 	// Measure after benchmark
 	runtime.GC()
 	var m2 runtime.MemStats
 	runtime.ReadMemStats(&m2)
-	
+
 	b.ReportMetric(float64(m2.TotalAlloc-m1.TotalAlloc)/float64(b.N), "bytes/encode")
 	b.ReportMetric(float64(m2.Mallocs-m1.Mallocs)/float64(b.N), "mallocs/encode")
 }
@@ -46,14 +46,14 @@ func BenchmarkMemory_SDP_Decode(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	
+
 	b.ReportAllocs()
-	
+
 	// Force GC and get baseline
 	runtime.GC()
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var decoded audiounit.PluginRegistry
@@ -64,23 +64,23 @@ func BenchmarkMemory_SDP_Decode(b *testing.B) {
 		_ = decoded
 	}
 	b.StopTimer()
-	
+
 	// Measure after benchmark
 	runtime.GC()
 	var m2 runtime.MemStats
 	runtime.ReadMemStats(&m2)
-	
+
 	b.ReportMetric(float64(m2.TotalAlloc-m1.TotalAlloc)/float64(b.N), "bytes/decode")
 	b.ReportMetric(float64(m2.Mallocs-m1.Mallocs)/float64(b.N), "mallocs/decode")
 }
 
 func BenchmarkMemory_Protobuf_Encode(b *testing.B) {
 	b.ReportAllocs()
-	
+
 	runtime.GC()
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		encoded, err := proto.Marshal(testDataPB)
@@ -90,11 +90,11 @@ func BenchmarkMemory_Protobuf_Encode(b *testing.B) {
 		_ = encoded
 	}
 	b.StopTimer()
-	
+
 	runtime.GC()
 	var m2 runtime.MemStats
 	runtime.ReadMemStats(&m2)
-	
+
 	b.ReportMetric(float64(m2.TotalAlloc-m1.TotalAlloc)/float64(b.N), "bytes/encode")
 	b.ReportMetric(float64(m2.Mallocs-m1.Mallocs)/float64(b.N), "mallocs/encode")
 }
@@ -104,13 +104,13 @@ func BenchmarkMemory_Protobuf_Decode(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	
+
 	b.ReportAllocs()
-	
+
 	runtime.GC()
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		decoded := &pb.PluginRegistry{}
@@ -121,26 +121,26 @@ func BenchmarkMemory_Protobuf_Decode(b *testing.B) {
 		_ = decoded
 	}
 	b.StopTimer()
-	
+
 	runtime.GC()
 	var m2 runtime.MemStats
 	runtime.ReadMemStats(&m2)
-	
+
 	b.ReportMetric(float64(m2.TotalAlloc-m1.TotalAlloc)/float64(b.N), "bytes/decode")
 	b.ReportMetric(float64(m2.Mallocs-m1.Mallocs)/float64(b.N), "mallocs/decode")
 }
 
 func BenchmarkMemory_FlatBuffers_Encode(b *testing.B) {
 	b.ReportAllocs()
-	
+
 	runtime.GC()
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		builder := flatbuffers.NewBuilder(0)
-		
+
 		pluginOffsets := make([]flatbuffers.UOffsetT, 0, len(testData.Plugins))
 		for _, plugin := range testData.Plugins {
 			paramOffsets := make([]flatbuffers.UOffsetT, 0, len(plugin.Parameters))
@@ -200,11 +200,11 @@ func BenchmarkMemory_FlatBuffers_Encode(b *testing.B) {
 		_ = builder.FinishedBytes()
 	}
 	b.StopTimer()
-	
+
 	runtime.GC()
 	var m2 runtime.MemStats
 	runtime.ReadMemStats(&m2)
-	
+
 	b.ReportMetric(float64(m2.TotalAlloc-m1.TotalAlloc)/float64(b.N), "bytes/encode")
 	b.ReportMetric(float64(m2.Mallocs-m1.Mallocs)/float64(b.N), "mallocs/encode")
 }
@@ -212,7 +212,7 @@ func BenchmarkMemory_FlatBuffers_Encode(b *testing.B) {
 func BenchmarkMemory_FlatBuffers_Decode(b *testing.B) {
 	// Encode once
 	builder := flatbuffers.NewBuilder(0)
-	
+
 	pluginOffsets := make([]flatbuffers.UOffsetT, 0, len(testData.Plugins))
 	for _, plugin := range testData.Plugins {
 		paramOffsets := make([]flatbuffers.UOffsetT, 0, len(plugin.Parameters))
@@ -270,13 +270,13 @@ func BenchmarkMemory_FlatBuffers_Decode(b *testing.B) {
 
 	builder.Finish(registry)
 	encoded := builder.FinishedBytes()
-	
+
 	b.ReportAllocs()
-	
+
 	runtime.GC()
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		decoded := fb.GetRootAsPluginRegistry(encoded, 0)
@@ -286,11 +286,11 @@ func BenchmarkMemory_FlatBuffers_Decode(b *testing.B) {
 		_ = decoded
 	}
 	b.StopTimer()
-	
+
 	runtime.GC()
 	var m2 runtime.MemStats
 	runtime.ReadMemStats(&m2)
-	
+
 	b.ReportMetric(float64(m2.TotalAlloc-m1.TotalAlloc)/float64(b.N), "bytes/decode")
 	b.ReportMetric(float64(m2.Mallocs-m1.Mallocs)/float64(b.N), "mallocs/decode")
 }
@@ -300,28 +300,28 @@ func TestPeakHeapUsage_SDP(t *testing.T) {
 	runtime.GC()
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
-	
+
 	// Encode
 	encoded, err := audiounit.EncodePluginRegistry(&testData)
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	var m2 runtime.MemStats
 	runtime.ReadMemStats(&m2)
 	encodePeak := m2.HeapAlloc - m1.HeapAlloc
-	
+
 	// Decode
 	var decoded audiounit.PluginRegistry
 	err = audiounit.DecodePluginRegistry(&decoded, encoded)
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	var m3 runtime.MemStats
 	runtime.ReadMemStats(&m3)
 	decodePeak := m3.HeapAlloc - m2.HeapAlloc
-	
+
 	t.Logf("SDP Peak Heap Usage:")
 	t.Logf("  Encode: %d bytes (%.2f KB)", encodePeak, float64(encodePeak)/1024)
 	t.Logf("  Decode: %d bytes (%.2f KB)", decodePeak, float64(decodePeak)/1024)
@@ -332,28 +332,28 @@ func TestPeakHeapUsage_Protobuf(t *testing.T) {
 	runtime.GC()
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
-	
+
 	// Encode
 	encoded, err := proto.Marshal(testDataPB)
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	var m2 runtime.MemStats
 	runtime.ReadMemStats(&m2)
 	encodePeak := m2.HeapAlloc - m1.HeapAlloc
-	
+
 	// Decode
 	decoded := &pb.PluginRegistry{}
 	err = proto.Unmarshal(encoded, decoded)
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	var m3 runtime.MemStats
 	runtime.ReadMemStats(&m3)
 	decodePeak := m3.HeapAlloc - m2.HeapAlloc
-	
+
 	t.Logf("Protocol Buffers Peak Heap Usage:")
 	t.Logf("  Encode: %d bytes (%.2f KB)", encodePeak, float64(encodePeak)/1024)
 	t.Logf("  Decode: %d bytes (%.2f KB)", decodePeak, float64(decodePeak)/1024)
@@ -364,10 +364,10 @@ func TestPeakHeapUsage_FlatBuffers(t *testing.T) {
 	runtime.GC()
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
-	
+
 	// Encode
 	builder := flatbuffers.NewBuilder(0)
-	
+
 	pluginOffsets := make([]flatbuffers.UOffsetT, 0, len(testData.Plugins))
 	for _, plugin := range testData.Plugins {
 		paramOffsets := make([]flatbuffers.UOffsetT, 0, len(plugin.Parameters))
@@ -425,19 +425,19 @@ func TestPeakHeapUsage_FlatBuffers(t *testing.T) {
 
 	builder.Finish(registry)
 	encoded := builder.FinishedBytes()
-	
+
 	var m2 runtime.MemStats
 	runtime.ReadMemStats(&m2)
 	encodePeak := m2.HeapAlloc - m1.HeapAlloc
-	
+
 	// Decode (zero-copy, should be minimal)
 	decoded := fb.GetRootAsPluginRegistry(encoded, 0)
 	_ = decoded
-	
+
 	var m3 runtime.MemStats
 	runtime.ReadMemStats(&m3)
 	decodePeak := m3.HeapAlloc - m2.HeapAlloc
-	
+
 	t.Logf("FlatBuffers Peak Heap Usage:")
 	t.Logf("  Encode: %d bytes (%.2f KB)", encodePeak, float64(encodePeak)/1024)
 	t.Logf("  Decode: %d bytes (%.2f KB)", decodePeak, float64(decodePeak)/1024)

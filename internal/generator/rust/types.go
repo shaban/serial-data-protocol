@@ -16,7 +16,7 @@ func ToRustName(name string) string {
 	if unicode.IsUpper(rune(name[0])) {
 		return name
 	}
-	
+
 	// For field names, convert to snake_case
 	return toSnakeCase(name)
 }
@@ -24,7 +24,7 @@ func ToRustName(name string) string {
 // toSnakeCase converts camelCase or PascalCase to snake_case
 func toSnakeCase(s string) string {
 	var result strings.Builder
-	
+
 	for i, r := range s {
 		if unicode.IsUpper(r) && i > 0 {
 			// Add underscore before uppercase letter (unless start)
@@ -32,7 +32,7 @@ func toSnakeCase(s string) string {
 		}
 		result.WriteRune(unicode.ToLower(r))
 	}
-	
+
 	return result.String()
 }
 
@@ -50,7 +50,7 @@ func toSnakeCase(s string) string {
 func MapTypeToRust(typeName string, isArray bool, isOptional bool) (string, error) {
 	// Base type mapping
 	var rustType string
-	
+
 	switch typeName {
 	case "u8", "u16", "u32", "u64":
 		rustType = typeName
@@ -68,17 +68,17 @@ func MapTypeToRust(typeName string, isArray bool, isOptional bool) (string, erro
 		// Named type (struct reference)
 		rustType = typeName
 	}
-	
+
 	// Wrap in Vec if array
 	if isArray {
 		rustType = fmt.Sprintf("Vec<%s>", rustType)
 	}
-	
+
 	// Wrap in Option if optional
 	if isOptional {
 		rustType = fmt.Sprintf("Option<%s>", rustType)
 	}
-	
+
 	return rustType, nil
 }
 
@@ -123,8 +123,8 @@ func IsPrimitive(typeName string) bool {
 		"u8": true, "u16": true, "u32": true, "u64": true,
 		"i8": true, "i16": true, "i32": true, "i64": true,
 		"f32": true, "f64": true,
-		"bool": true,
-		"str": true,
+		"bool":  true,
+		"str":   true,
 		"bytes": true,
 	}
 	return primitives[typeName]

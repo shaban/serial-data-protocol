@@ -114,7 +114,7 @@ func mapFieldType(t *parser.TypeExpr) (string, error) {
 			return "", err
 		}
 		typeName = fmt.Sprintf("Vec<%s>", elemType)
-		
+
 		// Handle optional arrays
 		if t.Optional {
 			typeName = fmt.Sprintf("Option<%s>", typeName)
