@@ -276,12 +276,12 @@ func TestIntegrationMultipleErrors(t *testing.T) {
 
 	// Should report all errors with error codes
 	expectedErrors := []string{
-		"EMPTY_STRUCT",    // Empty struct error code
+		"EMPTY_STRUCT",     // Empty struct error code
 		"RESERVED_KEYWORD", // Reserved keyword error code
-		"UNKNOWN_TYPE",    // Unknown type error code
-		"Empty",           // Empty struct name
-		"func",            // Reserved keyword
-		"Unknown",         // Unknown type
+		"UNKNOWN_TYPE",     // Unknown type error code
+		"Empty",            // Empty struct name
+		"func",             // Reserved keyword
+		"Unknown",          // Unknown type
 	}
 
 	for _, expected := range expectedErrors {

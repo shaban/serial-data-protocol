@@ -7,21 +7,21 @@ import "fmt"
 // by tools and other language implementations.
 const (
 	// Structure validation errors
-	ErrCodeEmptySchema       = "EMPTY_SCHEMA"        // Schema defines no structs
-	ErrCodeEmptyStruct       = "EMPTY_STRUCT"        // Struct has no fields
-	
+	ErrCodeEmptySchema = "EMPTY_SCHEMA" // Schema defines no structs
+	ErrCodeEmptyStruct = "EMPTY_STRUCT" // Struct has no fields
+
 	// Type validation errors
-	ErrCodeUnknownType       = "UNKNOWN_TYPE"        // Type reference to undefined struct
-	ErrCodeInvalidPrimitive  = "INVALID_PRIMITIVE"   // Invalid primitive type name
-	
+	ErrCodeUnknownType      = "UNKNOWN_TYPE"      // Type reference to undefined struct
+	ErrCodeInvalidPrimitive = "INVALID_PRIMITIVE" // Invalid primitive type name
+
 	// Cycle detection errors
-	ErrCodeCircularReference = "CIRCULAR_REFERENCE"  // Circular struct reference detected
-	
+	ErrCodeCircularReference = "CIRCULAR_REFERENCE" // Circular struct reference detected
+
 	// Naming validation errors
-	ErrCodeInvalidIdentifier = "INVALID_IDENTIFIER"  // Identifier violates naming rules
-	ErrCodeReservedKeyword   = "RESERVED_KEYWORD"    // Identifier is reserved in target language
-	ErrCodeDuplicateStruct   = "DUPLICATE_STRUCT"    // Multiple structs with same name
-	ErrCodeDuplicateField    = "DUPLICATE_FIELD"     // Multiple fields with same name in struct
+	ErrCodeInvalidIdentifier = "INVALID_IDENTIFIER" // Identifier violates naming rules
+	ErrCodeReservedKeyword   = "RESERVED_KEYWORD"   // Identifier is reserved in target language
+	ErrCodeDuplicateStruct   = "DUPLICATE_STRUCT"   // Multiple structs with same name
+	ErrCodeDuplicateField    = "DUPLICATE_FIELD"    // Multiple fields with same name in struct
 )
 
 // Error constructors for consistent error messages

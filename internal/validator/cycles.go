@@ -30,7 +30,7 @@ func DetectCycles(schema *parser.Schema) []error {
 	// Check each struct as a potential cycle start
 	visited := make(map[string]bool)
 	recStack := make(map[string]bool) // Recursion stack for cycle detection
-	path := []string{}                 // Current path for error reporting
+	path := []string{}                // Current path for error reporting
 
 	for _, s := range schema.Structs {
 		if !visited[s.Name] {
