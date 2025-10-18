@@ -362,3 +362,167 @@ func TestParseWithComments(t *testing.T) {
 		t.Errorf("Expected field doc comment, got %q", s.Fields[0].Comment)
 	}
 }
+
+func TestParseMixedComments(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		input                string
+		expectedStructs      int
+		expectedStructName   string
+		expectedStructComment string
+		expectedFieldCount   int
+		expectedFieldComments []string
+	}{
+		{
+			name: "regular comments between doc comments",
+			input: `/// First doc line
+			// Regular comment
+			/// Second doc line
+			struct Device {
+				id: u32,
+			}`,
+			expectedStructs:      1,
+			expectedStructName:   "Device",
+			expectedStructComment: "First doc line\nSecond doc line",
+			expectedFieldCount:   1,
+			expectedFieldComments: []string{""},
+		},
+		{
+			name: "multiple regular comments before struct",
+			input: `// Comment 1
+			// Comment 2
+			// Comment 3
+			struct Device {
+				id: u32,
+			}`,
+			expectedStructs:      1,
+			expectedStructName:   "Device",
+			expectedStructComment: "",
+			expectedFieldCount:   1,
+			expectedFieldComments: []string{""},
+		},
+		{
+			name: "regular comments between structs",
+			input: `struct First {
+				a: u32,
+			}
+			// Comment between structs
+			// Another comment
+			struct Second {
+				b: str,
+			}`,
+			expectedStructs:      2,
+			expectedStructName:   "Second",
+			expectedStructComment: "",
+			expectedFieldCount:   1,
+			expectedFieldComments: []string{""},
+		},
+		{
+			name: "regular comments inside struct body",
+			input: `struct Device {
+				// Comment before field
+				id: u32,
+				// Comment between fields
+				name: str,
+				// Comment after last field
+			}`,
+			expectedStructs:      1,
+			expectedStructName:   "Device",
+			expectedStructComment: "",
+			expectedFieldCount:   2,
+			expectedFieldComments: []string{"", ""},
+		},
+		{
+			name: "doc comment followed by regular comment on field",
+			input: `struct Device {
+				/// Doc comment for id
+				// Regular comment
+				id: u32,
+			}`,
+			expectedStructs:      1,
+			expectedStructName:   "Device",
+			expectedStructComment: "",
+			expectedFieldCount:   1,
+			expectedFieldComments: []string{"Doc comment for id"},
+		},
+		{
+			name: "regular comment followed by doc comment on field",
+			input: `struct Device {
+				// Regular comment
+				/// Doc comment for id
+				id: u32,
+			}`,
+			expectedStructs:      1,
+			expectedStructName:   "Device",
+			expectedStructComment: "",
+			expectedFieldCount:   1,
+			expectedFieldComments: []string{"Doc comment for id"},
+		},
+		{
+			name: "interleaved comments on multiple fields",
+			input: `struct Device {
+				/// Doc for id
+				id: u32,
+				// Regular comment
+				/// Doc for name
+				// Another regular
+				name: str,
+				// Just regular
+				status: bool,
+			}`,
+			expectedStructs:      1,
+			expectedStructName:   "Device",
+			expectedStructComment: "",
+			expectedFieldCount:   3,
+			expectedFieldComments: []string{"Doc for id", "Doc for name", ""},
+		},
+		{
+			name: "doc comments only collected when adjacent to declaration",
+			input: `/// This should be collected
+			/// This too
+			struct Device {
+				/// Field doc 1
+				/// Field doc 2
+				id: u32,
+			}`,
+			expectedStructs:      1,
+			expectedStructName:   "Device",
+			expectedStructComment: "This should be collected\nThis too",
+			expectedFieldCount:   1,
+			expectedFieldComments: []string{"Field doc 1\nField doc 2"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			schema, err := ParseSchema(tc.input)
+			if err != nil {
+				t.Fatalf("ParseSchema failed: %v", err)
+			}
+
+			if len(schema.Structs) != tc.expectedStructs {
+				t.Fatalf("Expected %d structs, got %d", tc.expectedStructs, len(schema.Structs))
+			}
+
+			// Check the last struct (most relevant for these tests)
+			s := schema.Structs[len(schema.Structs)-1]
+			if s.Name != tc.expectedStructName {
+				t.Errorf("Expected struct name %q, got %q", tc.expectedStructName, s.Name)
+			}
+
+			if s.Comment != tc.expectedStructComment {
+				t.Errorf("Expected struct comment %q, got %q", tc.expectedStructComment, s.Comment)
+			}
+
+			if len(s.Fields) != tc.expectedFieldCount {
+				t.Fatalf("Expected %d fields, got %d", tc.expectedFieldCount, len(s.Fields))
+			}
+
+			for i, expectedComment := range tc.expectedFieldComments {
+				if s.Fields[i].Comment != expectedComment {
+					t.Errorf("Field %d: expected comment %q, got %q", i, expectedComment, s.Fields[i].Comment)
+				}
+			}
+		})
+	}
+}

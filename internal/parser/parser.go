@@ -188,18 +188,25 @@ func (p *Parser) parseTypeExpr() (TypeExpr, error) {
 }
 
 // collectDocComments collects consecutive doc comments and returns them as a single string.
+// It handles regular comments that may appear before, between, or after doc comments.
 func (p *Parser) collectDocComments() string {
-	// First skip any regular comments
-	for p.check(TokenComment) {
-		p.advance()
-	}
-
-	// Then collect doc comments
 	var comments []string
 
-	for p.check(TokenDocComment) {
-		tok := p.advance()
-		comments = append(comments, tok.Value)
+	// Loop to collect all doc comments, skipping regular comments between them
+	for {
+		// Skip any regular comments
+		for p.check(TokenComment) {
+			p.advance()
+		}
+
+		// If we find a doc comment, collect it
+		if p.check(TokenDocComment) {
+			tok := p.advance()
+			comments = append(comments, tok.Value)
+		} else {
+			// No more doc comments found
+			break
+		}
 	}
 
 	if len(comments) == 0 {
@@ -213,13 +220,6 @@ func (p *Parser) collectDocComments() string {
 	}
 
 	return result
-}
-
-// skipComments skips both doc comments and regular comments.
-func (p *Parser) skipComments() {
-	for p.check(TokenComment) || p.check(TokenDocComment) {
-		p.advance()
-	}
 }
 
 // skipRegularComments skips only regular comments, not doc comments.
