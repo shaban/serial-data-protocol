@@ -44,6 +44,34 @@ func ValidateTypeReferences(schema *parser.Schema) []error {
 
 // validateTypeExpr recursively validates a type expression.
 func validateTypeExpr(typeExpr *parser.TypeExpr, structNames map[string]bool, structName, fieldName string) error {
+	// Validate optional fields - Option<T> where T must be a struct
+	if typeExpr.Optional {
+		if typeExpr.Kind == parser.TypeKindPrimitive {
+			return ValidationError{
+				Message: fmt.Sprintf("struct %q, field %q: Option<T> cannot wrap primitive types (use regular field instead)",
+					structName, fieldName),
+			}
+		}
+		if typeExpr.Kind == parser.TypeKindArray {
+			return ValidationError{
+				Message: fmt.Sprintf("struct %q, field %q: Option<T> cannot wrap array types (use empty array instead)",
+					structName, fieldName),
+			}
+		}
+		// Option<StructType> is valid, continue validation below
+	}
+
+	// Validate Box<T> - typically used with recursive types
+	if typeExpr.Boxed {
+		if typeExpr.Kind != parser.TypeKindNamed {
+			return ValidationError{
+				Message: fmt.Sprintf("struct %q, field %q: Box<T> can only wrap struct types",
+					structName, fieldName),
+			}
+		}
+		// Box<StructType> is valid, continue validation below
+	}
+
 	switch typeExpr.Kind {
 	case parser.TypeKindPrimitive:
 		// Primitive types are always valid (already validated by parser)

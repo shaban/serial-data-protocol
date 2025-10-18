@@ -166,14 +166,56 @@ func (p *Parser) parseTypeExpr() (TypeExpr, error) {
 		}, nil
 	}
 
-	// Must be an identifier (primitive or named type)
+	// Must be an identifier (primitive, named type, Option, or Box)
 	if !p.check(TokenIdent) {
 		return TypeExpr{}, p.error("expected type name")
 	}
 
 	typeName := p.advance()
 
-	// Determine if it's a primitive or named type
+	// Check for Option<T> wrapper
+	if typeName.Value == "Option" {
+		if !p.match(TokenLess) {
+			return TypeExpr{}, p.error("expected '<' after 'Option'")
+		}
+
+		// Parse inner type (may be Box<T>)
+		innerType, err := p.parseTypeExpr()
+		if err != nil {
+			return TypeExpr{}, err
+		}
+
+		if !p.match(TokenGreater) {
+			return TypeExpr{}, p.error("expected '>' after Option inner type")
+		}
+
+		// Mark as optional
+		innerType.Optional = true
+		return innerType, nil
+	}
+
+	// Check for Box<T> wrapper
+	if typeName.Value == "Box" {
+		if !p.match(TokenLess) {
+			return TypeExpr{}, p.error("expected '<' after 'Box'")
+		}
+
+		// Parse inner type
+		innerType, err := p.parseTypeExpr()
+		if err != nil {
+			return TypeExpr{}, err
+		}
+
+		if !p.match(TokenGreater) {
+			return TypeExpr{}, p.error("expected '>' after Box inner type")
+		}
+
+		// Mark as boxed
+		innerType.Boxed = true
+		return innerType, nil
+	}
+
+	// Regular type (primitive or named)
 	typeExpr := TypeExpr{
 		Name: typeName.Value,
 	}

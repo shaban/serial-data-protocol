@@ -1,0 +1,19 @@
+// Test schema with various array types
+
+struct ArraysOfPrimitives {
+    u8_array: []u8,
+    u32_array: []u32,
+    f64_array: []f64,
+    str_array: []str,
+    bool_array: []bool
+}
+
+struct Item {
+    id: u32,
+    name: str
+}
+
+struct ArraysOfStructs {
+    items: []Item,
+    count: u32
+}

@@ -1,0 +1,31 @@
+// Real-world AudioUnit plugin introspection data schema
+// Based on actual plugin enumeration from macOS AudioUnit framework
+// 62 plugins × ~28 parameters = 1,759 total parameters
+
+struct Parameter {
+    address: u64,
+    display_name: str,
+    identifier: str,
+    unit: str,
+    min_value: f32,
+    max_value: f32,
+    default_value: f32,
+    current_value: f32,
+    raw_flags: u32,
+    is_writable: bool,
+    can_ramp: bool
+}
+
+struct Plugin {
+    name: str,
+    manufacturer_id: str,
+    component_type: str,
+    component_subtype: str,
+    parameters: []Parameter
+}
+
+struct PluginRegistry {
+    plugins: []Plugin,
+    total_plugin_count: u32,
+    total_parameter_count: u32
+}

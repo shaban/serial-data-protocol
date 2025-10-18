@@ -1,0 +1,55 @@
+/// Basic struct with optional metadata (RC Feature 1 test)
+struct Request {
+    /// Request ID (always present)
+    id: u32,
+    /// Optional user metadata
+    metadata: Option<Metadata>,
+}
+
+/// User metadata
+struct Metadata {
+    /// User ID
+    user_id: u64,
+    /// Username
+    username: str,
+}
+
+/// Complex example with nested optional fields
+struct Config {
+    /// Configuration name
+    name: str,
+    /// Optional database settings
+    database: Option<DatabaseConfig>,
+    /// Optional cache settings
+    cache: Option<CacheConfig>,
+}
+
+/// Database configuration
+struct DatabaseConfig {
+    /// Database host
+    host: str,
+    /// Database port
+    port: u16,
+}
+
+/// Cache configuration
+struct CacheConfig {
+    /// Cache size in MB
+    size_mb: u32,
+    /// Time to live in seconds
+    ttl_seconds: u32,
+}
+
+/// Example with optional array (wrapped struct containing array)
+struct Document {
+    /// Document ID
+    id: u32,
+    /// Optional tags wrapper
+    tags: Option<TagList>,
+}
+
+/// Wrapper for tag array
+struct TagList {
+    /// Array of tags
+    items: []str,
+}

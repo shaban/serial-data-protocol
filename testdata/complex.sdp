@@ -1,0 +1,29 @@
+// Complex test schema with 3 levels of nesting and mixed types
+
+struct Parameter {
+    id: u32,
+    name: str,
+    value: f32,
+    min: f32,
+    max: f32
+}
+
+struct Plugin {
+    id: u32,
+    name: str,
+    manufacturer: str,
+    version: u32,
+    enabled: bool,
+    parameters: []Parameter
+}
+
+struct AudioDevice {
+    device_id: u32,
+    device_name: str,
+    sample_rate: u32,
+    buffer_size: u32,
+    input_channels: u16,
+    output_channels: u16,
+    is_default: bool,
+    active_plugins: []Plugin
+}

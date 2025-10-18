@@ -51,18 +51,20 @@ func MapTypeToGo(typeExpr *parser.TypeExpr) (string, error) {
 		return "", fmt.Errorf("type expression is nil")
 	}
 
+	var baseType string
+
 	switch typeExpr.Kind {
 	case parser.TypeKindPrimitive:
 		goType, ok := primitiveTypeMap[typeExpr.Name]
 		if !ok {
 			return "", fmt.Errorf("unknown primitive type: %q", typeExpr.Name)
 		}
-		return goType, nil
+		baseType = goType
 
 	case parser.TypeKindNamed:
 		// Named types (user-defined structs) are kept as-is
 		// Name conversion happens separately
-		return typeExpr.Name, nil
+		baseType = typeExpr.Name
 
 	case parser.TypeKindArray:
 		if typeExpr.Elem == nil {
@@ -72,11 +74,18 @@ func MapTypeToGo(typeExpr *parser.TypeExpr) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("array element type error: %w", err)
 		}
-		return "[]" + elemType, nil
+		baseType = "[]" + elemType
 
 	default:
 		return "", fmt.Errorf("unknown type kind: %v", typeExpr.Kind)
 	}
+
+	// Wrap in pointer if optional (Option<T> → *T, Box<T> ignored in Go)
+	if typeExpr.Optional {
+		baseType = "*" + baseType
+	}
+
+	return baseType, nil
 }
 
 // ToGoName converts a schema identifier to Go naming convention (PascalCase).
@@ -105,18 +114,18 @@ func ToGoName(name string) string {
 
 	// Split by underscores
 	parts := strings.Split(name, "_")
-	
+
 	var result strings.Builder
 	for _, part := range parts {
 		if part == "" {
 			// Skip empty parts (from multiple underscores or leading/trailing)
 			continue
 		}
-		
+
 		// Capitalize first letter, preserve rest
 		result.WriteString(capitalizeFirst(part))
 	}
-	
+
 	return result.String()
 }
 
@@ -132,7 +141,7 @@ func capitalizeFirst(s string) string {
 	if s == "" {
 		return ""
 	}
-	
+
 	runes := []rune(s)
 	runes[0] = unicode.ToUpper(runes[0])
 	return string(runes)

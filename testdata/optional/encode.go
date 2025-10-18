@@ -1,0 +1,303 @@
+package optional
+
+import (
+	"encoding/binary"
+)
+
+// calculateRequestSize calculates the wire format size for Request.
+func calculateRequestSize(src *Request) int {
+	size := 0
+	// Field: Id
+	size += 4
+	// Field: Metadata
+	size += 1 // presence flag
+	if src.Metadata != nil {
+		size += calculateMetadataSize(src.Metadata)
+	}
+	return size
+}
+
+// EncodeRequest encodes a Request to wire format.
+// It returns the encoded bytes or an error.
+func EncodeRequest(src *Request) ([]byte, error) {
+	size := calculateRequestSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeRequest(src, buf, &offset); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+// calculateMetadataSize calculates the wire format size for Metadata.
+func calculateMetadataSize(src *Metadata) int {
+	size := 0
+	// Field: UserId
+	size += 8
+	// Field: Username
+	size += 4 + len(src.Username)
+	return size
+}
+
+// EncodeMetadata encodes a Metadata to wire format.
+// It returns the encoded bytes or an error.
+func EncodeMetadata(src *Metadata) ([]byte, error) {
+	size := calculateMetadataSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeMetadata(src, buf, &offset); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+// calculateConfigSize calculates the wire format size for Config.
+func calculateConfigSize(src *Config) int {
+	size := 0
+	// Field: Name
+	size += 4 + len(src.Name)
+	// Field: Database
+	size += 1 // presence flag
+	if src.Database != nil {
+		size += calculateDatabaseConfigSize(src.Database)
+	}
+	// Field: Cache
+	size += 1 // presence flag
+	if src.Cache != nil {
+		size += calculateCacheConfigSize(src.Cache)
+	}
+	return size
+}
+
+// EncodeConfig encodes a Config to wire format.
+// It returns the encoded bytes or an error.
+func EncodeConfig(src *Config) ([]byte, error) {
+	size := calculateConfigSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeConfig(src, buf, &offset); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+// calculateDatabaseConfigSize calculates the wire format size for DatabaseConfig.
+func calculateDatabaseConfigSize(src *DatabaseConfig) int {
+	size := 0
+	// Field: Host
+	size += 4 + len(src.Host)
+	// Field: Port
+	size += 2
+	return size
+}
+
+// EncodeDatabaseConfig encodes a DatabaseConfig to wire format.
+// It returns the encoded bytes or an error.
+func EncodeDatabaseConfig(src *DatabaseConfig) ([]byte, error) {
+	size := calculateDatabaseConfigSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeDatabaseConfig(src, buf, &offset); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+// calculateCacheConfigSize calculates the wire format size for CacheConfig.
+func calculateCacheConfigSize(src *CacheConfig) int {
+	size := 0
+	// Field: SizeMb
+	size += 4
+	// Field: TtlSeconds
+	size += 4
+	return size
+}
+
+// EncodeCacheConfig encodes a CacheConfig to wire format.
+// It returns the encoded bytes or an error.
+func EncodeCacheConfig(src *CacheConfig) ([]byte, error) {
+	size := calculateCacheConfigSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeCacheConfig(src, buf, &offset); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+// calculateDocumentSize calculates the wire format size for Document.
+func calculateDocumentSize(src *Document) int {
+	size := 0
+	// Field: Id
+	size += 4
+	// Field: Tags
+	size += 1 // presence flag
+	if src.Tags != nil {
+		size += calculateTagListSize(src.Tags)
+	}
+	return size
+}
+
+// EncodeDocument encodes a Document to wire format.
+// It returns the encoded bytes or an error.
+func EncodeDocument(src *Document) ([]byte, error) {
+	size := calculateDocumentSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeDocument(src, buf, &offset); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+// calculateTagListSize calculates the wire format size for TagList.
+func calculateTagListSize(src *TagList) int {
+	size := 0
+	// Field: Items
+	size += 4
+	for i := range src.Items {
+		size += 4 + len(src.Items[i])
+	}
+	return size
+}
+
+// EncodeTagList encodes a TagList to wire format.
+// It returns the encoded bytes or an error.
+func EncodeTagList(src *TagList) ([]byte, error) {
+	size := calculateTagListSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeTagList(src, buf, &offset); err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+
+// encodeRequest is the helper function that encodes Request fields.
+func encodeRequest(src *Request, buf []byte, offset *int) error {
+	// Field: Id (u32)
+	binary.LittleEndian.PutUint32(buf[*offset:], src.Id)
+	*offset += 4
+
+	// Field: Metadata (Metadata)
+	if src.Metadata == nil {
+		buf[*offset] = 0 // presence = 0 (absent)
+		*offset += 1
+	} else {
+		buf[*offset] = 1 // presence = 1 (present)
+		*offset += 1
+		if err := encodeMetadata(src.Metadata, buf, offset); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// encodeMetadata is the helper function that encodes Metadata fields.
+func encodeMetadata(src *Metadata, buf []byte, offset *int) error {
+	// Field: UserId (u64)
+	binary.LittleEndian.PutUint64(buf[*offset:], src.UserId)
+	*offset += 8
+
+	// Field: Username (str)
+	binary.LittleEndian.PutUint32(buf[*offset:], uint32(len(src.Username)))
+	*offset += 4
+	copy(buf[*offset:], src.Username)
+	*offset += len(src.Username)
+	return nil
+}
+
+// encodeConfig is the helper function that encodes Config fields.
+func encodeConfig(src *Config, buf []byte, offset *int) error {
+	// Field: Name (str)
+	binary.LittleEndian.PutUint32(buf[*offset:], uint32(len(src.Name)))
+	*offset += 4
+	copy(buf[*offset:], src.Name)
+	*offset += len(src.Name)
+	// Field: Database (DatabaseConfig)
+	if src.Database == nil {
+		buf[*offset] = 0 // presence = 0 (absent)
+		*offset += 1
+	} else {
+		buf[*offset] = 1 // presence = 1 (present)
+		*offset += 1
+		if err := encodeDatabaseConfig(src.Database, buf, offset); err != nil {
+			return err
+		}
+	}
+	// Field: Cache (CacheConfig)
+	if src.Cache == nil {
+		buf[*offset] = 0 // presence = 0 (absent)
+		*offset += 1
+	} else {
+		buf[*offset] = 1 // presence = 1 (present)
+		*offset += 1
+		if err := encodeCacheConfig(src.Cache, buf, offset); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// encodeDatabaseConfig is the helper function that encodes DatabaseConfig fields.
+func encodeDatabaseConfig(src *DatabaseConfig, buf []byte, offset *int) error {
+	// Field: Host (str)
+	binary.LittleEndian.PutUint32(buf[*offset:], uint32(len(src.Host)))
+	*offset += 4
+	copy(buf[*offset:], src.Host)
+	*offset += len(src.Host)
+	// Field: Port (u16)
+	binary.LittleEndian.PutUint16(buf[*offset:], src.Port)
+	*offset += 2
+
+	return nil
+}
+
+// encodeCacheConfig is the helper function that encodes CacheConfig fields.
+func encodeCacheConfig(src *CacheConfig, buf []byte, offset *int) error {
+	// Field: SizeMb (u32)
+	binary.LittleEndian.PutUint32(buf[*offset:], src.SizeMb)
+	*offset += 4
+
+	// Field: TtlSeconds (u32)
+	binary.LittleEndian.PutUint32(buf[*offset:], src.TtlSeconds)
+	*offset += 4
+
+	return nil
+}
+
+// encodeDocument is the helper function that encodes Document fields.
+func encodeDocument(src *Document, buf []byte, offset *int) error {
+	// Field: Id (u32)
+	binary.LittleEndian.PutUint32(buf[*offset:], src.Id)
+	*offset += 4
+
+	// Field: Tags (TagList)
+	if src.Tags == nil {
+		buf[*offset] = 0 // presence = 0 (absent)
+		*offset += 1
+	} else {
+		buf[*offset] = 1 // presence = 1 (present)
+		*offset += 1
+		if err := encodeTagList(src.Tags, buf, offset); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// encodeTagList is the helper function that encodes TagList fields.
+func encodeTagList(src *TagList, buf []byte, offset *int) error {
+	// Field: Items ([]str)
+	binary.LittleEndian.PutUint32(buf[*offset:], uint32(len(src.Items)))
+	*offset += 4
+
+	for i := range src.Items {
+		binary.LittleEndian.PutUint32(buf[*offset:], uint32(len(src.Items[i])))
+		*offset += 4
+		copy(buf[*offset:], src.Items[i])
+		*offset += len(src.Items[i])
+	}
+	return nil
+}

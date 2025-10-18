@@ -22,9 +22,11 @@ type Field struct {
 
 // TypeExpr represents a type expression (primitive, array, or named type).
 type TypeExpr struct {
-	Kind TypeKind
-	Name string    // For Named types (e.g., "MyStruct", "u32")
-	Elem *TypeExpr // For Array types, points to element type
+	Kind     TypeKind
+	Name     string    // For Named types (e.g., "MyStruct", "u32")
+	Elem     *TypeExpr // For Array types, points to element type
+	Optional bool      // True if wrapped in Option<T>
+	Boxed    bool      // True if wrapped in Box<T> (for recursive types)
 }
 
 // TypeKind identifies the kind of type expression.
@@ -52,15 +54,29 @@ func (t *TypeExpr) IsPrimitive() bool {
 
 // String returns a string representation of the type.
 func (t *TypeExpr) String() string {
+	var base string
 	switch t.Kind {
 	case TypeKindPrimitive, TypeKindNamed:
-		return t.Name
+		base = t.Name
 	case TypeKindArray:
 		if t.Elem != nil {
-			return "[]" + t.Elem.String()
+			base = "[]" + t.Elem.String()
+		} else {
+			base = "[]?"
 		}
-		return "[]?"
 	default:
-		return "?"
+		base = "?"
 	}
+
+	// Wrap in Box<T> if boxed
+	if t.Boxed {
+		base = "Box<" + base + ">"
+	}
+
+	// Wrap in Option<T> if optional
+	if t.Optional {
+		base = "Option<" + base + ">"
+	}
+
+	return base
 }

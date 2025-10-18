@@ -23,6 +23,8 @@ const (
 	TokenRBrace   // }
 	TokenLBracket // [
 	TokenRBracket // ]
+	TokenLess     // <
+	TokenGreater  // >
 	TokenColon    // :
 	TokenComma    // ,
 
@@ -58,6 +60,10 @@ func (t Token) String() string {
 		return "["
 	case TokenRBracket:
 		return "]"
+	case TokenLess:
+		return "<"
+	case TokenGreater:
+		return ">"
 	case TokenColon:
 		return ":"
 	case TokenComma:
@@ -132,6 +138,10 @@ func (l *Lexer) nextToken() Token {
 		return l.advance(TokenLBracket, "[")
 	case ']':
 		return l.advance(TokenRBracket, "]")
+	case '<':
+		return l.advance(TokenLess, "<")
+	case '>':
+		return l.advance(TokenGreater, ">")
 	case ':':
 		return l.advance(TokenColon, ":")
 	case ',':
