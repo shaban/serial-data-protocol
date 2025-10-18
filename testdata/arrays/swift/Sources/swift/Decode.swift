@@ -14,9 +14,9 @@ extension ArraysOfPrimitives {
         var offset = 0
 
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let u8ArrayLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var u8ArrayLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &u8ArrayLenBytes, from: offset..<offset+4)
+        let u8ArrayLen = Int(UInt32(littleEndian: u8ArrayLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
         var u8Array: [UInt8] = []
         u8Array.reserveCapacity(Int(u8ArrayLen))
@@ -27,61 +27,61 @@ extension ArraysOfPrimitives {
             u8Array.append(elem)
         }
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let u32ArrayLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var u32ArrayLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &u32ArrayLenBytes, from: offset..<offset+4)
+        let u32ArrayLen = Int(UInt32(littleEndian: u32ArrayLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
         var u32Array: [UInt32] = []
         u32Array.reserveCapacity(Int(u32ArrayLen))
         for _ in 0..<Int(u32ArrayLen) {
             guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-            let elem = data[offset..<offset+4].withUnsafeBytes {
-                $0.load(as: UInt32.self).littleEndian
-            }
+            var elemBytes = [UInt8](repeating: 0, count: 4)
+            data.copyBytes(to: &elemBytes, from: offset..<offset+4)
+            let elem = UInt32(littleEndian: elemBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
             offset += 4
             u32Array.append(elem)
         }
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let f64ArrayLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var f64ArrayLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &f64ArrayLenBytes, from: offset..<offset+4)
+        let f64ArrayLen = Int(UInt32(littleEndian: f64ArrayLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
         var f64Array: [Double] = []
         f64Array.reserveCapacity(Int(f64ArrayLen))
         for _ in 0..<Int(f64ArrayLen) {
             guard offset + 8 <= data.count else { throw SDPDecodeError.insufficientData }
-            let elemBits = data[offset..<offset+8].withUnsafeBytes {
-                $0.load(as: UInt64.self).littleEndian
-            }
+            var elemBitsBytes = [UInt8](repeating: 0, count: 8)
+            data.copyBytes(to: &elemBitsBytes, from: offset..<offset+8)
+            let elemBits = UInt64(littleEndian: elemBitsBytes.withUnsafeBytes { $0.load(as: UInt64.self) })
             let elem = Double(bitPattern: elemBits)
             offset += 8
             f64Array.append(elem)
         }
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let strArrayLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var strArrayLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &strArrayLenBytes, from: offset..<offset+4)
+        let strArrayLen = Int(UInt32(littleEndian: strArrayLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
         var strArray: [String] = []
         strArray.reserveCapacity(Int(strArrayLen))
         for _ in 0..<Int(strArrayLen) {
             guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-            let elemLen = data[offset..<offset+4].withUnsafeBytes {
-                $0.load(as: UInt32.self).littleEndian
-            }
+            var elemLenBytes = [UInt8](repeating: 0, count: 4)
+            data.copyBytes(to: &elemLenBytes, from: offset..<offset+4)
+            let elemLen = Int(UInt32(littleEndian: elemLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
             offset += 4
-            guard offset + Int(elemLen) <= data.count else { throw SDPDecodeError.insufficientData }
-            let elemData = data[offset..<offset+Int(elemLen)]
+            guard offset + elemLen <= data.count else { throw SDPDecodeError.insufficientData }
+            let elemData = data[offset..<offset+elemLen]
             guard let elem = String(data: elemData, encoding: .utf8) else {
                 throw SDPDecodeError.invalidUTF8
             }
-            offset += Int(elemLen)
+            offset += elemLen
             strArray.append(elem)
         }
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let boolArrayLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var boolArrayLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &boolArrayLenBytes, from: offset..<offset+4)
+        let boolArrayLen = Int(UInt32(littleEndian: boolArrayLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
         var boolArray: [Bool] = []
         boolArray.reserveCapacity(Int(boolArrayLen))
@@ -110,21 +110,21 @@ extension Item {
         var offset = 0
 
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let id = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var idBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &idBytes, from: offset..<offset+4)
+        let id = UInt32(littleEndian: idBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let nameLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var nameLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &nameLenBytes, from: offset..<offset+4)
+        let nameLen = Int(UInt32(littleEndian: nameLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
-        guard offset + Int(nameLen) <= data.count else { throw SDPDecodeError.insufficientData }
-        let nameData = data[offset..<offset+Int(nameLen)]
+        guard offset + nameLen <= data.count else { throw SDPDecodeError.insufficientData }
+        let nameData = data[offset..<offset+nameLen]
         guard let name = String(data: nameData, encoding: .utf8) else {
             throw SDPDecodeError.invalidUTF8
         }
-        offset += Int(nameLen)
+        offset += nameLen
 
         return Self(
             id: id,
@@ -139,9 +139,9 @@ extension ArraysOfStructs {
         var offset = 0
 
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let itemsLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var itemsLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &itemsLenBytes, from: offset..<offset+4)
+        let itemsLen = Int(UInt32(littleEndian: itemsLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
         var items: [Item] = []
         items.reserveCapacity(Int(itemsLen))
@@ -151,9 +151,9 @@ extension ArraysOfStructs {
             items.append(elem)
         }
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let count = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var countBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &countBytes, from: offset..<offset+4)
+        let count = UInt32(littleEndian: countBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4
 
         return Self(

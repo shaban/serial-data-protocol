@@ -116,59 +116,59 @@ func decodePrimitive(buf *strings.Builder, typeName, fieldName, indent string) e
 
 	case "u16":
 		buf.WriteString(fmt.Sprintf("%sguard offset + 2 <= data.count else { throw SDPDecodeError.insufficientData }\n", indent))
-		buf.WriteString(fmt.Sprintf("%slet %s = data[offset..<offset+2].withUnsafeBytes {\n", indent, fieldName))
-		buf.WriteString(fmt.Sprintf("%s    $0.load(as: UInt16.self).littleEndian\n", indent))
-		buf.WriteString(fmt.Sprintf("%s}\n", indent))
+		buf.WriteString(fmt.Sprintf("%svar %sBytes = [UInt8](repeating: 0, count: 2)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%sdata.copyBytes(to: &%sBytes, from: offset..<offset+2)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%slet %s = UInt16(littleEndian: %sBytes.withUnsafeBytes { $0.load(as: UInt16.self) })\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%soffset += 2\n", indent))
 
 	case "u32":
 		buf.WriteString(fmt.Sprintf("%sguard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }\n", indent))
-		buf.WriteString(fmt.Sprintf("%slet %s = data[offset..<offset+4].withUnsafeBytes {\n", indent, fieldName))
-		buf.WriteString(fmt.Sprintf("%s    $0.load(as: UInt32.self).littleEndian\n", indent))
-		buf.WriteString(fmt.Sprintf("%s}\n", indent))
+		buf.WriteString(fmt.Sprintf("%svar %sBytes = [UInt8](repeating: 0, count: 4)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%sdata.copyBytes(to: &%sBytes, from: offset..<offset+4)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%slet %s = UInt32(littleEndian: %sBytes.withUnsafeBytes { $0.load(as: UInt32.self) })\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%soffset += 4\n", indent))
 
 	case "u64":
 		buf.WriteString(fmt.Sprintf("%sguard offset + 8 <= data.count else { throw SDPDecodeError.insufficientData }\n", indent))
-		buf.WriteString(fmt.Sprintf("%slet %s = data[offset..<offset+8].withUnsafeBytes {\n", indent, fieldName))
-		buf.WriteString(fmt.Sprintf("%s    $0.load(as: UInt64.self).littleEndian\n", indent))
-		buf.WriteString(fmt.Sprintf("%s}\n", indent))
+		buf.WriteString(fmt.Sprintf("%svar %sBytes = [UInt8](repeating: 0, count: 8)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%sdata.copyBytes(to: &%sBytes, from: offset..<offset+8)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%slet %s = UInt64(littleEndian: %sBytes.withUnsafeBytes { $0.load(as: UInt64.self) })\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%soffset += 8\n", indent))
 
 	case "i16":
 		buf.WriteString(fmt.Sprintf("%sguard offset + 2 <= data.count else { throw SDPDecodeError.insufficientData }\n", indent))
-		buf.WriteString(fmt.Sprintf("%slet %s = data[offset..<offset+2].withUnsafeBytes {\n", indent, fieldName))
-		buf.WriteString(fmt.Sprintf("%s    $0.load(as: Int16.self).littleEndian\n", indent))
-		buf.WriteString(fmt.Sprintf("%s}\n", indent))
+		buf.WriteString(fmt.Sprintf("%svar %sBytes = [UInt8](repeating: 0, count: 2)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%sdata.copyBytes(to: &%sBytes, from: offset..<offset+2)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%slet %s = Int16(bitPattern: UInt16(littleEndian: %sBytes.withUnsafeBytes { $0.load(as: UInt16.self) }))\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%soffset += 2\n", indent))
 
 	case "i32":
 		buf.WriteString(fmt.Sprintf("%sguard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }\n", indent))
-		buf.WriteString(fmt.Sprintf("%slet %s = data[offset..<offset+4].withUnsafeBytes {\n", indent, fieldName))
-		buf.WriteString(fmt.Sprintf("%s    $0.load(as: Int32.self).littleEndian\n", indent))
-		buf.WriteString(fmt.Sprintf("%s}\n", indent))
+		buf.WriteString(fmt.Sprintf("%svar %sBytes = [UInt8](repeating: 0, count: 4)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%sdata.copyBytes(to: &%sBytes, from: offset..<offset+4)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%slet %s = Int32(bitPattern: UInt32(littleEndian: %sBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%soffset += 4\n", indent))
 
 	case "i64":
 		buf.WriteString(fmt.Sprintf("%sguard offset + 8 <= data.count else { throw SDPDecodeError.insufficientData }\n", indent))
-		buf.WriteString(fmt.Sprintf("%slet %s = data[offset..<offset+8].withUnsafeBytes {\n", indent, fieldName))
-		buf.WriteString(fmt.Sprintf("%s    $0.load(as: Int64.self).littleEndian\n", indent))
-		buf.WriteString(fmt.Sprintf("%s}\n", indent))
+		buf.WriteString(fmt.Sprintf("%svar %sBytes = [UInt8](repeating: 0, count: 8)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%sdata.copyBytes(to: &%sBytes, from: offset..<offset+8)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%slet %s = Int64(bitPattern: UInt64(littleEndian: %sBytes.withUnsafeBytes { $0.load(as: UInt64.self) }))\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%soffset += 8\n", indent))
 
 	case "f32":
 		buf.WriteString(fmt.Sprintf("%sguard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }\n", indent))
-		buf.WriteString(fmt.Sprintf("%slet %sBits = data[offset..<offset+4].withUnsafeBytes {\n", indent, fieldName))
-		buf.WriteString(fmt.Sprintf("%s    $0.load(as: UInt32.self).littleEndian\n", indent))
-		buf.WriteString(fmt.Sprintf("%s}\n", indent))
+		buf.WriteString(fmt.Sprintf("%svar %sBitsBytes = [UInt8](repeating: 0, count: 4)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%sdata.copyBytes(to: &%sBitsBytes, from: offset..<offset+4)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%slet %sBits = UInt32(littleEndian: %sBitsBytes.withUnsafeBytes { $0.load(as: UInt32.self) })\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%slet %s = Float(bitPattern: %sBits)\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%soffset += 4\n", indent))
 
 	case "f64":
 		buf.WriteString(fmt.Sprintf("%sguard offset + 8 <= data.count else { throw SDPDecodeError.insufficientData }\n", indent))
-		buf.WriteString(fmt.Sprintf("%slet %sBits = data[offset..<offset+8].withUnsafeBytes {\n", indent, fieldName))
-		buf.WriteString(fmt.Sprintf("%s    $0.load(as: UInt64.self).littleEndian\n", indent))
-		buf.WriteString(fmt.Sprintf("%s}\n", indent))
+		buf.WriteString(fmt.Sprintf("%svar %sBitsBytes = [UInt8](repeating: 0, count: 8)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%sdata.copyBytes(to: &%sBitsBytes, from: offset..<offset+8)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%slet %sBits = UInt64(littleEndian: %sBitsBytes.withUnsafeBytes { $0.load(as: UInt64.self) })\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%slet %s = Double(bitPattern: %sBits)\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%soffset += 8\n", indent))
 
@@ -183,18 +183,18 @@ func decodePrimitive(buf *strings.Builder, typeName, fieldName, indent string) e
 	case "str":
 		// String: u32 length + UTF-8 bytes
 		buf.WriteString(fmt.Sprintf("%sguard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }\n", indent))
-		buf.WriteString(fmt.Sprintf("%slet %sLen = data[offset..<offset+4].withUnsafeBytes {\n", indent, fieldName))
-		buf.WriteString(fmt.Sprintf("%s    $0.load(as: UInt32.self).littleEndian\n", indent))
-		buf.WriteString(fmt.Sprintf("%s}\n", indent))
+		buf.WriteString(fmt.Sprintf("%svar %sLenBytes = [UInt8](repeating: 0, count: 4)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%sdata.copyBytes(to: &%sLenBytes, from: offset..<offset+4)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%slet %sLen = Int(UInt32(littleEndian: %sLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%soffset += 4\n", indent))
-		buf.WriteString(fmt.Sprintf("%sguard offset + Int(%sLen) <= data.count else { throw SDPDecodeError.insufficientData }\n",
+		buf.WriteString(fmt.Sprintf("%sguard offset + %sLen <= data.count else { throw SDPDecodeError.insufficientData }\n",
 			indent, fieldName))
-		buf.WriteString(fmt.Sprintf("%slet %sData = data[offset..<offset+Int(%sLen)]\n", indent, fieldName, fieldName))
+		buf.WriteString(fmt.Sprintf("%slet %sData = data[offset..<offset+%sLen]\n", indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%sguard let %s = String(data: %sData, encoding: .utf8) else {\n",
 			indent, fieldName, fieldName))
 		buf.WriteString(fmt.Sprintf("%s    throw SDPDecodeError.invalidUTF8\n", indent))
 		buf.WriteString(fmt.Sprintf("%s}\n", indent))
-		buf.WriteString(fmt.Sprintf("%soffset += Int(%sLen)\n", indent, fieldName))
+		buf.WriteString(fmt.Sprintf("%soffset += %sLen\n", indent, fieldName))
 
 	default:
 		return fmt.Errorf("unknown primitive type: %s", typeName)
@@ -209,9 +209,9 @@ func generateArrayDecode(buf *strings.Builder, field parser.Field, indent string
 
 	// Decode array length
 	buf.WriteString(fmt.Sprintf("%sguard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }\n", indent))
-	buf.WriteString(fmt.Sprintf("%slet %sLen = data[offset..<offset+4].withUnsafeBytes {\n", indent, fieldName))
-	buf.WriteString(fmt.Sprintf("%s    $0.load(as: UInt32.self).littleEndian\n", indent))
-	buf.WriteString(fmt.Sprintf("%s}\n", indent))
+	buf.WriteString(fmt.Sprintf("%svar %sLenBytes = [UInt8](repeating: 0, count: 4)\n", indent, fieldName))
+	buf.WriteString(fmt.Sprintf("%sdata.copyBytes(to: &%sLenBytes, from: offset..<offset+4)\n", indent, fieldName))
+	buf.WriteString(fmt.Sprintf("%slet %sLen = Int(UInt32(littleEndian: %sLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))\n", indent, fieldName, fieldName))
 	buf.WriteString(fmt.Sprintf("%soffset += 4\n", indent))
 
 	if field.Type.Elem == nil {

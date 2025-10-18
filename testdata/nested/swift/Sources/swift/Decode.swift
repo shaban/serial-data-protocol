@@ -14,15 +14,15 @@ extension Point {
         var offset = 0
 
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let xBits = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var xBitsBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &xBitsBytes, from: offset..<offset+4)
+        let xBits = UInt32(littleEndian: xBitsBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         let x = Float(bitPattern: xBits)
         offset += 4
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let yBits = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var yBitsBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &yBitsBytes, from: offset..<offset+4)
+        let yBits = UInt32(littleEndian: yBitsBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         let y = Float(bitPattern: yBits)
         offset += 4
 
@@ -43,9 +43,9 @@ extension Rectangle {
         let bottomRight = try Point.decode(from: data[offset...])
         offset += bottomRight.encodedSize()
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let color = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var colorBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &colorBytes, from: offset..<offset+4)
+        let color = UInt32(littleEndian: colorBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4
 
         return Self(
@@ -62,22 +62,22 @@ extension Scene {
         var offset = 0
 
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let nameLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var nameLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &nameLenBytes, from: offset..<offset+4)
+        let nameLen = Int(UInt32(littleEndian: nameLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
-        guard offset + Int(nameLen) <= data.count else { throw SDPDecodeError.insufficientData }
-        let nameData = data[offset..<offset+Int(nameLen)]
+        guard offset + nameLen <= data.count else { throw SDPDecodeError.insufficientData }
+        let nameData = data[offset..<offset+nameLen]
         guard let name = String(data: nameData, encoding: .utf8) else {
             throw SDPDecodeError.invalidUTF8
         }
-        offset += Int(nameLen)
+        offset += nameLen
         let mainRect = try Rectangle.decode(from: data[offset...])
         offset += mainRect.encodedSize()
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let count = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var countBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &countBytes, from: offset..<offset+4)
+        let count = UInt32(littleEndian: countBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4
 
         return Self(

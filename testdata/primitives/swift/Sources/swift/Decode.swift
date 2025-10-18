@@ -17,48 +17,48 @@ extension AllPrimitives {
         let u8Field = data[offset]
         offset += 1
         guard offset + 2 <= data.count else { throw SDPDecodeError.insufficientData }
-        let u16Field = data[offset..<offset+2].withUnsafeBytes {
-            $0.load(as: UInt16.self).littleEndian
-        }
+        var u16FieldBytes = [UInt8](repeating: 0, count: 2)
+        data.copyBytes(to: &u16FieldBytes, from: offset..<offset+2)
+        let u16Field = UInt16(littleEndian: u16FieldBytes.withUnsafeBytes { $0.load(as: UInt16.self) })
         offset += 2
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let u32Field = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var u32FieldBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &u32FieldBytes, from: offset..<offset+4)
+        let u32Field = UInt32(littleEndian: u32FieldBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4
         guard offset + 8 <= data.count else { throw SDPDecodeError.insufficientData }
-        let u64Field = data[offset..<offset+8].withUnsafeBytes {
-            $0.load(as: UInt64.self).littleEndian
-        }
+        var u64FieldBytes = [UInt8](repeating: 0, count: 8)
+        data.copyBytes(to: &u64FieldBytes, from: offset..<offset+8)
+        let u64Field = UInt64(littleEndian: u64FieldBytes.withUnsafeBytes { $0.load(as: UInt64.self) })
         offset += 8
         guard offset < data.count else { throw SDPDecodeError.insufficientData }
         let i8Field = Int8(bitPattern: data[offset])
         offset += 1
         guard offset + 2 <= data.count else { throw SDPDecodeError.insufficientData }
-        let i16Field = data[offset..<offset+2].withUnsafeBytes {
-            $0.load(as: Int16.self).littleEndian
-        }
+        var i16FieldBytes = [UInt8](repeating: 0, count: 2)
+        data.copyBytes(to: &i16FieldBytes, from: offset..<offset+2)
+        let i16Field = Int16(bitPattern: UInt16(littleEndian: i16FieldBytes.withUnsafeBytes { $0.load(as: UInt16.self) }))
         offset += 2
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let i32Field = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: Int32.self).littleEndian
-        }
+        var i32FieldBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &i32FieldBytes, from: offset..<offset+4)
+        let i32Field = Int32(bitPattern: UInt32(littleEndian: i32FieldBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
         guard offset + 8 <= data.count else { throw SDPDecodeError.insufficientData }
-        let i64Field = data[offset..<offset+8].withUnsafeBytes {
-            $0.load(as: Int64.self).littleEndian
-        }
+        var i64FieldBytes = [UInt8](repeating: 0, count: 8)
+        data.copyBytes(to: &i64FieldBytes, from: offset..<offset+8)
+        let i64Field = Int64(bitPattern: UInt64(littleEndian: i64FieldBytes.withUnsafeBytes { $0.load(as: UInt64.self) }))
         offset += 8
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let f32FieldBits = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var f32FieldBitsBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &f32FieldBitsBytes, from: offset..<offset+4)
+        let f32FieldBits = UInt32(littleEndian: f32FieldBitsBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         let f32Field = Float(bitPattern: f32FieldBits)
         offset += 4
         guard offset + 8 <= data.count else { throw SDPDecodeError.insufficientData }
-        let f64FieldBits = data[offset..<offset+8].withUnsafeBytes {
-            $0.load(as: UInt64.self).littleEndian
-        }
+        var f64FieldBitsBytes = [UInt8](repeating: 0, count: 8)
+        data.copyBytes(to: &f64FieldBitsBytes, from: offset..<offset+8)
+        let f64FieldBits = UInt64(littleEndian: f64FieldBitsBytes.withUnsafeBytes { $0.load(as: UInt64.self) })
         let f64Field = Double(bitPattern: f64FieldBits)
         offset += 8
         guard offset < data.count else { throw SDPDecodeError.insufficientData }
@@ -67,16 +67,16 @@ extension AllPrimitives {
         let boolField = boolFieldByte == 1
         offset += 1
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let strFieldLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var strFieldLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &strFieldLenBytes, from: offset..<offset+4)
+        let strFieldLen = Int(UInt32(littleEndian: strFieldLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
-        guard offset + Int(strFieldLen) <= data.count else { throw SDPDecodeError.insufficientData }
-        let strFieldData = data[offset..<offset+Int(strFieldLen)]
+        guard offset + strFieldLen <= data.count else { throw SDPDecodeError.insufficientData }
+        let strFieldData = data[offset..<offset+strFieldLen]
         guard let strField = String(data: strFieldData, encoding: .utf8) else {
             throw SDPDecodeError.invalidUTF8
         }
-        offset += Int(strFieldLen)
+        offset += strFieldLen
 
         return Self(
             u8Field: u8Field,

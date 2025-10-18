@@ -81,7 +81,7 @@ func decodePrimitives(filename string) {
 		os.Exit(1)
 	}
 
-	// Verify values (these should match what Rust encodes)
+	// Verify values (these should match what Rust/Swift encodes)
 	ok := true
 	ok = ok && decoded.U8Field == 255
 	ok = ok && decoded.U16Field == 65535
@@ -94,7 +94,8 @@ func decodePrimitives(filename string) {
 	ok = ok && (decoded.F32Field-3.14159) < 0.0001 && (decoded.F32Field-3.14159) > -0.0001
 	ok = ok && (decoded.F64Field-2.718281828459045) < 0.0000001 && (decoded.F64Field-2.718281828459045) > -0.0000001
 	ok = ok && decoded.BoolField == true
-	ok = ok && decoded.StrField == "Hello from Rust!"
+	// Accept string from Rust or Swift
+	ok = ok && (decoded.StrField == "Hello from Rust!" || decoded.StrField == "Hello from Swift!")
 
 	if !ok {
 		fmt.Fprintf(os.Stderr, "Validation failed\n")
@@ -102,6 +103,6 @@ func decodePrimitives(filename string) {
 		os.Exit(1)
 	}
 
-	fmt.Fprintf(os.Stderr, "✓ Go successfully decoded Rust data\n")
+	fmt.Fprintf(os.Stderr, "✓ Go successfully decoded and validated\n")
 	os.Exit(0)
 }

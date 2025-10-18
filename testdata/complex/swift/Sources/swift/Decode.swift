@@ -14,37 +14,37 @@ extension Parameter {
         var offset = 0
 
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let id = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var idBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &idBytes, from: offset..<offset+4)
+        let id = UInt32(littleEndian: idBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let nameLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var nameLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &nameLenBytes, from: offset..<offset+4)
+        let nameLen = Int(UInt32(littleEndian: nameLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
-        guard offset + Int(nameLen) <= data.count else { throw SDPDecodeError.insufficientData }
-        let nameData = data[offset..<offset+Int(nameLen)]
+        guard offset + nameLen <= data.count else { throw SDPDecodeError.insufficientData }
+        let nameData = data[offset..<offset+nameLen]
         guard let name = String(data: nameData, encoding: .utf8) else {
             throw SDPDecodeError.invalidUTF8
         }
-        offset += Int(nameLen)
+        offset += nameLen
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let valueBits = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var valueBitsBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &valueBitsBytes, from: offset..<offset+4)
+        let valueBits = UInt32(littleEndian: valueBitsBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         let value = Float(bitPattern: valueBits)
         offset += 4
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let minBits = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var minBitsBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &minBitsBytes, from: offset..<offset+4)
+        let minBits = UInt32(littleEndian: minBitsBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         let min = Float(bitPattern: minBits)
         offset += 4
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let maxBits = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var maxBitsBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &maxBitsBytes, from: offset..<offset+4)
+        let maxBits = UInt32(littleEndian: maxBitsBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         let max = Float(bitPattern: maxBits)
         offset += 4
 
@@ -64,36 +64,36 @@ extension Plugin {
         var offset = 0
 
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let id = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var idBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &idBytes, from: offset..<offset+4)
+        let id = UInt32(littleEndian: idBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let nameLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var nameLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &nameLenBytes, from: offset..<offset+4)
+        let nameLen = Int(UInt32(littleEndian: nameLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
-        guard offset + Int(nameLen) <= data.count else { throw SDPDecodeError.insufficientData }
-        let nameData = data[offset..<offset+Int(nameLen)]
+        guard offset + nameLen <= data.count else { throw SDPDecodeError.insufficientData }
+        let nameData = data[offset..<offset+nameLen]
         guard let name = String(data: nameData, encoding: .utf8) else {
             throw SDPDecodeError.invalidUTF8
         }
-        offset += Int(nameLen)
+        offset += nameLen
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let manufacturerLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var manufacturerLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &manufacturerLenBytes, from: offset..<offset+4)
+        let manufacturerLen = Int(UInt32(littleEndian: manufacturerLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
-        guard offset + Int(manufacturerLen) <= data.count else { throw SDPDecodeError.insufficientData }
-        let manufacturerData = data[offset..<offset+Int(manufacturerLen)]
+        guard offset + manufacturerLen <= data.count else { throw SDPDecodeError.insufficientData }
+        let manufacturerData = data[offset..<offset+manufacturerLen]
         guard let manufacturer = String(data: manufacturerData, encoding: .utf8) else {
             throw SDPDecodeError.invalidUTF8
         }
-        offset += Int(manufacturerLen)
+        offset += manufacturerLen
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let version = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var versionBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &versionBytes, from: offset..<offset+4)
+        let version = UInt32(littleEndian: versionBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4
         guard offset < data.count else { throw SDPDecodeError.insufficientData }
         let enabledByte = data[offset]
@@ -101,9 +101,9 @@ extension Plugin {
         let enabled = enabledByte == 1
         offset += 1
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let parametersLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var parametersLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &parametersLenBytes, from: offset..<offset+4)
+        let parametersLen = Int(UInt32(littleEndian: parametersLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
         var parameters: [Parameter] = []
         parameters.reserveCapacity(Int(parametersLen))
@@ -130,40 +130,40 @@ extension AudioDevice {
         var offset = 0
 
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let deviceId = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var deviceIdBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &deviceIdBytes, from: offset..<offset+4)
+        let deviceId = UInt32(littleEndian: deviceIdBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let deviceNameLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var deviceNameLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &deviceNameLenBytes, from: offset..<offset+4)
+        let deviceNameLen = Int(UInt32(littleEndian: deviceNameLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
-        guard offset + Int(deviceNameLen) <= data.count else { throw SDPDecodeError.insufficientData }
-        let deviceNameData = data[offset..<offset+Int(deviceNameLen)]
+        guard offset + deviceNameLen <= data.count else { throw SDPDecodeError.insufficientData }
+        let deviceNameData = data[offset..<offset+deviceNameLen]
         guard let deviceName = String(data: deviceNameData, encoding: .utf8) else {
             throw SDPDecodeError.invalidUTF8
         }
-        offset += Int(deviceNameLen)
+        offset += deviceNameLen
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let sampleRate = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var sampleRateBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &sampleRateBytes, from: offset..<offset+4)
+        let sampleRate = UInt32(littleEndian: sampleRateBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let bufferSize = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var bufferSizeBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &bufferSizeBytes, from: offset..<offset+4)
+        let bufferSize = UInt32(littleEndian: bufferSizeBytes.withUnsafeBytes { $0.load(as: UInt32.self) })
         offset += 4
         guard offset + 2 <= data.count else { throw SDPDecodeError.insufficientData }
-        let inputChannels = data[offset..<offset+2].withUnsafeBytes {
-            $0.load(as: UInt16.self).littleEndian
-        }
+        var inputChannelsBytes = [UInt8](repeating: 0, count: 2)
+        data.copyBytes(to: &inputChannelsBytes, from: offset..<offset+2)
+        let inputChannels = UInt16(littleEndian: inputChannelsBytes.withUnsafeBytes { $0.load(as: UInt16.self) })
         offset += 2
         guard offset + 2 <= data.count else { throw SDPDecodeError.insufficientData }
-        let outputChannels = data[offset..<offset+2].withUnsafeBytes {
-            $0.load(as: UInt16.self).littleEndian
-        }
+        var outputChannelsBytes = [UInt8](repeating: 0, count: 2)
+        data.copyBytes(to: &outputChannelsBytes, from: offset..<offset+2)
+        let outputChannels = UInt16(littleEndian: outputChannelsBytes.withUnsafeBytes { $0.load(as: UInt16.self) })
         offset += 2
         guard offset < data.count else { throw SDPDecodeError.insufficientData }
         let isDefaultByte = data[offset]
@@ -171,9 +171,9 @@ extension AudioDevice {
         let isDefault = isDefaultByte == 1
         offset += 1
         guard offset + 4 <= data.count else { throw SDPDecodeError.insufficientData }
-        let activePluginsLen = data[offset..<offset+4].withUnsafeBytes {
-            $0.load(as: UInt32.self).littleEndian
-        }
+        var activePluginsLenBytes = [UInt8](repeating: 0, count: 4)
+        data.copyBytes(to: &activePluginsLenBytes, from: offset..<offset+4)
+        let activePluginsLen = Int(UInt32(littleEndian: activePluginsLenBytes.withUnsafeBytes { $0.load(as: UInt32.self) }))
         offset += 4
         var activePlugins: [Plugin] = []
         activePlugins.reserveCapacity(Int(activePluginsLen))
