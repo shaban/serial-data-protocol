@@ -2,6 +2,7 @@ package optional
 
 import (
 	"encoding/binary"
+	"io"
 )
 
 // Size limit constants for decode validation
@@ -767,4 +768,124 @@ func DecodeMessage(data []byte) (interface{}, error) {
 	default:
 		return nil, ErrUnknownMessageType
 	}
+}
+
+
+// DecodeRequestFromReader decodes a Request from wire format by reading from the provided io.Reader.
+// This enables streaming I/O without baked-in decompression.
+//
+// Users can compose with any io.Reader implementation:
+//   - File I/O: os.File
+//   - Decompression: gzip.Reader, zstd.Reader, etc.
+//   - Network: net.Conn, http.Request.Body
+//   - Decryption: custom crypto.Reader
+//   - Metrics: custom byte counting wrappers
+func DecodeRequestFromReader(dest *Request, r io.Reader) error {
+	buf, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return DecodeRequest(dest, buf)
+}
+
+// DecodeMetadataFromReader decodes a Metadata from wire format by reading from the provided io.Reader.
+// This enables streaming I/O without baked-in decompression.
+//
+// Users can compose with any io.Reader implementation:
+//   - File I/O: os.File
+//   - Decompression: gzip.Reader, zstd.Reader, etc.
+//   - Network: net.Conn, http.Request.Body
+//   - Decryption: custom crypto.Reader
+//   - Metrics: custom byte counting wrappers
+func DecodeMetadataFromReader(dest *Metadata, r io.Reader) error {
+	buf, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return DecodeMetadata(dest, buf)
+}
+
+// DecodeConfigFromReader decodes a Config from wire format by reading from the provided io.Reader.
+// This enables streaming I/O without baked-in decompression.
+//
+// Users can compose with any io.Reader implementation:
+//   - File I/O: os.File
+//   - Decompression: gzip.Reader, zstd.Reader, etc.
+//   - Network: net.Conn, http.Request.Body
+//   - Decryption: custom crypto.Reader
+//   - Metrics: custom byte counting wrappers
+func DecodeConfigFromReader(dest *Config, r io.Reader) error {
+	buf, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return DecodeConfig(dest, buf)
+}
+
+// DecodeDatabaseConfigFromReader decodes a DatabaseConfig from wire format by reading from the provided io.Reader.
+// This enables streaming I/O without baked-in decompression.
+//
+// Users can compose with any io.Reader implementation:
+//   - File I/O: os.File
+//   - Decompression: gzip.Reader, zstd.Reader, etc.
+//   - Network: net.Conn, http.Request.Body
+//   - Decryption: custom crypto.Reader
+//   - Metrics: custom byte counting wrappers
+func DecodeDatabaseConfigFromReader(dest *DatabaseConfig, r io.Reader) error {
+	buf, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return DecodeDatabaseConfig(dest, buf)
+}
+
+// DecodeCacheConfigFromReader decodes a CacheConfig from wire format by reading from the provided io.Reader.
+// This enables streaming I/O without baked-in decompression.
+//
+// Users can compose with any io.Reader implementation:
+//   - File I/O: os.File
+//   - Decompression: gzip.Reader, zstd.Reader, etc.
+//   - Network: net.Conn, http.Request.Body
+//   - Decryption: custom crypto.Reader
+//   - Metrics: custom byte counting wrappers
+func DecodeCacheConfigFromReader(dest *CacheConfig, r io.Reader) error {
+	buf, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return DecodeCacheConfig(dest, buf)
+}
+
+// DecodeDocumentFromReader decodes a Document from wire format by reading from the provided io.Reader.
+// This enables streaming I/O without baked-in decompression.
+//
+// Users can compose with any io.Reader implementation:
+//   - File I/O: os.File
+//   - Decompression: gzip.Reader, zstd.Reader, etc.
+//   - Network: net.Conn, http.Request.Body
+//   - Decryption: custom crypto.Reader
+//   - Metrics: custom byte counting wrappers
+func DecodeDocumentFromReader(dest *Document, r io.Reader) error {
+	buf, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return DecodeDocument(dest, buf)
+}
+
+// DecodeTagListFromReader decodes a TagList from wire format by reading from the provided io.Reader.
+// This enables streaming I/O without baked-in decompression.
+//
+// Users can compose with any io.Reader implementation:
+//   - File I/O: os.File
+//   - Decompression: gzip.Reader, zstd.Reader, etc.
+//   - Network: net.Conn, http.Request.Body
+//   - Decryption: custom crypto.Reader
+//   - Metrics: custom byte counting wrappers
+func DecodeTagListFromReader(dest *TagList, r io.Reader) error {
+	buf, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return DecodeTagList(dest, buf)
 }

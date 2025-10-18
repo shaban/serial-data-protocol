@@ -1,6 +1,7 @@
 package optional
 
 import (
+	"io"
 	"encoding/binary"
 )
 
@@ -485,3 +486,144 @@ func EncodeTagListMessage(src *TagList) ([]byte, error) {
 	return message, nil
 }
 
+
+
+// EncodeRequestToWriter encodes a Request to wire format and writes it to the provided io.Writer.
+// This enables streaming I/O without baked-in compression.
+//
+// Users can compose with any io.Writer implementation:
+//   - File I/O: os.File
+//   - Compression: gzip.Writer, zstd.Writer, etc.
+//   - Network: net.Conn, http.ResponseWriter
+//   - Encryption: custom crypto.Writer
+//   - Metrics: custom byte counting wrappers
+func EncodeRequestToWriter(src *Request, w io.Writer) error {
+	size := calculateRequestSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeRequest(src, buf, &offset); err != nil {
+		return err
+	}
+	_, err := w.Write(buf)
+	return err
+}
+
+// EncodeMetadataToWriter encodes a Metadata to wire format and writes it to the provided io.Writer.
+// This enables streaming I/O without baked-in compression.
+//
+// Users can compose with any io.Writer implementation:
+//   - File I/O: os.File
+//   - Compression: gzip.Writer, zstd.Writer, etc.
+//   - Network: net.Conn, http.ResponseWriter
+//   - Encryption: custom crypto.Writer
+//   - Metrics: custom byte counting wrappers
+func EncodeMetadataToWriter(src *Metadata, w io.Writer) error {
+	size := calculateMetadataSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeMetadata(src, buf, &offset); err != nil {
+		return err
+	}
+	_, err := w.Write(buf)
+	return err
+}
+
+// EncodeConfigToWriter encodes a Config to wire format and writes it to the provided io.Writer.
+// This enables streaming I/O without baked-in compression.
+//
+// Users can compose with any io.Writer implementation:
+//   - File I/O: os.File
+//   - Compression: gzip.Writer, zstd.Writer, etc.
+//   - Network: net.Conn, http.ResponseWriter
+//   - Encryption: custom crypto.Writer
+//   - Metrics: custom byte counting wrappers
+func EncodeConfigToWriter(src *Config, w io.Writer) error {
+	size := calculateConfigSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeConfig(src, buf, &offset); err != nil {
+		return err
+	}
+	_, err := w.Write(buf)
+	return err
+}
+
+// EncodeDatabaseConfigToWriter encodes a DatabaseConfig to wire format and writes it to the provided io.Writer.
+// This enables streaming I/O without baked-in compression.
+//
+// Users can compose with any io.Writer implementation:
+//   - File I/O: os.File
+//   - Compression: gzip.Writer, zstd.Writer, etc.
+//   - Network: net.Conn, http.ResponseWriter
+//   - Encryption: custom crypto.Writer
+//   - Metrics: custom byte counting wrappers
+func EncodeDatabaseConfigToWriter(src *DatabaseConfig, w io.Writer) error {
+	size := calculateDatabaseConfigSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeDatabaseConfig(src, buf, &offset); err != nil {
+		return err
+	}
+	_, err := w.Write(buf)
+	return err
+}
+
+// EncodeCacheConfigToWriter encodes a CacheConfig to wire format and writes it to the provided io.Writer.
+// This enables streaming I/O without baked-in compression.
+//
+// Users can compose with any io.Writer implementation:
+//   - File I/O: os.File
+//   - Compression: gzip.Writer, zstd.Writer, etc.
+//   - Network: net.Conn, http.ResponseWriter
+//   - Encryption: custom crypto.Writer
+//   - Metrics: custom byte counting wrappers
+func EncodeCacheConfigToWriter(src *CacheConfig, w io.Writer) error {
+	size := calculateCacheConfigSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeCacheConfig(src, buf, &offset); err != nil {
+		return err
+	}
+	_, err := w.Write(buf)
+	return err
+}
+
+// EncodeDocumentToWriter encodes a Document to wire format and writes it to the provided io.Writer.
+// This enables streaming I/O without baked-in compression.
+//
+// Users can compose with any io.Writer implementation:
+//   - File I/O: os.File
+//   - Compression: gzip.Writer, zstd.Writer, etc.
+//   - Network: net.Conn, http.ResponseWriter
+//   - Encryption: custom crypto.Writer
+//   - Metrics: custom byte counting wrappers
+func EncodeDocumentToWriter(src *Document, w io.Writer) error {
+	size := calculateDocumentSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeDocument(src, buf, &offset); err != nil {
+		return err
+	}
+	_, err := w.Write(buf)
+	return err
+}
+
+// EncodeTagListToWriter encodes a TagList to wire format and writes it to the provided io.Writer.
+// This enables streaming I/O without baked-in compression.
+//
+// Users can compose with any io.Writer implementation:
+//   - File I/O: os.File
+//   - Compression: gzip.Writer, zstd.Writer, etc.
+//   - Network: net.Conn, http.ResponseWriter
+//   - Encryption: custom crypto.Writer
+//   - Metrics: custom byte counting wrappers
+func EncodeTagListToWriter(src *TagList, w io.Writer) error {
+	size := calculateTagListSize(src)
+	buf := make([]byte, size)
+	offset := 0
+	if err := encodeTagList(src, buf, &offset); err != nil {
+		return err
+	}
+	_, err := w.Write(buf)
+	return err
+}

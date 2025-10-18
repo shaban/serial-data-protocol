@@ -219,15 +219,27 @@ func generateGo(schema *parser.Schema, packageName string) (map[string]string, e
 		return nil, fmt.Errorf("failed to generate message dispatcher: %w", err)
 	}
 
+	// Generate writer-based encoders (streaming I/O)
+	writerEncoders, err := golang.GenerateWriterEncoder(schema)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate writer encoders: %w", err)
+	}
+
+	// Generate reader-based decoders (streaming I/O)
+	readerDecoders, err := golang.GenerateReaderDecoder(schema)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate reader decoders: %w", err)
+	}
+
 	// Generate errors and context
 	errors := golang.GenerateErrors()
 	context := golang.GenerateDecodeContext()
 
-	// Combine encoder code (regular + message mode)
-	encodeCode := encoder + "\n\n" + encodeHelpers + "\n\n" + messageEncoders
+	// Combine encoder code (regular + helpers + message mode + writer mode)
+	encodeCode := encoder + "\n\n" + encodeHelpers + "\n\n" + messageEncoders + "\n\n" + writerEncoders
 
-	// Combine decoder code (context + regular + helpers + message mode + dispatcher)
-	decodeCode := context + "\n\n" + decoder + "\n\n" + decodeHelpers + "\n\n" + messageDecoders + "\n\n" + messageDispatcher
+	// Combine decoder code (context + regular + helpers + message mode + dispatcher + reader mode)
+	decodeCode := context + "\n\n" + decoder + "\n\n" + decodeHelpers + "\n\n" + messageDecoders + "\n\n" + messageDispatcher + "\n\n" + readerDecoders
 
 	// Determine imports based on content
 	files["types.go"] = formatGoFileWithAutoImports(packageName, structs)
@@ -260,15 +272,19 @@ func formatGoFileWithAutoImports(packageName string, body string) string {
 	var neededImports []string
 
 	// Check for common imports based on what's in the code
-	importChecks := map[string]string{
-		"encoding/binary": "binary.LittleEndian",
-		"errors":          "errors.New",
-		"math":            "math.Float",
+	importChecks := map[string][]string{
+		"encoding/binary": {"binary.LittleEndian"},
+		"errors":          {"errors.New"},
+		"math":            {"math.Float"},
+		"io":              {"io.ReadAll", "w io.Writer", "r io.Reader"}, // For streaming I/O functions
 	}
 
-	for importPath, marker := range importChecks {
-		if strings.Contains(body, marker) {
-			neededImports = append(neededImports, importPath)
+	for importPath, markers := range importChecks {
+		for _, marker := range markers {
+			if strings.Contains(body, marker) {
+				neededImports = append(neededImports, importPath)
+				break // Only add the import once
+			}
 		}
 	}
 
