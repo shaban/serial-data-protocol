@@ -34,12 +34,19 @@ test:
 bench:
 	go test -bench=. -benchmem -benchtime=5s
 
-# Run comparative benchmarks
+# Run comprehensive comparison (5 iterations, 5s each for statistical confidence)
 bench-compare:
-	@echo "Running comparative benchmarks (10 iterations)..."
-	go test -bench=. -benchmem -count=10 | tee results.txt
-	@echo "\nResults saved to results.txt"
-	@echo "Install benchstat for statistical comparison: go install golang.org/x/perf/cmd/benchstat@latest"
+	go test -bench=. -benchmem -benchtime=5s -count=5 2>&1 | tee results.txt
+
+# Run memory profiling benchmarks
+bench-memory:
+	go test -bench=BenchmarkMemory -benchmem -benchtime=3s
+
+# Run peak heap usage tests
+test-heap:
+	go test -run=TestPeakHeapUsage -v
+
+.PHONY: install-tools generate-pb generate-fb generate bench bench-compare bench-memory test-heap
 
 # Clean generated files
 clean:

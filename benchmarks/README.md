@@ -87,3 +87,22 @@ Each benchmark measures:
 
 This benchmark provides honest, reproducible numbers for realistic use cases.
 No cherry-picking, no micro-optimizations - just real-world performance.
+
+## Results
+
+See the following analysis documents:
+
+- **[RESULTS.md](RESULTS.md)** - Comprehensive performance analysis
+  - Speed comparison (encode/decode/roundtrip)
+  - Wire format size analysis
+  - Use case recommendations
+  - Honest trade-offs
+
+- **[MEMORY_ANALYSIS.md](MEMORY_ANALYSIS.md)** - Detailed memory profiling
+  - Peak heap usage (SDP: 313 KB, PB: 446 KB, FB: 900 KB)
+  - Allocation patterns and GC pressure
+  - Per-operation memory breakdown
+  - Memory efficiency recommendations
+
+- **[results.txt](results.txt)** - Raw benchmark output
+
