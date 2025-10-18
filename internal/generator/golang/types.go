@@ -3,6 +3,8 @@ package golang
 
 import (
 	"fmt"
+	"strings"
+	"unicode"
 
 	"github.com/shaban/serial-data-protocol/internal/parser"
 )
@@ -75,4 +77,63 @@ func MapTypeToGo(typeExpr *parser.TypeExpr) (string, error) {
 	default:
 		return "", fmt.Errorf("unknown type kind: %v", typeExpr.Kind)
 	}
+}
+
+// ToGoName converts a schema identifier to Go naming convention (PascalCase).
+// This function is used for both struct names and field names in Go, as both
+// need to be exported (start with capital letter).
+//
+// Conversion rules:
+//   - snake_case → PascalCase (audio_device → AudioDevice)
+//   - Preserve existing capitals (AudioDevice → AudioDevice)
+//   - Single words capitalized (device → Device)
+//   - Multiple underscores treated as single separator (audio__device → AudioDevice)
+//   - Leading/trailing underscores removed (_device_ → Device)
+//
+// Examples:
+//   - "device" → "Device"
+//   - "audio_device" → "AudioDevice"
+//   - "AudioDevice" → "AudioDevice"
+//   - "myStruct" → "MyStruct"
+//   - "my_struct_name" → "MyStructName"
+//   - "http_response" → "HttpResponse"
+//   - "HTTPResponse" → "HTTPResponse"
+func ToGoName(name string) string {
+	if name == "" {
+		return ""
+	}
+
+	// Split by underscores
+	parts := strings.Split(name, "_")
+	
+	var result strings.Builder
+	for _, part := range parts {
+		if part == "" {
+			// Skip empty parts (from multiple underscores or leading/trailing)
+			continue
+		}
+		
+		// Capitalize first letter, preserve rest
+		result.WriteString(capitalizeFirst(part))
+	}
+	
+	return result.String()
+}
+
+// capitalizeFirst capitalizes the first rune of a string, preserving the rest.
+// If the string is already capitalized or has mixed case, it preserves the original.
+//
+// Examples:
+//   - "device" → "Device"
+//   - "Device" → "Device"
+//   - "HTTP" → "HTTP"
+//   - "myName" → "MyName"
+func capitalizeFirst(s string) string {
+	if s == "" {
+		return ""
+	}
+	
+	runes := []rune(s)
+	runes[0] = unicode.ToUpper(runes[0])
+	return string(runes)
 }
