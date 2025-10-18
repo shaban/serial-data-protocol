@@ -2325,3 +2325,556 @@ func TestOptionalDecodeErrors(t *testing.T) {
 		t.Error("decode should fail with truncated data")
 	}
 }
+
+// ============================================================================
+// Message Mode Integration Tests
+// ============================================================================
+
+// TestMessageModeRoundtripPrimitives tests message encoding/decoding with primitives
+func TestMessageModeRoundtripPrimitives(t *testing.T) {
+	original := primitives.AllPrimitives{
+		U8Field:    255,
+		U16Field:   65535,
+		U32Field:   4294967295,
+		U64Field:   18446744073709551615,
+		I8Field:    -128,
+		I16Field:   -32768,
+		I32Field:   -2147483648,
+		I64Field:   -9223372036854775808,
+		F32Field:   3.14159,
+		F64Field:   2.718281828459045,
+		BoolField:  true,
+		StrField:   "Hello, SDP Message Mode!",
+	}
+
+	// Encode to message format
+	message, err := primitives.EncodeAllPrimitivesMessage(&original)
+	if err != nil {
+		t.Fatalf("EncodeAllPrimitivesMessage failed: %v", err)
+	}
+
+	// Verify message header
+	if len(message) < 10 {
+		t.Fatalf("message too short: got %d bytes, want at least 10", len(message))
+	}
+
+	// Check magic bytes
+	if string(message[0:3]) != "SDP" {
+		t.Errorf("incorrect magic bytes: got %q, want %q", string(message[0:3]), "SDP")
+	}
+
+	// Check version
+	if message[3] != '2' {
+		t.Errorf("incorrect version: got %c, want '2'", message[3])
+	}
+
+	// Check type ID (AllPrimitives should be type ID 1 in primitives schema)
+	typeID := binary.LittleEndian.Uint16(message[4:6])
+	if typeID != 1 {
+		t.Errorf("incorrect type ID: got %d, want 1", typeID)
+	}
+
+	// Check payload length
+	payloadLength := binary.LittleEndian.Uint32(message[6:10])
+	expectedPayloadLength := uint32(len(message) - 10)
+	if payloadLength != expectedPayloadLength {
+		t.Errorf("incorrect payload length: got %d, want %d", payloadLength, expectedPayloadLength)
+	}
+
+	// Decode using specific decoder
+	decoded, err := primitives.DecodeAllPrimitivesMessage(message)
+	if err != nil {
+		t.Fatalf("DecodeAllPrimitivesMessage failed: %v", err)
+	}
+
+	// Verify all fields match
+	if decoded.U8Field != original.U8Field {
+		t.Errorf("U8Field mismatch: got %d, want %d", decoded.U8Field, original.U8Field)
+	}
+	if decoded.U16Field != original.U16Field {
+		t.Errorf("U16Field mismatch: got %d, want %d", decoded.U16Field, original.U16Field)
+	}
+	if decoded.U32Field != original.U32Field {
+		t.Errorf("U32Field mismatch: got %d, want %d", decoded.U32Field, original.U32Field)
+	}
+	if decoded.U64Field != original.U64Field {
+		t.Errorf("U64Field mismatch: got %d, want %d", decoded.U64Field, original.U64Field)
+	}
+	if decoded.I8Field != original.I8Field {
+		t.Errorf("I8Field mismatch: got %d, want %d", decoded.I8Field, original.I8Field)
+	}
+	if decoded.I16Field != original.I16Field {
+		t.Errorf("I16Field mismatch: got %d, want %d", decoded.I16Field, original.I16Field)
+	}
+	if decoded.I32Field != original.I32Field {
+		t.Errorf("I32Field mismatch: got %d, want %d", decoded.I32Field, original.I32Field)
+	}
+	if decoded.I64Field != original.I64Field {
+		t.Errorf("I64Field mismatch: got %d, want %d", decoded.I64Field, original.I64Field)
+	}
+	if math.Abs(float64(decoded.F32Field-original.F32Field)) > 0.0001 {
+		t.Errorf("F32Field mismatch: got %f, want %f", decoded.F32Field, original.F32Field)
+	}
+	if math.Abs(decoded.F64Field-original.F64Field) > 0.000001 {
+		t.Errorf("F64Field mismatch: got %f, want %f", decoded.F64Field, original.F64Field)
+	}
+	if decoded.BoolField != original.BoolField {
+		t.Errorf("BoolField mismatch: got %v, want %v", decoded.BoolField, original.BoolField)
+	}
+	if decoded.StrField != original.StrField {
+		t.Errorf("StrField mismatch: got %q, want %q", decoded.StrField, original.StrField)
+	}
+
+	// Also test with the dispatcher
+	decodedInterface, err := primitives.DecodeMessage(message)
+	if err != nil {
+		t.Fatalf("DecodeMessage failed: %v", err)
+	}
+
+	decodedViaDispatcher, ok := decodedInterface.(*primitives.AllPrimitives)
+	if !ok {
+		t.Fatalf("DecodeMessage returned wrong type: got %T, want *primitives.AllPrimitives", decodedInterface)
+	}
+
+	if decodedViaDispatcher.StrField != original.StrField {
+		t.Errorf("dispatcher decode mismatch: got %q, want %q", decodedViaDispatcher.StrField, original.StrField)
+	}
+}
+
+// TestMessageModeRoundtripNested tests message mode with nested structs
+func TestMessageModeRoundtripNested(t *testing.T) {
+	original := nested.Scene{
+		Name: "Test Scene",
+		MainRect: nested.Rectangle{
+			TopLeft: nested.Point{
+				X: 10.5,
+				Y: 20.3,
+			},
+			BottomRight: nested.Point{
+				X: 100.7,
+				Y: 200.9,
+			},
+			Color: 0xFF00FF,
+		},
+		Count: 42,
+	}
+
+	// Encode to message
+	message, err := nested.EncodeSceneMessage(&original)
+	if err != nil {
+		t.Fatalf("EncodeSceneMessage failed: %v", err)
+	}
+
+	// Verify header
+	if string(message[0:3]) != "SDP" {
+		t.Errorf("incorrect magic bytes")
+	}
+	if message[3] != '2' {
+		t.Errorf("incorrect version")
+	}
+
+	// Decode
+	decoded, err := nested.DecodeSceneMessage(message)
+	if err != nil {
+		t.Fatalf("DecodeSceneMessage failed: %v", err)
+	}
+
+	// Verify nested structure
+	if decoded.Name != original.Name {
+		t.Errorf("Name mismatch: got %q, want %q", decoded.Name, original.Name)
+	}
+	if decoded.Count != original.Count {
+		t.Errorf("Count mismatch: got %d, want %d", decoded.Count, original.Count)
+	}
+	if math.Abs(float64(decoded.MainRect.TopLeft.X-original.MainRect.TopLeft.X)) > 0.001 {
+		t.Errorf("TopLeft.X mismatch: got %f, want %f", decoded.MainRect.TopLeft.X, original.MainRect.TopLeft.X)
+	}
+	if decoded.MainRect.Color != original.MainRect.Color {
+		t.Errorf("Color mismatch: got %d, want %d", decoded.MainRect.Color, original.MainRect.Color)
+	}
+}
+
+// TestMessageModeRoundtripArrays tests message mode with arrays
+func TestMessageModeRoundtripArrays(t *testing.T) {
+	original := arrays.ArraysOfPrimitives{
+		U8Array:   []uint8{1, 2, 3, 4, 5},
+		U32Array:  []uint32{100, 200, 300},
+		F64Array:  []float64{1.1, 2.2, 3.3},
+		StrArray:  []string{"Alice", "Bob", "Charlie"},
+		BoolArray: []bool{true, false, true, true},
+	}
+
+	// Encode to message
+	message, err := arrays.EncodeArraysOfPrimitivesMessage(&original)
+	if err != nil {
+		t.Fatalf("EncodeArraysOfPrimitivesMessage failed: %v", err)
+	}
+
+	// Decode
+	decoded, err := arrays.DecodeArraysOfPrimitivesMessage(message)
+	if err != nil {
+		t.Fatalf("DecodeArraysOfPrimitivesMessage failed: %v", err)
+	}
+
+	// Verify arrays
+	if len(decoded.U8Array) != len(original.U8Array) {
+		t.Errorf("U8Array length mismatch: got %d, want %d", len(decoded.U8Array), len(original.U8Array))
+	}
+	for i := range original.U8Array {
+		if decoded.U8Array[i] != original.U8Array[i] {
+			t.Errorf("U8Array[%d] mismatch: got %d, want %d", i, decoded.U8Array[i], original.U8Array[i])
+		}
+	}
+
+	if len(decoded.StrArray) != len(original.StrArray) {
+		t.Errorf("StrArray length mismatch: got %d, want %d", len(decoded.StrArray), len(original.StrArray))
+	}
+	for i := range original.StrArray {
+		if decoded.StrArray[i] != original.StrArray[i] {
+			t.Errorf("StrArray[%d] mismatch: got %q, want %q", i, decoded.StrArray[i], original.StrArray[i])
+		}
+	}
+
+	if len(decoded.BoolArray) != len(original.BoolArray) {
+		t.Errorf("BoolArray length mismatch: got %d, want %d", len(decoded.BoolArray), len(original.BoolArray))
+	}
+	for i := range original.BoolArray {
+		if decoded.BoolArray[i] != original.BoolArray[i] {
+			t.Errorf("BoolArray[%d] mismatch: got %v, want %v", i, decoded.BoolArray[i], original.BoolArray[i])
+		}
+	}
+}
+
+// TestMessageModeRoundtripOptional tests message mode with optional fields
+func TestMessageModeRoundtripOptional(t *testing.T) {
+	tests := []struct {
+		name string
+		data optional.Request
+	}{
+		{
+			name: "with metadata",
+			data: optional.Request{
+				Id: 42,
+				Metadata: &optional.Metadata{
+					UserId:   999,
+					Username: "testuser",
+				},
+			},
+		},
+		{
+			name: "without metadata",
+			data: optional.Request{
+				Id:       99,
+				Metadata: nil,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Encode
+			message, err := optional.EncodeRequestMessage(&tt.data)
+			if err != nil {
+				t.Fatalf("EncodeRequestMessage failed: %v", err)
+			}
+
+			// Decode
+			decoded, err := optional.DecodeRequestMessage(message)
+			if err != nil {
+				t.Fatalf("DecodeRequestMessage failed: %v", err)
+			}
+
+			// Verify
+			if decoded.Id != tt.data.Id {
+				t.Errorf("Id mismatch: got %d, want %d", decoded.Id, tt.data.Id)
+			}
+
+			if (decoded.Metadata == nil) != (tt.data.Metadata == nil) {
+				t.Errorf("Metadata presence mismatch: got %v, want %v", decoded.Metadata != nil, tt.data.Metadata != nil)
+			}
+
+			if tt.data.Metadata != nil {
+				if decoded.Metadata.UserId != tt.data.Metadata.UserId {
+					t.Errorf("UserId mismatch: got %d, want %d", decoded.Metadata.UserId, tt.data.Metadata.UserId)
+				}
+				if decoded.Metadata.Username != tt.data.Metadata.Username {
+					t.Errorf("Username mismatch: got %q, want %q", decoded.Metadata.Username, tt.data.Metadata.Username)
+				}
+			}
+		})
+	}
+}
+
+// TestMessageModeInvalidMagic tests error handling for invalid magic bytes
+func TestMessageModeInvalidMagic(t *testing.T) {
+	// Create a message with wrong magic bytes
+	badMessage := make([]byte, 20)
+	copy(badMessage[0:3], "XXX") // Wrong magic
+	badMessage[3] = '2'
+	binary.LittleEndian.PutUint16(badMessage[4:6], 1)
+	binary.LittleEndian.PutUint32(badMessage[6:10], 10)
+
+	_, err := primitives.DecodeAllPrimitivesMessage(badMessage)
+	if err == nil {
+		t.Error("expected error for invalid magic bytes, got nil")
+	}
+
+	// Also test with dispatcher
+	_, err = primitives.DecodeMessage(badMessage)
+	if err == nil {
+		t.Error("dispatcher should reject invalid magic bytes")
+	}
+}
+
+// TestMessageModeInvalidVersion tests error handling for invalid version
+func TestMessageModeInvalidVersion(t *testing.T) {
+	// Create a message with wrong version
+	badMessage := make([]byte, 20)
+	copy(badMessage[0:3], "SDP")
+	badMessage[3] = '9' // Wrong version
+	binary.LittleEndian.PutUint16(badMessage[4:6], 1)
+	binary.LittleEndian.PutUint32(badMessage[6:10], 10)
+
+	_, err := primitives.DecodeAllPrimitivesMessage(badMessage)
+	if err == nil {
+		t.Error("expected error for invalid version, got nil")
+	}
+
+	// Also test with dispatcher
+	_, err = primitives.DecodeMessage(badMessage)
+	if err == nil {
+		t.Error("dispatcher should reject invalid version")
+	}
+}
+
+// TestMessageModeWrongTypeID tests error handling for wrong type ID
+func TestMessageModeWrongTypeID(t *testing.T) {
+	// Create a message with wrong type ID for AllPrimitives
+	badMessage := make([]byte, 20)
+	copy(badMessage[0:3], "SDP")
+	badMessage[3] = '2'
+	binary.LittleEndian.PutUint16(badMessage[4:6], 999) // Invalid type ID
+	binary.LittleEndian.PutUint32(badMessage[6:10], 10)
+
+	_, err := primitives.DecodeAllPrimitivesMessage(badMessage)
+	if err == nil {
+		t.Error("expected error for wrong type ID, got nil")
+	}
+}
+
+// TestMessageModeUnknownTypeID tests dispatcher with unknown type ID
+func TestMessageModeUnknownTypeID(t *testing.T) {
+	// Create a message with type ID that doesn't exist
+	badMessage := make([]byte, 20)
+	copy(badMessage[0:3], "SDP")
+	badMessage[3] = '2'
+	binary.LittleEndian.PutUint16(badMessage[4:6], 999) // Unknown type ID
+	binary.LittleEndian.PutUint32(badMessage[6:10], 10)
+
+	_, err := primitives.DecodeMessage(badMessage)
+	if err == nil {
+		t.Error("dispatcher should reject unknown type ID")
+	}
+}
+
+// TestMessageModeTruncatedHeader tests error handling for truncated headers
+func TestMessageModeTruncatedHeader(t *testing.T) {
+	tests := []struct {
+		name   string
+		size   int
+		reason string
+	}{
+		{"empty", 0, "empty message"},
+		{"only magic", 3, "only magic bytes"},
+		{"no type ID", 4, "missing type ID"},
+		{"no length", 6, "missing length"},
+		{"incomplete header", 9, "incomplete header"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			truncated := make([]byte, tt.size)
+			if tt.size >= 3 {
+				copy(truncated[0:3], "SDP")
+			}
+			if tt.size >= 4 {
+				truncated[3] = '2'
+			}
+
+			_, err := primitives.DecodeAllPrimitivesMessage(truncated)
+			if err == nil {
+				t.Errorf("expected error for %s, got nil", tt.reason)
+			}
+
+			_, err = primitives.DecodeMessage(truncated)
+			if err == nil {
+				t.Errorf("dispatcher should reject %s", tt.reason)
+			}
+		})
+	}
+}
+
+// TestMessageModeTruncatedPayload tests error handling for truncated payload
+func TestMessageModeTruncatedPayload(t *testing.T) {
+	// Create a valid header but claim more payload than exists
+	badMessage := make([]byte, 15) // Header (10) + only 5 bytes of payload
+	copy(badMessage[0:3], "SDP")
+	badMessage[3] = '2'
+	binary.LittleEndian.PutUint16(badMessage[4:6], 1)
+	binary.LittleEndian.PutUint32(badMessage[6:10], 100) // Claim 100 bytes but only have 5
+
+	_, err := primitives.DecodeAllPrimitivesMessage(badMessage)
+	if err == nil {
+		t.Error("expected error for truncated payload, got nil")
+	}
+}
+
+// TestMessageModeEmptyPayload tests message with zero-length payload
+func TestMessageModeEmptyPayload(t *testing.T) {
+	// Create header claiming empty payload
+	message := make([]byte, 10)
+	copy(message[0:3], "SDP")
+	message[3] = '2'
+	binary.LittleEndian.PutUint16(message[4:6], 1)
+	binary.LittleEndian.PutUint32(message[6:10], 0) // Zero-length payload
+
+	// This should fail because AllPrimitives requires data
+	_, err := primitives.DecodeAllPrimitivesMessage(message)
+	if err == nil {
+		t.Error("expected error for empty payload with AllPrimitives, got nil")
+	}
+}
+
+// TestMessageModeMultipleTypes tests dispatcher with different message types
+func TestMessageModeMultipleTypes(t *testing.T) {
+	// Test with nested schema which has multiple types: Point, Rectangle, Scene
+	
+	// Type 1: Point
+	point := nested.Point{
+		X: 10.5,
+		Y: 20.3,
+	}
+
+	pointMsg, err := nested.EncodePointMessage(&point)
+	if err != nil {
+		t.Fatalf("EncodePointMessage failed: %v", err)
+	}
+
+	// Decode using dispatcher
+	decodedInterface, err := nested.DecodeMessage(pointMsg)
+	if err != nil {
+		t.Fatalf("DecodeMessage failed for Point: %v", err)
+	}
+
+	decodedPoint, ok := decodedInterface.(*nested.Point)
+	if !ok {
+		t.Fatalf("DecodeMessage returned wrong type: got %T, want *nested.Point", decodedInterface)
+	}
+
+	if math.Abs(float64(decodedPoint.X-point.X)) > 0.001 {
+		t.Errorf("Point X mismatch: got %f, want %f", decodedPoint.X, point.X)
+	}
+
+	// Type 2: Rectangle
+	rect := nested.Rectangle{
+		TopLeft: nested.Point{X: 0, Y: 0},
+		BottomRight: nested.Point{X: 100, Y: 100},
+		Color: 0xFF0000,
+	}
+
+	rectMsg, err := nested.EncodeRectangleMessage(&rect)
+	if err != nil {
+		t.Fatalf("EncodeRectangleMessage failed: %v", err)
+	}
+
+	// Verify different type IDs
+	pointTypeID := binary.LittleEndian.Uint16(pointMsg[4:6])
+	rectTypeID := binary.LittleEndian.Uint16(rectMsg[4:6])
+	if pointTypeID == rectTypeID {
+		t.Errorf("Point and Rectangle should have different type IDs, both got %d", pointTypeID)
+	}
+
+	// Decode Rectangle using dispatcher
+	decodedInterface2, err := nested.DecodeMessage(rectMsg)
+	if err != nil {
+		t.Fatalf("DecodeMessage failed for Rectangle: %v", err)
+	}
+
+	decodedRect, ok := decodedInterface2.(*nested.Rectangle)
+	if !ok {
+		t.Fatalf("DecodeMessage returned wrong type: got %T, want *nested.Rectangle", decodedInterface2)
+	}
+
+	if decodedRect.Color != rect.Color {
+		t.Errorf("Rectangle color mismatch: got %d, want %d", decodedRect.Color, rect.Color)
+	}
+}
+
+// TestMessageModeHeaderSize verifies all messages have 10-byte headers
+func TestMessageModeHeaderSize(t *testing.T) {
+	schemas := []struct {
+		name   string
+		encode func() ([]byte, error)
+	}{
+		{
+			name: "primitives",
+			encode: func() ([]byte, error) {
+				p := primitives.AllPrimitives{U8Field: 1, StrField: "test"}
+				return primitives.EncodeAllPrimitivesMessage(&p)
+			},
+		},
+		{
+			name: "nested",
+			encode: func() ([]byte, error) {
+				s := nested.Scene{
+					Name: "Test",
+					MainRect: nested.Rectangle{
+						TopLeft:     nested.Point{X: 0, Y: 0},
+						BottomRight: nested.Point{X: 10, Y: 10},
+						Color:       1,
+					},
+					Count: 1,
+				}
+				return nested.EncodeSceneMessage(&s)
+			},
+		},
+		{
+			name: "arrays",
+			encode: func() ([]byte, error) {
+				a := arrays.ArraysOfPrimitives{
+					U8Array:  []uint8{1},
+					StrArray: []string{"a"},
+				}
+				return arrays.EncodeArraysOfPrimitivesMessage(&a)
+			},
+		},
+	}
+
+	for _, tt := range schemas {
+		t.Run(tt.name, func(t *testing.T) {
+			msg, err := tt.encode()
+			if err != nil {
+				t.Fatalf("encode failed: %v", err)
+			}
+
+			if len(msg) < 10 {
+				t.Errorf("message too short: got %d bytes, want at least 10", len(msg))
+			}
+
+			// Verify header structure
+			if string(msg[0:3]) != "SDP" {
+				t.Errorf("invalid magic bytes")
+			}
+			if msg[3] != '2' {
+				t.Errorf("invalid version")
+			}
+
+			// Verify payload length matches actual payload
+			declaredLength := binary.LittleEndian.Uint32(msg[6:10])
+			actualPayload := uint32(len(msg) - 10)
+			if declaredLength != actualPayload {
+				t.Errorf("payload length mismatch: header says %d, actual is %d", declaredLength, actualPayload)
+			}
+		})
+	}
+}
