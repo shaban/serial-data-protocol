@@ -26,7 +26,7 @@ func ParseSchema(input string) (*Schema, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Parse tokens into AST
 	parser := NewParser(tokens)
 	return parser.parseSchema()
@@ -37,10 +37,10 @@ func (p *Parser) parseSchema() (*Schema, error) {
 	schema := &Schema{
 		Structs: make([]Struct, 0),
 	}
-	
+
 	// Skip any leading regular comments (not doc comments)
 	p.skipRegularComments()
-	
+
 	for !p.isAtEnd() {
 		// Parse struct definition
 		s, err := p.parseStruct()
@@ -48,11 +48,11 @@ func (p *Parser) parseSchema() (*Schema, error) {
 			return nil, err
 		}
 		schema.Structs = append(schema.Structs, s)
-		
+
 		// Skip any trailing regular comments (not doc comments)
 		p.skipRegularComments()
 	}
-	
+
 	return schema, nil
 }
 
@@ -61,43 +61,43 @@ func (p *Parser) parseStruct() (Struct, error) {
 	s := Struct{
 		Fields: make([]Field, 0),
 	}
-	
+
 	// Collect doc comments
 	s.Comment = p.collectDocComments()
-	
+
 	// Expect 'struct' keyword
 	if !p.match(TokenStruct) {
 		return s, p.error("expected 'struct'")
 	}
-	
+
 	// Expect struct name
 	if !p.check(TokenIdent) {
 		return s, p.error("expected struct name")
 	}
 	name := p.advance()
 	s.Name = name.Value
-	
+
 	// Expect '{'
 	if !p.match(TokenLBrace) {
 		return s, p.error("expected '{'")
 	}
-	
+
 	// Parse fields
 	for !p.check(TokenRBrace) && !p.isAtEnd() {
 		// Skip any regular comments before fields (not doc comments)
 		p.skipRegularComments()
-		
+
 		// Check again after skipping comments
 		if p.check(TokenRBrace) || p.isAtEnd() {
 			break
 		}
-		
+
 		field, err := p.parseField()
 		if err != nil {
 			return s, err
 		}
 		s.Fields = append(s.Fields, field)
-		
+
 		// Expect comma (optional after last field)
 		if p.match(TokenComma) {
 			// Comma consumed, continue
@@ -106,41 +106,41 @@ func (p *Parser) parseStruct() (Struct, error) {
 			return s, p.error("expected ',' or '}'")
 		}
 	}
-	
+
 	// Expect '}'
 	if !p.match(TokenRBrace) {
 		return s, p.error("expected '}'")
 	}
-	
+
 	return s, nil
 }
 
 // parseField parses: Field = [ DocComment ] Ident ":" TypeExpr
 func (p *Parser) parseField() (Field, error) {
 	f := Field{}
-	
+
 	// Collect doc comments
 	f.Comment = p.collectDocComments()
-	
+
 	// Expect field name
 	if !p.check(TokenIdent) {
 		return f, p.error("expected field name")
 	}
 	name := p.advance()
 	f.Name = name.Value
-	
+
 	// Expect ':'
 	if !p.match(TokenColon) {
 		return f, p.error("expected ':'")
 	}
-	
+
 	// Parse type expression
 	typeExpr, err := p.parseTypeExpr()
 	if err != nil {
 		return f, err
 	}
 	f.Type = typeExpr
-	
+
 	return f, nil
 }
 
@@ -149,41 +149,41 @@ func (p *Parser) parseTypeExpr() (TypeExpr, error) {
 	// Check for array type: []T
 	if p.check(TokenLBracket) {
 		p.advance() // consume '['
-		
+
 		if !p.match(TokenRBracket) {
 			return TypeExpr{}, p.error("expected ']' after '['")
 		}
-		
+
 		// Parse element type
 		elemType, err := p.parseTypeExpr()
 		if err != nil {
 			return TypeExpr{}, err
 		}
-		
+
 		return TypeExpr{
 			Kind: TypeKindArray,
 			Elem: &elemType,
 		}, nil
 	}
-	
+
 	// Must be an identifier (primitive or named type)
 	if !p.check(TokenIdent) {
 		return TypeExpr{}, p.error("expected type name")
 	}
-	
+
 	typeName := p.advance()
-	
+
 	// Determine if it's a primitive or named type
 	typeExpr := TypeExpr{
 		Name: typeName.Value,
 	}
-	
+
 	if typeExpr.IsPrimitive() {
 		typeExpr.Kind = TypeKindPrimitive
 	} else {
 		typeExpr.Kind = TypeKindNamed
 	}
-	
+
 	return typeExpr, nil
 }
 
@@ -193,25 +193,25 @@ func (p *Parser) collectDocComments() string {
 	for p.check(TokenComment) {
 		p.advance()
 	}
-	
+
 	// Then collect doc comments
 	var comments []string
-	
+
 	for p.check(TokenDocComment) {
 		tok := p.advance()
 		comments = append(comments, tok.Value)
 	}
-	
+
 	if len(comments) == 0 {
 		return ""
 	}
-	
+
 	// Join with newlines
 	result := comments[0]
 	for i := 1; i < len(comments); i++ {
 		result += "\n" + comments[i]
 	}
-	
+
 	return result
 }
 

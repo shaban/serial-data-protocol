@@ -222,7 +222,7 @@ func TestLexWhitespace(t *testing.T)
 ---
 
 ### Task 2.3: Parser
-**Status:** `[ ]`
+**Status:** `[✓]`
 
 **Work:**
 1. Create `internal/parser/parser.go`:
@@ -230,7 +230,8 @@ func TestLexWhitespace(t *testing.T)
    - Parse struct definitions
    - Parse field lists
    - Associate doc comments with declarations
-   - Handle commas (required or optional?)
+   - Handle commas (optional after last field)
+   - Distinguish regular comments from doc comments
 
 **Tests:** `internal/parser/parser_test.go`
 ```go
@@ -239,13 +240,19 @@ func TestParseNestedTypes(t *testing.T)
 func TestParseArrayField(t *testing.T)
 func TestParseDocComments(t *testing.T)
 func TestParseSyntaxError(t *testing.T)
+func TestParseEmptyStruct(t *testing.T)
+func TestParseMultipleStructs(t *testing.T)
+func TestParseTrailingComma(t *testing.T)
+func TestParseAllPrimitives(t *testing.T)
+func TestParseWithComments(t *testing.T)
 ```
 
 **Verification:**
-- Valid schemas parse correctly
-- Invalid schemas return clear errors
-- Doc comments preserved
-- Error messages include line numbers
+- ✓ Valid schemas parse correctly
+- ✓ Invalid schemas return clear errors
+- ✓ Doc comments preserved
+- ✓ Error messages include line numbers
+- ✓ All tests pass
 
 **Time:** 4 hours
 

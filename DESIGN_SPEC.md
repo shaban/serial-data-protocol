@@ -327,12 +327,58 @@ This enables Rust syntax highlighting, which works because `.sdp` files ARE vali
 - Malformed struct definitions
 
 **Phase 2: Semantic validation**
-- Type reference validation (unknown types)
+- Type reference validation (unknown types within same file)
 - Circular reference detection
 - Empty struct detection
 - Duplicate field names
 - Reserved keyword usage
-- Cross-schema reference detection (not supported)
+
+**Schema Composition Model:**
+
+Each `.sdp` schema file is **self-contained** with all required type definitions. Common types can be **duplicated** across schema files when needed.
+
+Example - Two independent schemas sharing common types:
+```rust
+// devices.sdp - Self-contained schema for device enumeration
+struct DeviceList {
+    devices: []Device,
+}
+
+struct Device {
+    id: u32,
+    name: str,
+    parameters: []Parameter,  // Common type defined here
+}
+
+struct Parameter {
+    name: str,
+    value: f64,
+}
+```
+
+```rust
+// plugins.sdp - Self-contained schema for plugin enumeration
+struct PluginList {
+    plugins: []Plugin,
+}
+
+struct Plugin {
+    id: u32,
+    name: str,
+    parameters: []Parameter,  // Same type, duplicated definition
+}
+
+struct Parameter {  // Duplicate definition (intentional)
+    name: str,
+    value: f64,
+}
+```
+
+**Rationale:** No cross-schema references means:
+- Each schema file generates independent code
+- No build-time dependencies between schemas
+- Application layer composes domain objects from multiple decoded schemas
+- Empty arrays (`[]T` with 0 elements) provide optional field semantics
 
 **Validation errors are collected and reported together** - generator does not stop at first error.
 
@@ -341,7 +387,7 @@ This enables Rust syntax highlighting, which works because `.sdp` files ARE vali
 ```rust
 // ❌ Unknown type
 struct Plugin {
-    device: AudioDevice,  // AudioDevice not defined
+    device: AudioDevice,  // AudioDevice not defined in this file
 }
 
 // ❌ Circular reference

@@ -19,12 +19,12 @@ const (
 	TokenStruct // struct
 
 	// Punctuation
-	TokenLBrace  // {
-	TokenRBrace  // }
+	TokenLBrace   // {
+	TokenRBrace   // }
 	TokenLBracket // [
 	TokenRBracket // ]
-	TokenColon   // :
-	TokenComma   // ,
+	TokenColon    // :
+	TokenComma    // ,
 
 	// Comments
 	TokenDocComment // /// documentation
@@ -74,9 +74,9 @@ func (t Token) String() string {
 // Lexer tokenizes .sdp schema files.
 type Lexer struct {
 	input  string
-	pos    int  // Current position in input
-	line   int  // Current line (1-indexed)
-	column int  // Current column (1-indexed)
+	pos    int // Current position in input
+	line   int // Current line (1-indexed)
+	column int // Current column (1-indexed)
 	tokens []Token
 }
 
@@ -96,7 +96,7 @@ func (l *Lexer) Tokenize() ([]Token, error) {
 	for {
 		tok := l.nextToken()
 		l.tokens = append(l.tokens, tok)
-		
+
 		if tok.Type == TokenEOF {
 			break
 		}
@@ -110,18 +110,18 @@ func (l *Lexer) Tokenize() ([]Token, error) {
 // nextToken returns the next token from the input.
 func (l *Lexer) nextToken() Token {
 	l.skipWhitespace()
-	
+
 	if l.isAtEnd() {
 		return l.makeToken(TokenEOF, "")
 	}
-	
+
 	ch := l.peek()
-	
+
 	// Comments
 	if ch == '/' && l.peekAhead(1) == '/' {
 		return l.lexComment()
 	}
-	
+
 	// Single-character tokens
 	switch ch {
 	case '{':
@@ -137,12 +137,12 @@ func (l *Lexer) nextToken() Token {
 	case ',':
 		return l.advance(TokenComma, ",")
 	}
-	
+
 	// Identifiers and keywords
 	if isIdentStart(ch) {
 		return l.lexIdent()
 	}
-	
+
 	// Unknown character
 	return l.makeToken(TokenError, fmt.Sprintf("unexpected character: %q", ch))
 }
@@ -151,29 +151,29 @@ func (l *Lexer) nextToken() Token {
 func (l *Lexer) lexComment() Token {
 	line := l.line
 	col := l.column
-	
+
 	l.consume() // first /
 	l.consume() // second /
-	
+
 	isDoc := false
 	if l.peek() == '/' {
 		isDoc = true
 		l.consume() // third /
 	}
-	
+
 	// Skip any spaces after //[/]
 	for l.peek() == ' ' || l.peek() == '\t' {
 		l.consume()
 	}
-	
+
 	// Read until end of line
 	start := l.pos
 	for !l.isAtEnd() && l.peek() != '\n' {
 		l.consume()
 	}
-	
+
 	text := l.input[start:l.pos]
-	
+
 	if isDoc {
 		return Token{Type: TokenDocComment, Value: text, Line: line, Column: col}
 	}
@@ -185,13 +185,13 @@ func (l *Lexer) lexIdent() Token {
 	line := l.line
 	col := l.column
 	start := l.pos
-	
+
 	for !l.isAtEnd() && isIdentContinue(l.peek()) {
 		l.consume()
 	}
-	
+
 	value := l.input[start:l.pos]
-	
+
 	// Check for keywords
 	var tokType TokenType
 	switch value {
@@ -200,7 +200,7 @@ func (l *Lexer) lexIdent() Token {
 	default:
 		tokType = TokenIdent
 	}
-	
+
 	return Token{Type: tokType, Value: value, Line: line, Column: col}
 }
 
@@ -238,10 +238,10 @@ func (l *Lexer) consume() {
 	if l.isAtEnd() {
 		return
 	}
-	
+
 	ch := l.input[l.pos]
 	l.pos++
-	
+
 	if ch == '\n' {
 		l.line++
 		l.column = 1
