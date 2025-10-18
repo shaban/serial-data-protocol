@@ -157,19 +157,19 @@ func TestIsReserved_CaseInsensitive(t *testing.T) {
 		word     string
 		expected bool
 	}{
-		{"type", true},     // lowercase
-		{"Type", true},     // capitalized
-		{"TYPE", true},     // uppercase
-		{"TyPe", true},     // mixed case
-		{"struct", true},   // lowercase
-		{"Struct", true},   // capitalized
-		{"STRUCT", true},   // uppercase
-		{"async", true},    // Rust keyword
-		{"Async", true},    // capitalized
-		{"ASYNC", true},    // uppercase
-		{"device", false},  // not reserved
-		{"Device", false},  // not reserved
-		{"DEVICE", false},  // not reserved
+		{"type", true},    // lowercase
+		{"Type", true},    // capitalized
+		{"TYPE", true},    // uppercase
+		{"TyPe", true},    // mixed case
+		{"struct", true},  // lowercase
+		{"Struct", true},  // capitalized
+		{"STRUCT", true},  // uppercase
+		{"async", true},   // Rust keyword
+		{"Async", true},   // capitalized
+		{"ASYNC", true},   // uppercase
+		{"device", false}, // not reserved
+		{"Device", false}, // not reserved
+		{"DEVICE", false}, // not reserved
 	}
 
 	for _, tc := range testCases {
@@ -186,14 +186,14 @@ func TestGetReservedLanguages_MultipleLanguages(t *testing.T) {
 		word              string
 		expectedLanguages []string
 	}{
-		{"break", []string{"Go", "Rust", "C", "Swift"}},     // Reserved in all 4
-		{"struct", []string{"Go", "Rust", "C", "Swift"}},    // Reserved in all 4
-		{"return", []string{"Go", "Rust", "C", "Swift"}},    // Reserved in all 4
-		{"const", []string{"Go", "Rust", "C"}},              // Not in Swift (let/var instead)
-		{"async", []string{"Rust", "Swift"}},                // Rust and Swift only
-		{"inline", []string{"C"}},                           // C only
-		{"protocol", []string{"Swift"}},                     // Swift only
-		{"impl", []string{"Rust"}},                          // Rust only
+		{"break", []string{"Go", "Rust", "C", "Swift"}},  // Reserved in all 4
+		{"struct", []string{"Go", "Rust", "C", "Swift"}}, // Reserved in all 4
+		{"return", []string{"Go", "Rust", "C", "Swift"}}, // Reserved in all 4
+		{"const", []string{"Go", "Rust", "C"}},           // Not in Swift (let/var instead)
+		{"async", []string{"Rust", "Swift"}},             // Rust and Swift only
+		{"inline", []string{"C"}},                        // C only
+		{"protocol", []string{"Swift"}},                  // Swift only
+		{"impl", []string{"Rust"}},                       // Rust only
 	}
 
 	for _, tc := range testCases {
