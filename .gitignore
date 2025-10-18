@@ -23,6 +23,7 @@ go.work
 # Build artifacts
 /cmd/sdp-gen/sdp-gen
 /build/
+/rust/target/
 
 # IDE
 .vscode/

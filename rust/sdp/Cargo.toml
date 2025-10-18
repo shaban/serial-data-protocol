@@ -1,0 +1,17 @@
+[package]
+name = "sdp"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+description = "Serial Data Protocol - High-performance binary serialization"
+keywords = ["serialization", "binary", "protocol", "ipc", "audio"]
+categories = ["encoding", "parser-implementations"]
+
+[dependencies]
+byteorder.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
