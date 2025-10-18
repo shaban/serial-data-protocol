@@ -15,3 +15,12 @@ byteorder.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true
+criterion = "0.5"
+
+[[bench]]
+name = "wire_bench"
+harness = false
+
+[[bench]]
+name = "generated_bench"
+harness = false
