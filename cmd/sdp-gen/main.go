@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/shaban/serial-data-protocol/internal/generator/golang"
+	"github.com/shaban/serial-data-protocol/internal/generator/rust"
 	"github.com/shaban/serial-data-protocol/internal/parser"
 	"github.com/shaban/serial-data-protocol/internal/validator"
 )
@@ -64,8 +65,14 @@ func main() {
 	}
 
 	// Validate language
-	if *lang != "go" && *lang != "c" {
-		fmt.Fprintf(os.Stderr, "Error: -lang must be 'go' or 'c', got '%s'\n", *lang)
+	validLangs := map[string]bool{
+		"go":   true,
+		"rust": true,
+		"c":    false, // Not yet implemented
+	}
+	
+	if !validLangs[*lang] {
+		fmt.Fprintf(os.Stderr, "Error: -lang must be 'go' or 'rust' (c not yet implemented), got '%s'\n", *lang)
 		os.Exit(1)
 	}
 
@@ -143,38 +150,46 @@ func run(schemaPath, outputDir, lang, packageName string, validateOnly, astJSON,
 		fmt.Printf("Generating %s code...\n", lang)
 	}
 
-	var files map[string]string
 	switch lang {
 	case "go":
+		var files map[string]string
 		files, err = generateGo(schema, packageName)
 		if err != nil {
 			return fmt.Errorf("failed to generate Go code: %w", err)
 		}
+
+		// Create output directory
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			return fmt.Errorf("failed to create output directory: %w", err)
+		}
+
+		// Write files
+		if verbose {
+			fmt.Printf("Writing files to: %s\n", outputDir)
+		}
+
+		for filename, content := range files {
+			filePath := filepath.Join(outputDir, filename)
+			if verbose {
+				fmt.Printf("  Writing %s\n", filename)
+			}
+
+			if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+				return fmt.Errorf("failed to write %s: %w", filename, err)
+			}
+		}
+
+	case "rust":
+		// Rust generator writes files directly
+		err = rust.Generate(schema, outputDir, verbose)
+		if err != nil {
+			return fmt.Errorf("failed to generate Rust code: %w", err)
+		}
+
 	case "c":
 		return fmt.Errorf("C code generation not yet implemented")
 	default:
 		return fmt.Errorf("unsupported language: %s", lang)
-	}
-
-	// Step 5: Create output directory
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory: %w", err)
-	}
-
-	// Step 6: Write files
-	if verbose {
-		fmt.Printf("Writing files to: %s\n", outputDir)
-	}
-
-	for filename, content := range files {
-		filePath := filepath.Join(outputDir, filename)
-		if verbose {
-			fmt.Printf("  Writing %s\n", filename)
-		}
-
-		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-			return fmt.Errorf("failed to write %s: %w", filename, err)
-		}
 	}
 
 	fmt.Printf("Successfully generated %s code in %s\n", lang, outputDir)
