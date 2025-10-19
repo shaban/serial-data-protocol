@@ -63,7 +63,7 @@ func generateStruct(out *strings.Builder, s parser.Struct) error {
 // generateField generates a single field in a Swift struct
 func generateField(out *strings.Builder, field parser.Field) error {
 	fieldName := toSwiftFieldName(field.Name)
-	fieldType := mapFieldType(&field.Type)
+	fieldType := MapTypeToSwift(&field.Type) // Use the main type mapper
 
 	// Field documentation
 	if field.Comment != "" {
@@ -73,36 +73,4 @@ func generateField(out *strings.Builder, field parser.Field) error {
 	// Public var declaration
 	out.WriteString(fmt.Sprintf("    public var %s: %s\n", fieldName, fieldType))
 	return nil
-}
-
-// mapFieldType converts a parser.TypeExpr to a Swift type string
-func mapFieldType(t *parser.TypeExpr) string {
-	// Handle optional types
-	if t.Optional {
-		inner := &parser.TypeExpr{
-			Kind:  t.Kind,
-			Name:  t.Name,
-			Elem:  t.Elem,
-			Boxed: t.Boxed,
-		}
-		return fmt.Sprintf("%s?", mapFieldType(inner))
-	}
-
-	// Handle array types
-	if t.Kind == parser.TypeKindArray && t.Elem != nil {
-		elemType := mapFieldType(t.Elem)
-		return fmt.Sprintf("[%s]", elemType)
-	}
-
-	// Handle primitive types
-	if t.Kind == parser.TypeKindPrimitive {
-		return mapPrimitiveToSwift(t.Name)
-	}
-
-	// Handle named types (user-defined structs)
-	if t.Kind == parser.TypeKindNamed {
-		return ToSwiftName(t.Name)
-	}
-
-	return "UnknownType"
 }
