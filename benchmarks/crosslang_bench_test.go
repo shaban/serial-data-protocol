@@ -73,33 +73,6 @@ func runCriterionBench(packagePath string) (map[string]float64, error) {
 	return results, nil
 }
 
-// Helper to run Rust benchmark binary and parse timing
-func runRustBench(command string, args ...string) int64 {
-	// Build rust-bench if needed
-	cmd := exec.Command("cargo", "build", "--release", "--bin", "rust-bench")
-	cmd.Dir = "../rust/sdp"
-	if err := cmd.Run(); err != nil {
-		panic("Failed to build rust-bench: " + err.Error())
-	}
-
-	// Run benchmark
-	allArgs := append([]string{command}, args...)
-	cmd = exec.Command("../rust/target/release/rust-bench", allArgs...)
-	output, err := cmd.Output()
-	if err != nil {
-		panic("Failed to run rust-bench: " + err.Error())
-	}
-
-	// Parse nanoseconds per operation
-	nsStr := strings.TrimSpace(string(output))
-	ns, err := strconv.ParseInt(nsStr, 10, 64)
-	if err != nil {
-		panic("Failed to parse rust-bench output: " + err.Error())
-	}
-
-	return ns
-}
-
 // Helper to run Swift benchmark binary and parse timing
 func runSwiftBench(command string, args ...string) int64 {
 	// Compile swift_bench if needed (release mode with ALL optimizations)
