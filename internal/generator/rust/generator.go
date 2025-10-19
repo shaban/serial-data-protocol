@@ -78,6 +78,11 @@ func Generate(schema *parser.Schema, outputDir string, verbose bool) error {
 		return fmt.Errorf("failed to generate example: %w", err)
 	}
 
+	// Generate benches/ with Criterion benchmarks
+	if err := generateBenchmarkHelper(schema, outputDir, verbose); err != nil {
+		return fmt.Errorf("failed to generate benchmarks: %w", err)
+	}
+
 	if verbose {
 		fmt.Println("Rust code generation complete")
 	}
@@ -125,10 +130,20 @@ func generateCargoToml(schema *parser.Schema, outputDir string, verbose bool) er
 	content += "opt-level = 3\n"
 	content += "codegen-units = 1\n\n"
 
+	content += "# Development dependencies for benchmarking\n"
+	content += "[dev-dependencies]\n"
+	content += "criterion = { version = \"0.5\", features = [\"html_reports\"] }\n\n"
+
 	content += "# Example binary for cross-platform testing\n"
 	content += "[[example]]\n"
 	content += "name = \"crossplatform_helper\"\n"
-	content += "path = \"examples/crossplatform_helper.rs\"\n"
+	content += "path = \"examples/crossplatform_helper.rs\"\n\n"
+
+	content += "# Criterion benchmark configuration\n"
+	content += "[[bench]]\n"
+	content += "name = \"benchmarks\"\n"
+	content += "path = \"benches/benchmarks.rs\"\n"
+	content += "harness = false  # Use Criterion instead of default harness\n"
 
 	if err := os.WriteFile(filepath, []byte(content), 0644); err != nil {
 		return err
@@ -286,6 +301,36 @@ func generateExampleHelper(schema *parser.Schema, outputDir string, verbose bool
 
 	if verbose {
 		fmt.Printf("  Generated examples/crossplatform_helper.rs\n")
+	}
+
+	return nil
+}
+
+// generateBenchmarkHelper creates Criterion benchmarks
+func generateBenchmarkHelper(schema *parser.Schema, outputDir string, verbose bool) error {
+	// Create benches directory
+	benchesDir := filepath.Join(outputDir, "benches")
+	if err := os.MkdirAll(benchesDir, 0755); err != nil {
+		return fmt.Errorf("failed to create benches directory: %w", err)
+	}
+
+	// Determine package name
+	packageName := "sdp-generated"
+	if len(schema.Structs) > 0 {
+		packageName = toSnakeCase(schema.Structs[0].Name)
+	}
+
+	// Generate benchmark content
+	content := GenerateBenchmark(schema, packageName)
+
+	// Write benchmark file
+	benchPath := filepath.Join(benchesDir, "benchmarks.rs")
+	if err := os.WriteFile(benchPath, []byte(content), 0644); err != nil {
+		return fmt.Errorf("failed to write benchmark: %w", err)
+	}
+
+	if verbose {
+		fmt.Printf("  Generated benches/benchmarks.rs\n")
 	}
 
 	return nil
