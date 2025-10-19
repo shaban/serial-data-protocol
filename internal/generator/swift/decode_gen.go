@@ -194,12 +194,10 @@ func decodeUnsafePrimitive(buf *strings.Builder, typeName, fieldName, indent str
 		buf.WriteString(fmt.Sprintf("%soffset += 4\n", indent))
 		buf.WriteString(fmt.Sprintf("%sguard offset + %sLen <= bufferSize else { throw SDPDecodeError.insufficientData }\n",
 			indent, fieldName))
-		buf.WriteString(fmt.Sprintf("%slet %sPtr = UnsafeBufferPointer(start: buffer.advanced(by: offset), count: %sLen)\n",
+		buf.WriteString(fmt.Sprintf("%slet %sBuffer = UnsafeBufferPointer(start: buffer.advanced(by: offset), count: %sLen)\n",
 			indent, fieldName, fieldName))
-		buf.WriteString(fmt.Sprintf("%sguard let %s = String(bytes: %sPtr, encoding: .utf8) else {\n",
+		buf.WriteString(fmt.Sprintf("%slet %s = String(decoding: %sBuffer, as: UTF8.self)\n",
 			indent, fieldName, fieldName))
-		buf.WriteString(fmt.Sprintf("%s    throw SDPDecodeError.invalidUTF8\n", indent))
-		buf.WriteString(fmt.Sprintf("%s}\n", indent))
 		buf.WriteString(fmt.Sprintf("%soffset += %sLen\n", indent, fieldName))
 
 	default:
