@@ -73,6 +73,11 @@ func Generate(schema *parser.Schema, outputDir string, verbose bool) error {
 		return fmt.Errorf("failed to generate wire runtime: %w", err)
 	}
 
+	// Generate examples/crossplatform_helper.rs
+	if err := generateExampleHelper(schema, outputDir, verbose); err != nil {
+		return fmt.Errorf("failed to generate example: %w", err)
+	}
+
 	if verbose {
 		fmt.Println("Rust code generation complete")
 	}
@@ -99,11 +104,11 @@ func generateCargoToml(schema *parser.Schema, outputDir string, verbose bool) er
 	content += "authors = [\"Serial Data Protocol Contributors\"]\n"
 	content += "license = \"MIT\"\n"
 	content += "description = \"Generated SDP package\"\n\n"
-	
+
 	content += "[dependencies]\n"
 	content += "# Only external dependency: byteorder for endianness handling\n"
 	content += "byteorder = \"1.5\"\n\n"
-	
+
 	content += "[profile.release]\n"
 	content += "# Maximum performance optimizations\n"
 	content += "opt-level = 3              # Maximum optimization level\n"
@@ -114,11 +119,16 @@ func generateCargoToml(schema *parser.Schema, outputDir string, verbose bool) er
 	content += "overflow-checks = false    # Disable integer overflow checks in release\n"
 	content += "debug = false              # No debug info\n"
 	content += "incremental = false        # Disable incremental compilation for max optimization\n\n"
-	
+
 	content += "# Aggressive optimization flags for all dependencies\n"
 	content += "[profile.release.package.\"*\"]\n"
 	content += "opt-level = 3\n"
-	content += "codegen-units = 1\n"
+	content += "codegen-units = 1\n\n"
+
+	content += "# Example binary for cross-platform testing\n"
+	content += "[[example]]\n"
+	content += "name = \"crossplatform_helper\"\n"
+	content += "path = \"examples/crossplatform_helper.rs\"\n"
 
 	if err := os.WriteFile(filepath, []byte(content), 0644); err != nil {
 		return err
@@ -246,6 +256,36 @@ func generateWireRuntime(srcDir string, verbose bool) error {
 	if verbose {
 		fmt.Printf("  Generated wire.rs (embedded runtime)\n")
 		fmt.Printf("  Generated wire_slice.rs (embedded runtime)\n")
+	}
+
+	return nil
+}
+
+// generateExampleHelper creates the crossplatform_helper.rs example
+func generateExampleHelper(schema *parser.Schema, outputDir string, verbose bool) error {
+	// Create examples directory
+	examplesDir := filepath.Join(outputDir, "examples")
+	if err := os.MkdirAll(examplesDir, 0755); err != nil {
+		return fmt.Errorf("failed to create examples directory: %w", err)
+	}
+
+	// Determine package name
+	packageName := "sdp-generated"
+	if len(schema.Structs) > 0 {
+		packageName = toSnakeCase(schema.Structs[0].Name)
+	}
+
+	// Generate example content
+	content := GenerateExample(schema, packageName)
+
+	// Write example file
+	examplePath := filepath.Join(examplesDir, "crossplatform_helper.rs")
+	if err := os.WriteFile(examplePath, []byte(content), 0644); err != nil {
+		return fmt.Errorf("failed to write example: %w", err)
+	}
+
+	if verbose {
+		fmt.Printf("  Generated examples/crossplatform_helper.rs\n")
 	}
 
 	return nil
