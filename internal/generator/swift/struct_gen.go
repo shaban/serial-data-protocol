@@ -56,6 +56,24 @@ func generateStruct(out *strings.Builder, s parser.Struct) error {
 		}
 	}
 
+	// Generate public memberwise initializer
+	out.WriteString("\n")
+	out.WriteString("    public init(")
+	for i, field := range s.Fields {
+		if i > 0 {
+			out.WriteString(", ")
+		}
+		fieldName := toSwiftFieldName(field.Name)
+		fieldType := MapTypeToSwift(&field.Type)
+		out.WriteString(fmt.Sprintf("%s: %s", fieldName, fieldType))
+	}
+	out.WriteString(") {\n")
+	for _, field := range s.Fields {
+		fieldName := toSwiftFieldName(field.Name)
+		out.WriteString(fmt.Sprintf("        self.%s = %s\n", fieldName, fieldName))
+	}
+	out.WriteString("    }\n")
+
 	out.WriteString("}\n")
 	return nil
 }
