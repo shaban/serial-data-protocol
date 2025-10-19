@@ -13,4 +13,19 @@ public struct AllPrimitives {
     public var f64Field: Double
     public var boolField: Bool
     public var strField: String
+
+    public init(u8Field: UInt8, u16Field: UInt16, u32Field: UInt32, u64Field: UInt64, i8Field: Int8, i16Field: Int16, i32Field: Int32, i64Field: Int64, f32Field: Float, f64Field: Double, boolField: Bool, strField: String) {
+        self.u8Field = u8Field
+        self.u16Field = u16Field
+        self.u32Field = u32Field
+        self.u64Field = u64Field
+        self.i8Field = i8Field
+        self.i16Field = i16Field
+        self.i32Field = i32Field
+        self.i64Field = i64Field
+        self.f32Field = f32Field
+        self.f64Field = f64Field
+        self.boolField = boolField
+        self.strField = strField
+    }
 }

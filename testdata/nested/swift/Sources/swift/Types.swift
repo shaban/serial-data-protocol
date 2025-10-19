@@ -3,16 +3,33 @@
 public struct Point {
     public var x: Float
     public var y: Float
+
+    public init(x: Float, y: Float) {
+        self.x = x
+        self.y = y
+    }
 }
 
 public struct Rectangle {
     public var topLeft: Point
     public var bottomRight: Point
     public var color: UInt32
+
+    public init(topLeft: Point, bottomRight: Point, color: UInt32) {
+        self.topLeft = topLeft
+        self.bottomRight = bottomRight
+        self.color = color
+    }
 }
 
 public struct Scene {
     public var name: String
     public var mainRect: Rectangle
     public var count: UInt32
+
+    public init(name: String, mainRect: Rectangle, count: UInt32) {
+        self.name = name
+        self.mainRect = mainRect
+        self.count = count
+    }
 }

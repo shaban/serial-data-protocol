@@ -27,9 +27,15 @@ func GenerateExample(schema *parser.Schema, packageName string) string {
 	b.WriteString("import " + packageName + "\n")
 	b.WriteString("\n")
 
+	// Generate helper functions for creating test instances
+	for _, st := range schema.Structs {
+		generateTestHelperFunction(&b, &st, schema)
+		b.WriteString("\n")
+	}
+
 	// Generate encode/decode functions for each struct
 	for _, st := range schema.Structs {
-		generateEncodeFunction(&b, &st)
+		generateEncodeFunction(&b, &st, schema)
 		b.WriteString("\n")
 		generateDecodeFunction(&b, &st)
 		b.WriteString("\n")
@@ -41,12 +47,13 @@ func GenerateExample(schema *parser.Schema, packageName string) string {
 	return b.String()
 }
 
-func generateEncodeFunction(b *strings.Builder, st *parser.Struct) {
+// generateTestHelperFunction generates a function that creates a test instance of a struct
+func generateTestHelperFunction(b *strings.Builder, st *parser.Struct, schema *parser.Schema) {
 	structName := st.Name
-	funcName := fmt.Sprintf("encode%s", toCamelCase(st.Name))
+	funcName := fmt.Sprintf("makeTest%s", toCamelCase(st.Name))
 
-	b.WriteString(fmt.Sprintf("func %s() throws {\n", funcName))
-	b.WriteString(fmt.Sprintf("    let data = %s(\n", structName))
+	b.WriteString(fmt.Sprintf("func %s() -> %s {\n", funcName, structName))
+	b.WriteString(fmt.Sprintf("    return %s(\n", structName))
 
 	// Generate test data for each field
 	for i, field := range st.Fields {
@@ -55,10 +62,19 @@ func generateEncodeFunction(b *strings.Builder, st *parser.Struct) {
 		if i == len(st.Fields)-1 {
 			comma = ""
 		}
-		b.WriteString(fmt.Sprintf("        %s: %s%s\n", fieldName, generateTestValue(&field), comma))
+		testValue := generateTestValueWithSchema(&field, schema)
+		b.WriteString(fmt.Sprintf("        %s: %s%s\n", fieldName, testValue, comma))
 	}
 
 	b.WriteString("    )\n")
+	b.WriteString("}\n")
+}
+
+func generateEncodeFunction(b *strings.Builder, st *parser.Struct, schema *parser.Schema) {
+	funcName := fmt.Sprintf("encode%s", toCamelCase(st.Name))
+
+	b.WriteString(fmt.Sprintf("func %s() throws {\n", funcName))
+	b.WriteString(fmt.Sprintf("    let data = makeTest%s()\n", toCamelCase(st.Name)))
 	b.WriteString("\n")
 	b.WriteString("    let bytes = data.encodeToBytes()\n")
 	b.WriteString("    let binaryData = Data(bytes)\n")
@@ -145,27 +161,25 @@ func generateMainFunction(b *strings.Builder, schema *parser.Schema) {
 	b.WriteString("}\n")
 }
 
-func generateTestValue(field *parser.Field) string {
+func generateTestValueWithSchema(field *parser.Field, schema *parser.Schema) string {
 	if field.Type.Optional {
 		// For optional fields, generate .some(value)
-		baseValue := generateBaseTestValue(&field.Type)
+		baseValue := generateBaseTestValueWithSchema(&field.Type, schema)
 		return fmt.Sprintf(".some(%s)", baseValue)
 	}
-	return generateBaseTestValue(&field.Type)
+	return generateBaseTestValueWithSchema(&field.Type, schema)
 }
 
-func generateBaseTestValue(typeExpr *parser.TypeExpr) string {
+func generateBaseTestValueWithSchema(typeExpr *parser.TypeExpr, schema *parser.Schema) string {
 	if typeExpr.Kind == parser.TypeKindArray && typeExpr.Elem != nil {
 		// Generate array literal
-		elemValue := generateScalarTestValue(typeExpr.Elem.Name)
+		elemValue := generateScalarTestValueWithSchema(typeExpr.Elem.Name, schema)
 		return fmt.Sprintf("ContiguousArray([%s, %s, %s])", elemValue, elemValue, elemValue)
 	}
-	return generateScalarTestValue(typeExpr.Name)
+	return generateScalarTestValueWithSchema(typeExpr.Name, schema)
 }
 
-func generateScalarTestValue(fieldType string) string {
-	swiftType := MapTypeToSwift(&parser.TypeExpr{Name: fieldType})
-
+func generateScalarTestValueWithSchema(fieldType string, schema *parser.Schema) string {
 	switch fieldType {
 	case "u8":
 		return "255"
@@ -192,8 +206,8 @@ func generateScalarTestValue(fieldType string) string {
 	case "string", "str":
 		return "\"Hello from Swift!\""
 	default:
-		// For nested types, use default initializer
-		return fmt.Sprintf("%s()", swiftType)
+		// For nested struct types, call the test helper function
+		return fmt.Sprintf("makeTest%s()", toCamelCase(fieldType))
 	}
 }
 

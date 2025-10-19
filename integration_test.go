@@ -34,17 +34,18 @@ const (
 // TestMain ensures fresh generated code for every test run
 //
 // Usage:
-//   go test                    # Regenerate all languages (default)
-//   go test -lang=go           # Only Go
-//   go test -lang=rust         # Only Rust
-//   go test -lang=swift        # Only Swift
-//   go test -v                 # Verbose output
+//
+//	go test                    # Regenerate all languages (default)
+//	go test -lang=go           # Only Go
+//	go test -lang=rust         # Only Rust
+//	go test -lang=swift        # Only Swift
+//	go test -v                 # Verbose output
 func TestMain(m *testing.M) {
 	flag.Parse()
 
 	// Determine which languages to regenerate
 	langs := parseLangs(*langFlag)
-	
+
 	fmt.Println("=== SDP Integration Test Suite ===")
 	fmt.Printf("Regenerating: %s\n\n", strings.Join(langs, ", "))
 
@@ -84,16 +85,11 @@ func TestMain(m *testing.M) {
 func parseLangs(flag string) []string {
 	switch flag {
 	case "all":
-		// TODO: Add swift once it matches Rust gold standard
-		return []string{"go", "rust"}
-	case "go", "rust":
+		return []string{"go", "rust", "swift"}
+	case "go", "rust", "swift":
 		return []string{flag}
-	case "swift":
-		fmt.Fprintf(os.Stderr, "Swift support pending - use 'go' or 'rust' for now\n")
-		os.Exit(1)
-		return nil
 	default:
-		fmt.Fprintf(os.Stderr, "Invalid -lang value: %s (must be: go|rust|all)\n", flag)
+		fmt.Fprintf(os.Stderr, "Invalid -lang value: %s (must be: go|rust|swift|all)\n", flag)
 		os.Exit(1)
 		return nil
 	}
@@ -121,26 +117,26 @@ func buildGenerator() error {
 func regeneratePackages(langs []string) error {
 	for _, schema := range testSchemas {
 		fmt.Printf("  %s:\n", schema)
-		
+
 		for _, lang := range langs {
 			outputDir := filepath.Join("testdata", schema, lang)
 			schemaFile := filepath.Join("testdata", fmt.Sprintf("%s.sdp", schema))
-			
+
 			// Step 1: Clean
 			if err := cleanPackage(lang, outputDir); err != nil {
 				return fmt.Errorf("failed to clean %s/%s: %w", schema, lang, err)
 			}
-			
+
 			// Step 2: Generate
 			if err := generatePackage(lang, schemaFile, outputDir, schema); err != nil {
 				return fmt.Errorf("failed to generate %s/%s: %w", schema, lang, err)
 			}
-			
+
 			// Step 3: Build (verify compilation)
 			if err := buildPackage(lang, outputDir); err != nil {
 				return fmt.Errorf("failed to build %s/%s: %w", schema, lang, err)
 			}
-			
+
 			fmt.Printf("    [%s] ✓\n", lang)
 		}
 	}
@@ -157,7 +153,7 @@ func cleanPackage(lang, outputDir string) error {
 		for _, f := range files {
 			os.Remove(f)
 		}
-		
+
 	case "rust":
 		// Remove Cargo artifacts and generated source
 		os.RemoveAll(filepath.Join(outputDir, "src"))
@@ -171,14 +167,14 @@ func cleanPackage(lang, outputDir string) error {
 		os.Remove(filepath.Join(outputDir, "types.rs"))
 		os.Remove(filepath.Join(outputDir, "encode.rs"))
 		os.Remove(filepath.Join(outputDir, "decode.rs"))
-		
+
 	case "swift":
 		// Remove Swift package artifacts
 		os.RemoveAll(filepath.Join(outputDir, "Sources"))
 		os.RemoveAll(filepath.Join(outputDir, ".build"))
 		os.Remove(filepath.Join(outputDir, "Package.swift"))
 	}
-	
+
 	return nil
 }
 
@@ -194,47 +190,47 @@ func generatePackage(lang, schemaFile, outputDir, pkgName string) error {
 		"-schema", schemaFile,
 		"-output", outputDir,
 	}
-	
+
 	// Go needs package name
 	if lang == "go" {
 		args = append(args, "-package", pkgName)
 	}
-	
+
 	cmd := exec.Command(genPath, args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("sdp-gen failed: %w\nOutput: %s", err, string(output))
 	}
-	
+
 	return nil
 }
 
 // buildPackage verifies the generated code compiles (STRICT: must succeed)
 func buildPackage(lang, outputDir string) error {
 	var cmd *exec.Cmd
-	
+
 	switch lang {
 	case "go":
 		// Verify Go packages parse correctly
 		cmd = exec.Command("go", "list", "./...")
 		cmd.Dir = outputDir
-		
+
 	case "rust":
 		// Build Rust crate with aggressive optimizations
 		cmd = exec.Command("cargo", "build", "--release", "--quiet")
 		cmd.Dir = outputDir
-		
+
 	case "swift":
 		// Build Swift package
 		cmd = exec.Command("swift", "build", "-c", "release")
 		cmd.Dir = outputDir
 	}
-	
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("build failed: %w\nOutput: %s", err, string(output))
 	}
-	
+
 	return nil
 }
 

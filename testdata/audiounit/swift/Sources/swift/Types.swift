@@ -12,6 +12,20 @@ public struct Parameter {
     public var rawFlags: UInt32
     public var isWritable: Bool
     public var canRamp: Bool
+
+    public init(address: UInt64, displayName: String, identifier: String, unit: String, minValue: Float, maxValue: Float, defaultValue: Float, currentValue: Float, rawFlags: UInt32, isWritable: Bool, canRamp: Bool) {
+        self.address = address
+        self.displayName = displayName
+        self.identifier = identifier
+        self.unit = unit
+        self.minValue = minValue
+        self.maxValue = maxValue
+        self.defaultValue = defaultValue
+        self.currentValue = currentValue
+        self.rawFlags = rawFlags
+        self.isWritable = isWritable
+        self.canRamp = canRamp
+    }
 }
 
 public struct Plugin {
@@ -19,11 +33,25 @@ public struct Plugin {
     public var manufacturerId: String
     public var componentType: String
     public var componentSubtype: String
-    public var parameters: [Parameter]
+    public var parameters: ContiguousArray<Parameter>
+
+    public init(name: String, manufacturerId: String, componentType: String, componentSubtype: String, parameters: ContiguousArray<Parameter>) {
+        self.name = name
+        self.manufacturerId = manufacturerId
+        self.componentType = componentType
+        self.componentSubtype = componentSubtype
+        self.parameters = parameters
+    }
 }
 
 public struct PluginRegistry {
-    public var plugins: [Plugin]
+    public var plugins: ContiguousArray<Plugin>
     public var totalPluginCount: UInt32
     public var totalParameterCount: UInt32
+
+    public init(plugins: ContiguousArray<Plugin>, totalPluginCount: UInt32, totalParameterCount: UInt32) {
+        self.plugins = plugins
+        self.totalPluginCount = totalPluginCount
+        self.totalParameterCount = totalParameterCount
+    }
 }

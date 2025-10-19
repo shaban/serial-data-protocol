@@ -6,6 +6,14 @@ public struct Parameter {
     public var value: Float
     public var min: Float
     public var max: Float
+
+    public init(id: UInt32, name: String, value: Float, min: Float, max: Float) {
+        self.id = id
+        self.name = name
+        self.value = value
+        self.min = min
+        self.max = max
+    }
 }
 
 public struct Plugin {
@@ -14,7 +22,16 @@ public struct Plugin {
     public var manufacturer: String
     public var version: UInt32
     public var enabled: Bool
-    public var parameters: [Parameter]
+    public var parameters: ContiguousArray<Parameter>
+
+    public init(id: UInt32, name: String, manufacturer: String, version: UInt32, enabled: Bool, parameters: ContiguousArray<Parameter>) {
+        self.id = id
+        self.name = name
+        self.manufacturer = manufacturer
+        self.version = version
+        self.enabled = enabled
+        self.parameters = parameters
+    }
 }
 
 public struct AudioDevice {
@@ -25,5 +42,16 @@ public struct AudioDevice {
     public var inputChannels: UInt16
     public var outputChannels: UInt16
     public var isDefault: Bool
-    public var activePlugins: [Plugin]
+    public var activePlugins: ContiguousArray<Plugin>
+
+    public init(deviceId: UInt32, deviceName: String, sampleRate: UInt32, bufferSize: UInt32, inputChannels: UInt16, outputChannels: UInt16, isDefault: Bool, activePlugins: ContiguousArray<Plugin>) {
+        self.deviceId = deviceId
+        self.deviceName = deviceName
+        self.sampleRate = sampleRate
+        self.bufferSize = bufferSize
+        self.inputChannels = inputChannels
+        self.outputChannels = outputChannels
+        self.isDefault = isDefault
+        self.activePlugins = activePlugins
+    }
 }

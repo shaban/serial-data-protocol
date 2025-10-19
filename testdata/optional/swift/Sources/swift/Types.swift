@@ -6,6 +6,11 @@ public struct Request {
     public var id: UInt32
     /// metadata Optional user metadata
     public var metadata: Metadata?
+
+    public init(id: UInt32, metadata: Metadata?) {
+        self.id = id
+        self.metadata = metadata
+    }
 }
 
 /// Metadata User metadata
@@ -14,6 +19,11 @@ public struct Metadata {
     public var userId: UInt64
     /// username Username
     public var username: String
+
+    public init(userId: UInt64, username: String) {
+        self.userId = userId
+        self.username = username
+    }
 }
 
 /// Config Complex example with nested optional fields
@@ -24,6 +34,12 @@ public struct Config {
     public var database: DatabaseConfig?
     /// cache Optional cache settings
     public var cache: CacheConfig?
+
+    public init(name: String, database: DatabaseConfig?, cache: CacheConfig?) {
+        self.name = name
+        self.database = database
+        self.cache = cache
+    }
 }
 
 /// DatabaseConfig Database configuration
@@ -32,6 +48,11 @@ public struct DatabaseConfig {
     public var host: String
     /// port Database port
     public var port: UInt16
+
+    public init(host: String, port: UInt16) {
+        self.host = host
+        self.port = port
+    }
 }
 
 /// CacheConfig Cache configuration
@@ -40,6 +61,11 @@ public struct CacheConfig {
     public var sizeMb: UInt32
     /// ttlSeconds Time to live in seconds
     public var ttlSeconds: UInt32
+
+    public init(sizeMb: UInt32, ttlSeconds: UInt32) {
+        self.sizeMb = sizeMb
+        self.ttlSeconds = ttlSeconds
+    }
 }
 
 /// Document Example with optional array (wrapped struct containing array)
@@ -48,10 +74,19 @@ public struct Document {
     public var id: UInt32
     /// tags Optional tags wrapper
     public var tags: TagList?
+
+    public init(id: UInt32, tags: TagList?) {
+        self.id = id
+        self.tags = tags
+    }
 }
 
 /// TagList Wrapper for tag array
 public struct TagList {
     /// items Array of tags
-    public var items: [String]
+    public var items: ContiguousArray<String>
+
+    public init(items: ContiguousArray<String>) {
+        self.items = items
+    }
 }

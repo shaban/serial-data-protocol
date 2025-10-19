@@ -45,7 +45,7 @@ testdata/<schema>/<language>/examples/crossplatform_helper.<ext>
 - Experimental standalone Swift package
 - Has its own Package.swift and .build artifacts
 - Not part of the generated structure
-- Already removed from filesystem before commit
+- **Note:** VS Code's Swift extension may try to recreate a `.build` directory here if old references exist in documentation. All such references have been cleaned up and the file `SWIFT_CROSSPLATFORM_TESTS.md` has been archived.
 
 ## How Cross-Platform Testing Works
 
