@@ -224,11 +224,24 @@ func generateFieldSize(buf *strings.Builder, field *parser.Field, indent string)
 		buf.WriteString(fmt.Sprintf("%ssize += 1; // presence flag\n", indent))
 		buf.WriteString(fmt.Sprintf("%sif let Some(ref value) = self.%s {\n", indent, fieldName))
 
-		// Calculate inner size
-		innerField := *field
-		innerField.Type.Optional = false
-		if err := generateFieldSize(buf, &innerField, indent+"    "); err != nil {
-			return err
+		// Calculate inner size based on type
+		innerIndent := indent + "    "
+		innerType := field.Type
+		innerType.Optional = false
+
+		switch innerType.Kind {
+		case parser.TypeKindPrimitive:
+			fixedSize := FixedSize(innerType.Name)
+			if fixedSize > 0 {
+				buf.WriteString(fmt.Sprintf("%ssize += %d;\n", innerIndent, fixedSize))
+			} else if innerType.Name == "str" {
+				buf.WriteString(fmt.Sprintf("%ssize += 4 + value.len();\n", innerIndent))
+			} else if innerType.Name == "bytes" {
+				buf.WriteString(fmt.Sprintf("%ssize += 4 + value.len();\n", innerIndent))
+			}
+		case parser.TypeKindNamed:
+			// For nested structs in optional
+			buf.WriteString(fmt.Sprintf("%ssize += value.encoded_size();\n", innerIndent))
 		}
 
 		buf.WriteString(fmt.Sprintf("%s}\n", indent))

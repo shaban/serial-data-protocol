@@ -5,11 +5,14 @@ import (
 	"compress/gzip"
 	"encoding/binary"
 	"encoding/json"
+	"flag"
+	"fmt"
 	"io"
 	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	arrays "github.com/shaban/serial-data-protocol/testdata/arrays/go"
@@ -20,46 +23,90 @@ import (
 	primitives "github.com/shaban/serial-data-protocol/testdata/primitives/go"
 )
 
+var (
+	langFlag = flag.String("lang", "all", "Languages to regenerate: go|rust|swift|all")
+)
+
 const (
 	generatorBinary = "testdata/sdp-gen"
 )
 
 // TestMain ensures fresh generated code for every test run
+//
+// Usage:
+//   go test                    # Regenerate all languages (default)
+//   go test -lang=go           # Only Go
+//   go test -lang=rust         # Only Rust
+//   go test -lang=swift        # Only Swift
+//   go test -v                 # Verbose output
 func TestMain(m *testing.M) {
-	// Step 1: Clean old generated packages
-	cleanGeneratedPackages()
+	flag.Parse()
 
-	// Step 2: Build generator binary
+	// Determine which languages to regenerate
+	langs := parseLangs(*langFlag)
+	
+	fmt.Println("=== SDP Integration Test Suite ===")
+	fmt.Printf("Regenerating: %s\n\n", strings.Join(langs, ", "))
+
+	// Step 1: Build generator binary
+	fmt.Println("[1/3] Building sdp-gen...")
 	if err := buildGenerator(); err != nil {
-		panic("Failed to build generator: " + err.Error())
+		fmt.Fprintf(os.Stderr, "❌ Failed to build generator: %v\n", err)
+		os.Exit(1)
 	}
+	fmt.Println("  ✓ sdp-gen ready")
+	fmt.Println()
 
-	// Step 3: Generate test packages from schemas
-	if err := generateTestPackages(); err != nil {
-		panic("Failed to generate test packages: " + err.Error())
+	// Step 2: Clean and regenerate packages (STRICT)
+	fmt.Println("[2/3] Regenerating packages...")
+	if err := regeneratePackages(langs); err != nil {
+		fmt.Fprintf(os.Stderr, "❌ Regeneration failed: %v\n", err)
+		os.Exit(1)
 	}
+	fmt.Println("  ✓ All packages ready")
+	fmt.Println()
 
-	// Step 4: Run tests
+	// Step 3: Run tests
+	fmt.Println("[3/3] Running tests...")
+	fmt.Println()
 	code := m.Run()
 
-	// Step 5: Exit (leave generated files for inspection)
+	if code == 0 {
+		fmt.Println("\n✓ All tests passed")
+	} else {
+		fmt.Println("\n❌ Some tests failed")
+	}
+
 	os.Exit(code)
 }
 
-// cleanGeneratedPackages removes previously generated packages
-func cleanGeneratedPackages() {
-	dirs := []string{
-		"testdata/primitives/go",
-		"testdata/nested/go",
-		"testdata/arrays/go",
-		"testdata/complex/go",
-		"testdata/audiounit/go",
-		"testdata/optional/go",
+// parseLangs converts flag value to list of languages
+func parseLangs(flag string) []string {
+	switch flag {
+	case "all":
+		// TODO: Add swift once it matches Rust gold standard
+		return []string{"go", "rust"}
+	case "go", "rust":
+		return []string{flag}
+	case "swift":
+		fmt.Fprintf(os.Stderr, "Swift support pending - use 'go' or 'rust' for now\n")
+		os.Exit(1)
+		return nil
+	default:
+		fmt.Fprintf(os.Stderr, "Invalid -lang value: %s (must be: go|rust|all)\n", flag)
+		os.Exit(1)
+		return nil
 	}
+}
 
-	for _, dir := range dirs {
-		os.RemoveAll(dir)
-	}
+// All test schemas
+var testSchemas = []string{
+	"primitives",
+	"audiounit",
+	"arrays",
+	"optional",
+	"nested",
+	"complex",
 }
 
 // buildGenerator compiles the sdp-gen CLI tool
@@ -67,51 +114,127 @@ func buildGenerator() error {
 	cmd := exec.Command("go", "build", "-o", generatorBinary, "./cmd/sdp-gen")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
 
-	if err := cmd.Run(); err != nil {
-		return err
+// regeneratePackages cleans, generates, and builds packages for specified languages
+func regeneratePackages(langs []string) error {
+	for _, schema := range testSchemas {
+		fmt.Printf("  %s:\n", schema)
+		
+		for _, lang := range langs {
+			outputDir := filepath.Join("testdata", schema, lang)
+			schemaFile := filepath.Join("testdata", fmt.Sprintf("%s.sdp", schema))
+			
+			// Step 1: Clean
+			if err := cleanPackage(lang, outputDir); err != nil {
+				return fmt.Errorf("failed to clean %s/%s: %w", schema, lang, err)
+			}
+			
+			// Step 2: Generate
+			if err := generatePackage(lang, schemaFile, outputDir, schema); err != nil {
+				return fmt.Errorf("failed to generate %s/%s: %w", schema, lang, err)
+			}
+			
+			// Step 3: Build (verify compilation)
+			if err := buildPackage(lang, outputDir); err != nil {
+				return fmt.Errorf("failed to build %s/%s: %w", schema, lang, err)
+			}
+			
+			fmt.Printf("    [%s] ✓\n", lang)
+		}
 	}
-
 	return nil
 }
 
-// generateTestPackages runs the generator on all test schemas
-func generateTestPackages() error {
-	schemas := []struct {
-		schemaFile string
-		outputDir  string
-		pkgName    string
-	}{
-		{"testdata/primitives.sdp", "testdata/primitives/go", "primitives"},
-		{"testdata/nested.sdp", "testdata/nested/go", "nested"},
-		{"testdata/arrays.sdp", "testdata/arrays/go", "arrays"},
-		{"testdata/complex.sdp", "testdata/complex/go", "complex"},
-		{"testdata/audiounit.sdp", "testdata/audiounit/go", "audiounit"},
-		{"testdata/optional.sdp", "testdata/optional/go", "optional"},
+// cleanPackage removes all generated files for a language
+func cleanPackage(lang, outputDir string) error {
+	switch lang {
+	case "go":
+		// Remove all .go files
+		pattern := filepath.Join(outputDir, "*.go")
+		files, _ := filepath.Glob(pattern)
+		for _, f := range files {
+			os.Remove(f)
+		}
+		
+	case "rust":
+		// Remove Cargo artifacts and generated source
+		os.RemoveAll(filepath.Join(outputDir, "src"))
+		os.RemoveAll(filepath.Join(outputDir, "target"))
+		os.RemoveAll(filepath.Join(outputDir, "benches"))
+		os.RemoveAll(filepath.Join(outputDir, "examples"))
+		os.Remove(filepath.Join(outputDir, "Cargo.toml"))
+		os.Remove(filepath.Join(outputDir, "Cargo.lock"))
+		// Clean old files from root (from previous generator versions)
+		os.Remove(filepath.Join(outputDir, "lib.rs"))
+		os.Remove(filepath.Join(outputDir, "types.rs"))
+		os.Remove(filepath.Join(outputDir, "encode.rs"))
+		os.Remove(filepath.Join(outputDir, "decode.rs"))
+		
+	case "swift":
+		// Remove Swift package artifacts
+		os.RemoveAll(filepath.Join(outputDir, "Sources"))
+		os.RemoveAll(filepath.Join(outputDir, ".build"))
+		os.Remove(filepath.Join(outputDir, "Package.swift"))
+	}
+	
+	return nil
+}
+
+// generatePackage runs sdp-gen for a specific language
+func generatePackage(lang, schemaFile, outputDir, pkgName string) error {
+	genPath, err := filepath.Abs(generatorBinary)
+	if err != nil {
+		return err
 	}
 
-	for _, s := range schemas {
-		// Get absolute path to generator
-		genPath, err := filepath.Abs(generatorBinary)
-		if err != nil {
-			return err
-		}
-
-		cmd := exec.Command(
-			genPath,
-			"-schema", s.schemaFile,
-			"-output", s.outputDir,
-			"-package", s.pkgName,
-			"-lang", "go",
-		)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		if err := cmd.Run(); err != nil {
-			return err
-		}
+	args := []string{
+		"-lang", lang,
+		"-schema", schemaFile,
+		"-output", outputDir,
 	}
+	
+	// Go needs package name
+	if lang == "go" {
+		args = append(args, "-package", pkgName)
+	}
+	
+	cmd := exec.Command(genPath, args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("sdp-gen failed: %w\nOutput: %s", err, string(output))
+	}
+	
+	return nil
+}
 
+// buildPackage verifies the generated code compiles (STRICT: must succeed)
+func buildPackage(lang, outputDir string) error {
+	var cmd *exec.Cmd
+	
+	switch lang {
+	case "go":
+		// Verify Go packages parse correctly
+		cmd = exec.Command("go", "list", "./...")
+		cmd.Dir = outputDir
+		
+	case "rust":
+		// Build Rust crate with aggressive optimizations
+		cmd = exec.Command("cargo", "build", "--release", "--quiet")
+		cmd.Dir = outputDir
+		
+	case "swift":
+		// Build Swift package
+		cmd = exec.Command("swift", "build", "-c", "release")
+		cmd.Dir = outputDir
+	}
+	
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("build failed: %w\nOutput: %s", err, string(output))
+	}
+	
 	return nil
 }
 

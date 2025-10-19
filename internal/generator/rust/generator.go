@@ -12,11 +12,12 @@ import (
 )
 
 // Generate creates Rust code files from a parsed schema.
-// It generates:
-//   - lib.rs: Module declarations and re-exports
-//   - types.rs: Struct definitions with derive macros
-//   - encode.rs: Slice-based encoding (fast path for IPC)
-//   - decode.rs: Slice-based decoding
+// It generates a proper Cargo crate structure:
+//   - Cargo.toml: Crate manifest with aggressive optimizations
+//   - src/lib.rs: Module declarations and re-exports
+//   - src/types.rs: Struct definitions with derive macros
+//   - src/encode.rs: Slice-based encoding (fast path for IPC)
+//   - src/decode.rs: Slice-based decoding
 //
 // The generated code uses the sdp crate's wire_slice module for
 // maximum performance (4x faster than trait-based encoding).
@@ -29,37 +30,97 @@ func Generate(schema *parser.Schema, outputDir string, verbose bool) error {
 		return fmt.Errorf("output directory is empty")
 	}
 
-	// Create output directory if needed
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory: %w", err)
+	// Create output directory structure (proper Cargo crate)
+	srcDir := filepath.Join(outputDir, "src")
+	if err := os.MkdirAll(srcDir, 0755); err != nil {
+		return fmt.Errorf("failed to create src directory: %w", err)
 	}
 
 	if verbose {
 		fmt.Printf("Generating Rust code in %s\n", outputDir)
 	}
 
+	// Generate Cargo.toml
+	if err := generateCargoToml(schema, outputDir, verbose); err != nil {
+		return fmt.Errorf("failed to generate Cargo.toml: %w", err)
+	}
+
+	// Use src/ subdirectory for proper Cargo structure
+	srcDir = filepath.Join(outputDir, "src")
+
 	// Generate lib.rs
-	if err := generateLib(schema, outputDir, verbose); err != nil {
+	if err := generateLib(schema, srcDir, verbose); err != nil {
 		return fmt.Errorf("failed to generate lib.rs: %w", err)
 	}
 
 	// Generate types.rs
-	if err := generateTypes(schema, outputDir, verbose); err != nil {
+	if err := generateTypes(schema, srcDir, verbose); err != nil {
 		return fmt.Errorf("failed to generate types.rs: %w", err)
 	}
 
 	// Generate encode.rs (slice API)
-	if err := generateEncode(schema, outputDir, verbose); err != nil {
+	if err := generateEncode(schema, srcDir, verbose); err != nil {
 		return fmt.Errorf("failed to generate encode.rs: %w", err)
 	}
 
 	// Generate decode.rs (slice API)
-	if err := generateDecode(schema, outputDir, verbose); err != nil {
+	if err := generateDecode(schema, srcDir, verbose); err != nil {
 		return fmt.Errorf("failed to generate decode.rs: %w", err)
 	}
 
 	if verbose {
 		fmt.Println("Rust code generation complete")
+	}
+
+	return nil
+}
+
+// generateCargoToml creates Cargo.toml with aggressive optimizations
+func generateCargoToml(schema *parser.Schema, outputDir string, verbose bool) error {
+	filepath := filepath.Join(outputDir, "Cargo.toml")
+
+	// Determine package name from schema or directory
+	packageName := "sdp-generated"
+	if len(schema.Structs) > 0 {
+		// Use first struct name as package hint
+		packageName = "sdp-" + toSnakeCase(schema.Structs[0].Name)
+	}
+
+	var content string
+	content += "[package]\n"
+	content += fmt.Sprintf("name = \"%s\"\n", packageName)
+	content += "version = \"0.2.0-rc1\"\n"
+	content += "edition = \"2021\"\n"
+	content += "authors = [\"Serial Data Protocol Contributors\"]\n"
+	content += "license = \"MIT\"\n"
+	content += "description = \"Generated SDP package\"\n\n"
+	
+	content += "[dependencies]\n"
+	content += "# Depend on the core sdp library\n"
+	content += "sdp = { path = \"../../../rust/sdp\" }\n\n"
+	
+	content += "[profile.release]\n"
+	content += "# Maximum performance optimizations\n"
+	content += "opt-level = 3              # Maximum optimization level\n"
+	content += "lto = \"thin\"               # Link-time optimization (thin = good balance)\n"
+	content += "codegen-units = 1          # Single codegen unit for maximum optimization\n"
+	content += "panic = 'abort'            # Smaller binary, no unwinding\n"
+	content += "strip = true               # Strip symbols from binary\n"
+	content += "overflow-checks = false    # Disable integer overflow checks in release\n"
+	content += "debug = false              # No debug info\n"
+	content += "incremental = false        # Disable incremental compilation for max optimization\n\n"
+	
+	content += "# Aggressive optimization flags for all dependencies\n"
+	content += "[profile.release.package.\"*\"]\n"
+	content += "opt-level = 3\n"
+	content += "codegen-units = 1\n"
+
+	if err := os.WriteFile(filepath, []byte(content), 0644); err != nil {
+		return err
+	}
+
+	if verbose {
+		fmt.Printf("  Generated Cargo.toml\n")
 	}
 
 	return nil
