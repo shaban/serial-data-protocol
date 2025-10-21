@@ -49,3 +49,4 @@ Thumbs.db
 /sdp-gen
 **/.build/
 rust.old/target/
+PUBLISH_GUIDE.md
