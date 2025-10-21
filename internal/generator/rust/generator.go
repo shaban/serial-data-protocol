@@ -21,7 +21,9 @@ import (
 //
 // The generated code uses the sdp crate's wire_slice module for
 // maximum performance (4x faster than trait-based encoding).
-func Generate(schema *parser.Schema, outputDir string, verbose bool) error {
+//
+// When benchMode is true, includes TCP benchmark server in example helper.
+func Generate(schema *parser.Schema, outputDir string, benchMode bool, verbose bool) error {
 	if schema == nil {
 		return fmt.Errorf("schema is nil")
 	}
@@ -74,7 +76,7 @@ func Generate(schema *parser.Schema, outputDir string, verbose bool) error {
 	}
 
 	// Generate examples/crossplatform_helper.rs
-	if err := generateExampleHelper(schema, outputDir, verbose); err != nil {
+	if err := generateExampleHelper(schema, outputDir, benchMode, verbose); err != nil {
 		return fmt.Errorf("failed to generate example: %w", err)
 	}
 
@@ -100,6 +102,7 @@ func generateCargoToml(schema *parser.Schema, outputDir string, verbose bool) er
 		// Use first struct name as package hint
 		packageName = "sdp-" + toSnakeCase(schema.Structs[0].Name)
 	}
+	serverName := toSnakeCase(schema.Structs[0].Name) + "_server"
 
 	var content string
 	content += "[package]\n"
@@ -113,6 +116,11 @@ func generateCargoToml(schema *parser.Schema, outputDir string, verbose bool) er
 	content += "[dependencies]\n"
 	content += "# Only external dependency: byteorder for endianness handling\n"
 	content += "byteorder = \"1.5\"\n\n"
+
+	content += "[features]\n"
+	content += "# Benchmark server mode (for cross-language performance testing)\n"
+	content += fmt.Sprintf("# Build with: cargo build --release --example %s --features bench-server\n", serverName)
+	content += "bench-server = []\n\n"
 
 	content += "[profile.release]\n"
 	content += "# Maximum performance optimizations\n"
@@ -136,8 +144,8 @@ func generateCargoToml(schema *parser.Schema, outputDir string, verbose bool) er
 
 	content += "# Example binary for cross-platform testing\n"
 	content += "[[example]]\n"
-	content += "name = \"crossplatform_helper\"\n"
-	content += "path = \"examples/crossplatform_helper.rs\"\n\n"
+	content += fmt.Sprintf("name = \"%s\"\n", serverName)
+	content += fmt.Sprintf("path = \"examples/%s.rs\"\n\n", serverName)
 
 	content += "# Criterion benchmark configuration\n"
 	content += "[[bench]]\n"
@@ -276,31 +284,32 @@ func generateWireRuntime(srcDir string, verbose bool) error {
 	return nil
 }
 
-// generateExampleHelper creates the crossplatform_helper.rs example
-func generateExampleHelper(schema *parser.Schema, outputDir string, verbose bool) error {
+// generateExampleHelper creates the benchmark server example
+func generateExampleHelper(schema *parser.Schema, outputDir string, benchMode bool, verbose bool) error {
 	// Create examples directory
 	examplesDir := filepath.Join(outputDir, "examples")
 	if err := os.MkdirAll(examplesDir, 0755); err != nil {
 		return fmt.Errorf("failed to create examples directory: %w", err)
 	}
 
-	// Determine package name
+	// Determine package name and server name
 	packageName := "sdp-generated"
 	if len(schema.Structs) > 0 {
 		packageName = toSnakeCase(schema.Structs[0].Name)
 	}
+	serverName := packageName + "_server"
 
-	// Generate example content
-	content := GenerateExample(schema, packageName)
+	// Generate server content
+	content := GenerateExample(schema, packageName, benchMode)
 
-	// Write example file
-	examplePath := filepath.Join(examplesDir, "crossplatform_helper.rs")
-	if err := os.WriteFile(examplePath, []byte(content), 0644); err != nil {
-		return fmt.Errorf("failed to write example: %w", err)
+	// Write server file
+	serverPath := filepath.Join(examplesDir, serverName+".rs")
+	if err := os.WriteFile(serverPath, []byte(content), 0644); err != nil {
+		return fmt.Errorf("failed to write server: %w", err)
 	}
 
 	if verbose {
-		fmt.Printf("  Generated examples/crossplatform_helper.rs\n")
+		fmt.Printf("  Generated examples/%s.rs\n", serverName)
 	}
 
 	return nil

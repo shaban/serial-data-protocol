@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/shaban/serial-data-protocol/internal/generator/c"
+	"github.com/shaban/serial-data-protocol/internal/generator/cpp"
 	"github.com/shaban/serial-data-protocol/internal/generator/golang"
 	"github.com/shaban/serial-data-protocol/internal/generator/rust"
 	"github.com/shaban/serial-data-protocol/internal/generator/swift"
@@ -24,6 +26,7 @@ func main() {
 		outputDir    = flag.String("output", "", "Output directory for generated code (required)")
 		lang         = flag.String("lang", "go", "Target language: go, c")
 		packageName  = flag.String("package", "", "Package name for generated code (Go only, defaults to output dir basename)")
+		mode         = flag.String("mode", "normal", "Generation mode: normal (production), bench (with benchmark server)")
 		validateOnly = flag.Bool("validate-only", false, "Only validate schema without generating code")
 		astJSON      = flag.Bool("ast-json", false, "Output AST as JSON instead of generating code (for other language generators)")
 		verbose      = flag.Bool("verbose", false, "Enable verbose output")
@@ -35,11 +38,14 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage: sdp-gen -schema <file> -output <dir> [options]\n\n")
 		fmt.Fprintf(os.Stderr, "Options:\n")
 		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, "\nExamples:\n")
+		fmt.Fprintf(os.Stderr, "\nGeneration Modes:\n")
+		fmt.Fprintf(os.Stderr, "  normal - Production code (default, no benchmark server)\n")
+		fmt.Fprintf(os.Stderr, "  bench  - Includes TCP benchmark server for cross-language testing\n\n")
+		fmt.Fprintf(os.Stderr, "Examples:\n")
 		fmt.Fprintf(os.Stderr, "  # Generate Go code\n")
 		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./generated -lang go\n\n")
-		fmt.Fprintf(os.Stderr, "  # Generate Rust code\n")
-		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./generated -lang rust\n\n")
+		fmt.Fprintf(os.Stderr, "  # Generate Rust code with benchmark server\n")
+		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./generated -lang rust -mode bench\n\n")
 		fmt.Fprintf(os.Stderr, "  # Generate Swift code\n")
 		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./generated -lang swift\n\n")
 		fmt.Fprintf(os.Stderr, "  # Validate schema only\n")
@@ -72,22 +78,23 @@ func main() {
 		"go":    true,
 		"rust":  true,
 		"swift": true,
-		"c":     false, // Not yet implemented
+		"c":     true,
+		"cpp":   true,
 	}
 
 	if !validLangs[*lang] {
-		fmt.Fprintf(os.Stderr, "Error: -lang must be 'go', 'rust', or 'swift' (c not yet implemented), got '%s'\n", *lang)
+		fmt.Fprintf(os.Stderr, "Error: -lang must be 'go', 'rust', 'swift', 'c', or 'cpp', got '%s'\n", *lang)
 		os.Exit(1)
 	}
 
-	// Check if C is requested (not yet implemented)
-	if *lang == "c" {
-		fmt.Fprintf(os.Stderr, "Error: C code generation not yet implemented\n")
+	// Validate mode
+	if *mode != "normal" && *mode != "bench" {
+		fmt.Fprintf(os.Stderr, "Error: -mode must be 'normal' or 'bench', got '%s'\n", *mode)
 		os.Exit(1)
 	}
 
 	// Run the generator
-	if err := run(*schemaPath, *outputDir, *lang, *packageName, *validateOnly, *astJSON, *verbose); err != nil {
+	if err := run(*schemaPath, *outputDir, *lang, *packageName, *mode, *validateOnly, *astJSON, *verbose); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
@@ -95,7 +102,7 @@ func main() {
 	os.Exit(0)
 }
 
-func run(schemaPath, outputDir, lang, packageName string, validateOnly, astJSON, verbose bool) error {
+func run(schemaPath, outputDir, lang, packageName, mode string, validateOnly, astJSON, verbose bool) error {
 	// Step 1: Load schema
 	if verbose {
 		fmt.Printf("Loading schema from: %s\n", schemaPath)
@@ -185,20 +192,36 @@ func run(schemaPath, outputDir, lang, packageName string, validateOnly, astJSON,
 
 	case "rust":
 		// Rust generator writes files directly
-		err = rust.Generate(schema, outputDir, verbose)
+		benchMode := (mode == "bench")
+		err = rust.Generate(schema, outputDir, benchMode, verbose)
 		if err != nil {
 			return fmt.Errorf("failed to generate Rust code: %w", err)
 		}
 
 	case "swift":
 		// Swift generator writes files directly
-		err = swift.Generate(schema, outputDir, verbose)
+		benchMode := (mode == "bench")
+		err = swift.Generate(schema, outputDir, benchMode, verbose)
 		if err != nil {
 			return fmt.Errorf("failed to generate Swift code: %w", err)
 		}
 
 	case "c":
-		return fmt.Errorf("C code generation not yet implemented")
+		// C generator writes files directly
+		benchMode := (mode == "bench")
+		err = c.Generate(schema, outputDir, benchMode, verbose)
+		if err != nil {
+			return fmt.Errorf("failed to generate C code: %w", err)
+		}
+
+	case "cpp":
+		// C++ generator writes files directly
+		benchMode := (mode == "bench")
+		err = cpp.Generate(schema, outputDir, benchMode, verbose)
+		if err != nil {
+			return fmt.Errorf("failed to generate C++ code: %w", err)
+		}
+
 	default:
 		return fmt.Errorf("unsupported language: %s", lang)
 	}

@@ -1,0 +1,7 @@
+module SDPAudioUnit {
+    header "../../testdata/audiounit_cpp/types.hpp"
+    header "../../testdata/audiounit_cpp/encode.hpp"
+    header "../../testdata/audiounit_cpp/decode.hpp"
+    requires cplusplus
+    export *
+}

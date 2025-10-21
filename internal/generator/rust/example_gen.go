@@ -8,20 +8,21 @@ import (
 )
 
 // GenerateExample generates a crossplatform_helper.rs example that can be used
-// for testing cross-language compatibility
-func GenerateExample(schema *parser.Schema, packageName string) string {
+// for testing cross-language compatibility.
+// When benchMode is true, includes TCP benchmark server code.
+func GenerateExample(schema *parser.Schema, packageName string, benchMode bool) string {
 	var b strings.Builder
 
 	b.WriteString("//! Cross-platform test helper for " + packageName + "\n")
 	b.WriteString("//! Usage:\n")
-	
+
 	// Generate usage examples for each struct
 	for _, st := range schema.Structs {
 		structName := toSnakeCase(st.Name)
 		b.WriteString(fmt.Sprintf("//!   cargo run --release --example crossplatform_helper encode-%s > output.bin\n", structName))
 		b.WriteString(fmt.Sprintf("//!   cargo run --release --example crossplatform_helper decode-%s input.bin\n", structName))
 	}
-	
+
 	b.WriteString("\n")
 	b.WriteString("use std::env;\n")
 	b.WriteString("use std::fs;\n")
@@ -35,16 +36,140 @@ func GenerateExample(schema *parser.Schema, packageName string) string {
 	b.WriteString("type StdResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;\n")
 	b.WriteString("\n")
 
+	// Generate benchmark server code (only in bench mode)
+	if benchMode {
+		generateBenchmarkServer(&b, schema)
+		b.WriteString("\n")
+	}
+
 	// Generate encode/decode functions for each struct
 	for _, st := range schema.Structs {
 		generateEncodeFunction(&b, &st)
 		b.WriteString("\n")
 		generateDecodeFunction(&b, &st)
 		b.WriteString("\n")
-	}	// Generate main function
-	generateMainFunction(&b, schema)
+	} // Generate main function
+	generateMainFunction(&b, schema, benchMode)
 
 	return b.String()
+}
+
+// generateBenchmarkServer generates a TCP server for benchmarking
+func generateBenchmarkServer(b *strings.Builder, schema *parser.Schema) {
+	b.WriteString("use std::io::{BufRead, BufReader};\n")
+	b.WriteString("use std::net::{TcpListener, TcpStream};\n")
+	b.WriteString("use std::time::Instant;\n")
+	b.WriteString("\n")
+	b.WriteString("fn run_benchmark_server() -> StdResult<()> {\n")
+	b.WriteString("    let listener = TcpListener::bind(\"127.0.0.1:0\")?;\n")
+	b.WriteString("    let port = listener.local_addr()?.port();\n")
+	b.WriteString("    println!(\"BENCHPORT {}\", port);\n")
+	b.WriteString("    io::stdout().flush()?;\n")
+	b.WriteString("    \n")
+	b.WriteString("    for stream in listener.incoming() {\n")
+	b.WriteString("        match stream {\n")
+	b.WriteString("            Ok(stream) => handle_connection(stream)?,\n")
+	b.WriteString("            Err(e) => eprintln!(\"Connection error: {}\", e),\n")
+	b.WriteString("        }\n")
+	b.WriteString("    }\n")
+	b.WriteString("    Ok(())\n")
+	b.WriteString("}\n")
+	b.WriteString("\n")
+	b.WriteString("fn handle_connection(stream: TcpStream) -> StdResult<()> {\n")
+	b.WriteString("    let mut reader = BufReader::new(stream.try_clone()?);\n")
+	b.WriteString("    let mut writer = stream;\n")
+	b.WriteString("    \n")
+	b.WriteString("    loop {\n")
+	b.WriteString("        let mut command = String::new();\n")
+	b.WriteString("        let bytes_read = reader.read_line(&mut command)?;\n")
+	b.WriteString("        if bytes_read == 0 {\n")
+	b.WriteString("            break;\n")
+	b.WriteString("        }\n")
+	b.WriteString("        \n")
+	b.WriteString("        let response = process_command(&command.trim());\n")
+	b.WriteString("        writer.write_all(response.as_bytes())?;\n")
+	b.WriteString("        writer.flush()?;\n")
+	b.WriteString("    }\n")
+	b.WriteString("    Ok(())\n")
+	b.WriteString("}\n")
+	b.WriteString("\n")
+	b.WriteString("fn process_command(command: &str) -> String {\n")
+	b.WriteString("    let parts: Vec<&str> = command.split_whitespace().collect();\n")
+	b.WriteString("    if parts.is_empty() {\n")
+	b.WriteString("        return \"ERROR\\n\".to_string();\n")
+	b.WriteString("    }\n")
+	b.WriteString("    \n")
+	b.WriteString("    match parts[0] {\n")
+	b.WriteString("        \"WARMUP\" => {\n")
+	b.WriteString("            let start = Instant::now();\n")
+	b.WriteString("            let mut count = 0;\n")
+	b.WriteString("            while start.elapsed().as_secs_f64() < 0.2 {\n")
+
+	// Generate warmup encoding for first struct
+	if len(schema.Structs) > 0 {
+		firstStruct := schema.Structs[0].Name
+		funcName := toSnakeCase(firstStruct)
+		b.WriteString(fmt.Sprintf("                let data = create_test_%s();\n", funcName))
+		b.WriteString("                let mut buf = vec![0u8; data.encoded_size()];\n")
+		b.WriteString("                let _ = data.encode_to_slice(&mut buf);\n")
+	}
+
+	b.WriteString("                count += 1;\n")
+	b.WriteString("            }\n")
+	b.WriteString("            \"OK\\n\".to_string()\n")
+	b.WriteString("        }\n")
+
+	// Generate BENCH_ENCODE and BENCH_DECODE for each struct
+	for _, st := range schema.Structs {
+		structName := st.Name
+		funcName := toSnakeCase(st.Name)
+		upperName := strings.ToUpper(toSnakeCase(st.Name))
+
+		b.WriteString(fmt.Sprintf("        \"BENCH_ENCODE_%s\" => {\n", upperName))
+		b.WriteString("            if parts.len() < 2 {\n")
+		b.WriteString("                return \"ERROR\\n\".to_string();\n")
+		b.WriteString("            }\n")
+		b.WriteString("            let iterations: u64 = parts[1].parse().unwrap_or(0);\n")
+		b.WriteString(fmt.Sprintf("            let data = create_test_%s();\n", funcName))
+		b.WriteString("            let mut buf = vec![0u8; data.encoded_size()];\n")
+		b.WriteString("            for _ in 0..iterations {\n")
+		b.WriteString("                let _ = data.encode_to_slice(&mut buf);\n")
+		b.WriteString("            }\n")
+		b.WriteString("            \"OK\\n\".to_string()\n")
+		b.WriteString("        }\n")
+		b.WriteString(fmt.Sprintf("        \"BENCH_DECODE_%s\" => {\n", upperName))
+		b.WriteString("            if parts.len() < 2 {\n")
+		b.WriteString("                return \"ERROR\\n\".to_string();\n")
+		b.WriteString("            }\n")
+		b.WriteString("            let iterations: u64 = parts[1].parse().unwrap_or(0);\n")
+		b.WriteString(fmt.Sprintf("            let data = create_test_%s();\n", funcName))
+		b.WriteString("            let mut buf = vec![0u8; data.encoded_size()];\n")
+		b.WriteString("            data.encode_to_slice(&mut buf).unwrap();\n")
+		b.WriteString("            for _ in 0..iterations {\n")
+		b.WriteString(fmt.Sprintf("                let _ = %s::decode_from_slice(&buf);\n", structName))
+		b.WriteString("            }\n")
+		b.WriteString("            \"OK\\n\".to_string()\n")
+		b.WriteString("        }\n")
+	}
+
+	b.WriteString("        _ => \"ERROR\\n\".to_string(),\n")
+	b.WriteString("    }\n")
+	b.WriteString("}\n")
+	b.WriteString("\n")
+
+	// Generate helper functions to create test data
+	for _, st := range schema.Structs {
+		funcName := fmt.Sprintf("create_test_%s", toSnakeCase(st.Name))
+		b.WriteString(fmt.Sprintf("fn %s() -> %s {\n", funcName, st.Name))
+		b.WriteString(fmt.Sprintf("    %s {\n", st.Name))
+		for _, field := range st.Fields {
+			fieldName := toSnakeCase(field.Name)
+			b.WriteString(fmt.Sprintf("        %s: %s,\n", fieldName, generateTestValue(&field)))
+		}
+		b.WriteString("    }\n")
+		b.WriteString("}\n")
+		b.WriteString("\n")
+	}
 }
 
 func generateEncodeFunction(b *strings.Builder, st *parser.Struct) {
@@ -102,10 +227,18 @@ func generateDecodeFunction(b *strings.Builder, st *parser.Struct) {
 	b.WriteString("}\n")
 }
 
-func generateMainFunction(b *strings.Builder, schema *parser.Schema) {
+func generateMainFunction(b *strings.Builder, schema *parser.Schema, benchMode bool) {
 	b.WriteString("fn main() -> StdResult<()> {\n")
 	b.WriteString("    let args: Vec<String> = env::args().collect();\n")
 	b.WriteString("\n")
+
+	if benchMode {
+		b.WriteString("    if args.len() >= 2 && args[1] == \"--bench-server\" {\n")
+		b.WriteString("        return run_benchmark_server();\n")
+		b.WriteString("    }\n")
+		b.WriteString("\n")
+	}
+
 	b.WriteString("    if args.len() < 2 {\n")
 	b.WriteString("        eprintln!(\"Usage: {} <command> [args]\", args[0]);\n")
 	b.WriteString("        eprintln!(\"Commands:\");\n")

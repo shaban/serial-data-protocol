@@ -587,13 +587,13 @@ func encodeWithOptionalCompression(p *plugin.Plugin, size int) []byte {
 sdp-gen -schema plugin.sdp -output ./go/plugin -lang go
 
 # Generate C code (when available)
-sdp-gen -schema plugin.sdp -output ./c/plugin -lang c
+sdp-gen -schema plugin.sdp -output ./cpp/plugin -lang cpp
 ```
 
 ### Wire format is language-agnostic
 
-- C encoder → bytes → Go decoder ✅
-- Go encoder → bytes → C decoder ✅
+- C++ encoder → bytes → Go decoder ✅
+- Go encoder → bytes → C++ decoder ✅
 - Both sides must use **identical schema version**
 
 ---

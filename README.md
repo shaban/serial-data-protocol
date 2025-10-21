@@ -13,7 +13,7 @@ SDP generates efficient encoders and decoders from a schema definition. It produ
 **Design priorities:**
 1. Predictable performance (no dynamic allocation during encode/decode)
 2. Simple wire format (fixed-width integers, no varint encoding)
-3. Cross-language support (Go ✅, Rust ✅, C planned)
+3. Cross-language support (Go ✅, Rust ✅, C ✅ PRODUCTION READY)
 4. Zero runtime dependencies in generated code
 
 **Not priorities:**
@@ -51,7 +51,12 @@ Small message overhead (primitives):
 - Message mode: 61 bytes, 85 ns roundtrip (+19% size, +93% time)
 - Optional absent: 3.15 ns decode (10× faster than present)
 
-See [benchmarks/](benchmarks/) for detailed cross-protocol comparison and methodology.
+**C++ implementation performance** (fastest):
+- **Encode:** 8.6 ns primitives, 49.7 ns complex (2.6-3× faster than Go)
+- **Decode (zero-copy):** 3.37 ns (7.7× faster than Go, 2.8× faster than encode)
+- Wire format structs and bulk memcpy optimizations for maximum performance
+
+See [benchmarks/](benchmarks/) for detailed cross-protocol comparison and [CPP_IMPLEMENTATION.md](CPP_IMPLEMENTATION.md) for C++-specific details.
 
 ---
 
