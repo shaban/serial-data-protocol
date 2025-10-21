@@ -1,42 +1,101 @@
 # Testing Strategy
 
-**Version:** 1.0.0  
-**Date:** October 18, 2025
+**Version:** 2.0.0  
+**Date:** October 21, 2025
 
 ## 1. Overview
 
-This document defines the comprehensive testing strategy for the Serial Data Protocol implementation, with emphasis on avoiding CGO in test files.
+This document defines the comprehensive testing strategy for the Serial Data Protocol implementation, with emphasis on avoiding CGO in test files and unified test orchestration via Make.
 
-## 2. Testing Principles
+## 2. Quick Start
 
-### 2.1 Core Principles
+### 2.1 Running Tests
+
+**Use the unified Make-based test orchestration:**
+
+```bash
+# Run all tests (Go, C++, Rust)
+make test
+
+# Run specific language tests
+make test-go      # Go tests only (fast, 415+ tests)
+make test-cpp     # C++ tests only
+make test-rust    # Rust tests only
+make test-swift   # Points to macos_testing/
+
+# Run benchmarks
+make benchmark
+
+# Clean all generated code
+make clean
+
+# Show all available targets
+make help
+```
+
+### 2.2 Test Organization
+
+```
+tests/                   → Shell scripts for orchestration
+  test_go.sh            → Wraps 'go test ./...' with formatting
+  test_cpp.sh           → Finds and runs C++ tests in testdata/cpp/
+  test_rust.sh          → Finds and runs Rust tests in testdata/rust/
+  test_swift.sh         → Points to macos_testing/ directory
+
+Makefile                → Root orchestration (calls test scripts)
+
+testdata/
+  schemas/*.sdp         → Canonical schema files
+  data/*.json           → Benchmark input data
+  binaries/*.sdpb       → Reference wire format files
+  go/*/                 → Generated Go test packages
+  cpp/*/                → Generated C++ test packages
+  rust/*/               → Generated Rust test packages
+  swift/*/              → Generated Swift packages
+```
+
+**Key principle:** Go tests (`go test ./...`) test **only Go scope** (parser, validator, Go code generation, wire format). Cross-language testing is handled by shell scripts, not Go test files.
+
+## 3. Testing Principles
+
+### 3.1 Core Principles
 
 - **No CGO in `_test.go` files** - Use wire format testing, subprocess communication
 - **Wire format is source of truth** - Test at protocol level, not implementation
 - **Clean slate testing** - Regenerate test packages on every test run
 - **Comprehensive validation** - Test happy paths, edge cases, and error conditions
+- **Language scope separation** - Go tests don't test C++/Rust/Swift directly
 
-### 2.2 Test Levels
+### 3.2 Test Levels
 
 ```
+Level 0: Make Orchestration (root Makefile + tests/*.sh)
+  ↓ Unified entry point for all languages
+  ↓ Consistent output formatting
+  ↓ Parallelizable by language
+
 Level 1: Unit Tests (internal/)
   ↓ Parser, templates, wire format helpers
   ↓ No generated code needed
+  ↓ Run via: go test ./internal/...
   
 Level 2: Generator Tests
   ↓ Run generator on test schemas
   ↓ Validate generated code structure
+  ↓ Run via: go test ./internal/generator/...
   
 Level 3: Integration Tests (testdata/)
   ↓ Use generated packages
   ↓ Wire format fixtures
+  ↓ Run via: go test . (integration_test.go)
   
 Level 4: Cross-Language Tests
-  ↓ Subprocess encoders (C/Rust/Swift)
-  ↓ No CGO in test code
+  ↓ C++/Rust/Swift tests in testdata/{cpp,rust,swift}/
+  ↓ Run via: tests/test_{cpp,rust,swift}.sh
+  ↓ Each language has its own build system (Makefile, Cargo.toml, Package.swift)
 ```
 
-## 3. Test Infrastructure
+## 4. Test Infrastructure
 
 ### 3.1 TestMain Setup
 
@@ -171,9 +230,9 @@ testdata/encoders/rust_encoder
 testdata/encoders/swift_encoder
 ```
 
-## 4. Unit Tests (Level 1)
+## 11. Unit Tests (Level 1)
 
-### 4.1 Schema Parser Tests
+### 5.1 Schema Parser Tests
 
 **Test:** `internal/parser/parser_test.go`
 
@@ -232,7 +291,7 @@ func TestRejectInvalidSyntax(t *testing.T) {
 }
 ```
 
-### 4.2 Validator Tests
+### 5.2 Validator Tests
 
 **Test:** `internal/validator/validator_test.go`
 
@@ -290,7 +349,7 @@ func TestValidateUnknownType(t *testing.T) {
 }
 ```
 
-### 4.3 Wire Format Tests
+### 5.3 Wire Format Tests
 
 **Test:** `internal/wire/wire_test.go`
 
@@ -327,7 +386,7 @@ func TestEncodeEmptyArray(t *testing.T) {
 }
 ```
 
-## 5. Generator Tests (Level 2)
+## 11. Generator Tests (Level 2)
 
 **CRITICAL TESTING COMMITMENT:**
 
@@ -447,7 +506,7 @@ func TestNoRuntimeDependency(t *testing.T) {
 }
 ```
 
-## 6. Integration Tests (Level 3)
+## 11. Integration Tests (Level 3)
 
 ### 6.1 Decode Tests
 
@@ -564,7 +623,7 @@ func TestRoundtripViaFile(t *testing.T) {
 }
 ```
 
-## 7. Cross-Language Tests (Level 4)
+## 11. Cross-Language Tests (Level 4)
 
 ### 7.1 C Encoder Tests
 
@@ -657,7 +716,7 @@ fn main() {
 
 **Go Test:** Similar to C encoder test.
 
-## 8. Fuzzing
+## 11. Fuzzing
 
 ### 8.1 Fuzz Decoder
 
@@ -676,7 +735,7 @@ func FuzzDecode(f *testing.F) {
 }
 ```
 
-## 9. Benchmarks
+## 11. Benchmarks
 
 ### 9.1 Decode Performance
 
@@ -702,7 +761,7 @@ func BenchmarkDecodeNested(b *testing.B) {
 }
 ```
 
-## 10. Test Execution
+## 11. Test Execution
 
 ### 10.1 Running Tests
 
