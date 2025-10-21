@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"os"
 
-	arrays "github.com/shaban/serial-data-protocol/testdata/arrays/go"
-	audiounit "github.com/shaban/serial-data-protocol/testdata/audiounit/go"
-	nested "github.com/shaban/serial-data-protocol/testdata/nested/go"
-	optional "github.com/shaban/serial-data-protocol/testdata/optional/go"
-	primitives "github.com/shaban/serial-data-protocol/testdata/primitives/go"
+	arrays "github.com/shaban/serial-data-protocol/testdata/go/arrays"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/go/audiounit"
+	nested "github.com/shaban/serial-data-protocol/testdata/go/nested"
+	optional "github.com/shaban/serial-data-protocol/testdata/go/optional"
+	primitives "github.com/shaban/serial-data-protocol/testdata/go/primitives"
 )
 
 func main() {
