@@ -6,13 +6,13 @@ import (
 	"os"
 	"testing"
 
-	audiounit "github.com/shaban/serial-data-protocol/testdata/audiounit/go"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/go/audiounit"
 )
 
 // TestBinarySizeComparison measures the binary size of our real-world data
 func TestBinarySizeComparison(t *testing.T) {
 	// Load the plugins.json test data
-	data, err := os.ReadFile("testdata/plugins.json")
+	data, err := os.ReadFile("testdata/data/plugins.json")
 	if err != nil {
 		t.Fatalf("Failed to read test data: %v", err)
 	}

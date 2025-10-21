@@ -16,12 +16,12 @@ import (
 	"testing"
 	"time"
 
-	arrays "github.com/shaban/serial-data-protocol/testdata/arrays/go"
-	audiounit "github.com/shaban/serial-data-protocol/testdata/audiounit/go"
-	complex "github.com/shaban/serial-data-protocol/testdata/complex/go"
-	nested "github.com/shaban/serial-data-protocol/testdata/nested/go"
-	optional "github.com/shaban/serial-data-protocol/testdata/optional/go"
-	primitives "github.com/shaban/serial-data-protocol/testdata/primitives/go"
+	arrays "github.com/shaban/serial-data-protocol/testdata/go/arrays"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/go/audiounit"
+	complex "github.com/shaban/serial-data-protocol/testdata/go/complex"
+	nested "github.com/shaban/serial-data-protocol/testdata/go/nested"
+	optional "github.com/shaban/serial-data-protocol/testdata/go/optional"
+	primitives "github.com/shaban/serial-data-protocol/testdata/go/primitives"
 )
 
 var (
@@ -161,8 +161,8 @@ func regeneratePackages(langs []string) error {
 		fmt.Printf("  %s:\n", schema)
 
 		for _, lang := range langs {
-			outputDir := filepath.Join("testdata", schema, lang)
-			schemaFile := filepath.Join("testdata", fmt.Sprintf("%s.sdp", schema))
+			outputDir := filepath.Join("testdata", lang, schema)
+			schemaFile := filepath.Join("testdata", "schemas", fmt.Sprintf("%s.sdp", schema))
 
 			// Check if regeneration is needed
 			needsRegen, err := needsRegeneration(schemaFile, outputDir)
@@ -298,10 +298,10 @@ func buildPackage(lang, outputDir string) error {
 // Test that generator successfully creates packages
 func TestGeneratorCreatesPackages(t *testing.T) {
 	packages := []string{
-		"testdata/primitives/go",
-		"testdata/nested/go",
-		"testdata/arrays/go",
-		"testdata/complex/go",
+		"testdata/go/primitives",
+		"testdata/go/nested",
+		"testdata/go/arrays",
+		"testdata/go/complex",
 	}
 
 	for _, pkg := range packages {
@@ -1970,7 +1970,7 @@ func BenchmarkAllAtOnceConstruction(b *testing.B) {
 //   - FlatBuffers: 1,000 µs (1.0 ms) roundtrip
 func BenchmarkRealWorldAudioUnit(b *testing.B) {
 	// Load real AudioUnit plugin data from JSON
-	jsonData, err := os.ReadFile("testdata/plugins.json")
+	jsonData, err := os.ReadFile("testdata/data/plugins.json")
 	if err != nil {
 		b.Skipf("plugins.json not found, skipping real-world benchmark: %v", err)
 		return
@@ -2069,7 +2069,7 @@ func BenchmarkRealWorldAudioUnit(b *testing.B) {
 
 // BenchmarkRealWorldAudioUnitEncodeOnly measures just encoding performance
 func BenchmarkRealWorldAudioUnitEncodeOnly(b *testing.B) {
-	jsonData, err := os.ReadFile("testdata/plugins.json")
+	jsonData, err := os.ReadFile("testdata/data/plugins.json")
 	if err != nil {
 		b.Skipf("plugins.json not found: %v", err)
 		return
@@ -2147,7 +2147,7 @@ func BenchmarkRealWorldAudioUnitEncodeOnly(b *testing.B) {
 
 // BenchmarkRealWorldAudioUnitDecodeOnly measures just decoding performance
 func BenchmarkRealWorldAudioUnitDecodeOnly(b *testing.B) {
-	jsonData, err := os.ReadFile("testdata/plugins.json")
+	jsonData, err := os.ReadFile("testdata/data/plugins.json")
 	if err != nil {
 		b.Skipf("plugins.json not found: %v", err)
 		return

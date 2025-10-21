@@ -1,9 +1,9 @@
 package primitives
 
 import (
-	"io"
 	"encoding/binary"
 	"math"
+	"io"
 )
 
 // Size limit constants for decode validation
