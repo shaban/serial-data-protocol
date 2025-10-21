@@ -1,7 +1,7 @@
 # SDP - Serial Data Protocol
 # Unified test orchestration
 
-.PHONY: help test test-go test-cpp test-rust test-swift benchmark clean
+.PHONY: help test test-go test-cpp test-rust test-swift test-wire benchmark clean
 
 # Default target
 help:
@@ -14,12 +14,14 @@ help:
 	@echo "  make test-cpp      - Run C++ tests only"
 	@echo "  make test-rust     - Run Rust tests only"
 	@echo "  make test-swift    - Run Swift tests only"
+	@echo "  make test-wire     - Verify cross-language wire format compatibility"
 	@echo "  make benchmark     - Run benchmark suite"
 	@echo "  make clean         - Clean generated code and test artifacts"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make test          # Run full test suite"
 	@echo "  make test-go       # Quick Go-only test"
+	@echo "  make test-wire     # Verify wire format compatibility"
 
 # Run all tests
 test: test-go test-cpp test-rust
@@ -42,10 +44,13 @@ test-rust:
 test-swift:
 	@./tests/test_swift.sh
 
+# Verify cross-language wire format compatibility
+test-wire:
+	@./tests/verify_wire_format.sh
+
 # Run benchmarks
 benchmark:
-	@echo "Running benchmark suite..."
-	@cd benchmarks && $(MAKE) bench
+	@./tests/run_benchmarks.sh all
 
 # Clean generated code and artifacts
 clean:
