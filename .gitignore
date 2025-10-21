@@ -24,6 +24,7 @@ go.work
 /cmd/sdp-gen/sdp-gen
 /build/
 /rust/target/
+testdata/rust/*/target/
 **/.build/
 
 # IDE
