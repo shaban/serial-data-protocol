@@ -1,0 +1,18 @@
+// user.sdp
+// Example schema for Objective-C++ demonstration
+
+struct User {
+    id: u32,
+    username: string,
+    email: string,
+    age: u8,
+    is_active: bool,
+    tags: []string,
+    metadata: ?UserMetadata,
+}
+
+struct UserMetadata {
+    created_at: u64,
+    updated_at: u64,
+    login_count: u32,
+}
