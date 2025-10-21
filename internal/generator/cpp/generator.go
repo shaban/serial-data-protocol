@@ -10,7 +10,7 @@ import (
 )
 
 // Generate creates all C++ files for a schema
-func Generate(schema *parser.Schema, outputDir string, benchMode bool, verbose bool) error {
+func Generate(schema *parser.Schema, outputDir string, verbose bool) error {
 	if schema == nil {
 		return fmt.Errorf("schema is nil")
 	}

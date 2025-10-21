@@ -21,9 +21,7 @@ import (
 //
 // The generated code uses the sdp crate's wire_slice module for
 // maximum performance (4x faster than trait-based encoding).
-//
-// When benchMode is true, includes TCP benchmark server in example helper.
-func Generate(schema *parser.Schema, outputDir string, benchMode bool, verbose bool) error {
+func Generate(schema *parser.Schema, outputDir string, verbose bool) error {
 	if schema == nil {
 		return fmt.Errorf("schema is nil")
 	}
@@ -75,15 +73,8 @@ func Generate(schema *parser.Schema, outputDir string, benchMode bool, verbose b
 		return fmt.Errorf("failed to generate wire runtime: %w", err)
 	}
 
-	// Generate examples/crossplatform_helper.rs
-	if err := generateExampleHelper(schema, outputDir, benchMode, verbose); err != nil {
-		return fmt.Errorf("failed to generate example: %w", err)
-	}
-
-	// Generate benches/ with Criterion benchmarks
-	if err := generateBenchmarkHelper(schema, outputDir, verbose); err != nil {
-		return fmt.Errorf("failed to generate benchmarks: %w", err)
-	}
+	// Note: No example/benchmark server generation - benchmarking is external
+	// Use shell scripts + Make targets for cross-language testing instead
 
 	if verbose {
 		fmt.Println("Rust code generation complete")

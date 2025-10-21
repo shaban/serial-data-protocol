@@ -11,7 +11,7 @@ import (
 
 // Generate generates Swift package with C++ backend from a schema
 // This generates C++ implementation files plus Swift package wrappers (Package.swift + module.modulemap)
-func Generate(schema *parser.Schema, outputDir string, benchMode bool, verbose bool) error {
+func Generate(schema *parser.Schema, outputDir string, verbose bool) error {
 	if schema == nil {
 		return fmt.Errorf("schema is nil")
 	}
@@ -54,7 +54,7 @@ func Generate(schema *parser.Schema, outputDir string, benchMode bool, verbose b
 	}
 
 	// Generate C++ files to package directory (so it uses correct package name)
-	if err := cpp.Generate(schema, packageDir, benchMode, verbose); err != nil {
+	if err := cpp.Generate(schema, packageDir, verbose); err != nil {
 		return fmt.Errorf("failed to generate C++ code: %w", err)
 	}
 
@@ -86,12 +86,8 @@ func Generate(schema *parser.Schema, outputDir string, benchMode bool, verbose b
 		return fmt.Errorf("failed to generate Package.swift: %w", err)
 	}
 
-	// Step 4: Generate examples/crossplatform_helper (only in bench mode)
-	if benchMode {
-		if err := generateExampleHelper(schema, outputDir, packageName, benchMode, verbose); err != nil {
-			return fmt.Errorf("failed to generate example: %w", err)
-		}
-	}
+	// Note: No example/benchmark server generation - benchmarking is external
+	// Use shell scripts + Make targets for cross-language testing instead
 
 	if verbose {
 		fmt.Println("Swift package generation completed successfully")
