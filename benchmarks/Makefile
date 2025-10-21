@@ -1,65 +1,61 @@
-.PHONY: all install-tools generate-pb generate-fb generate test bench clean
+.PHONY: all bench bench-go bench-c bench-cpp build-c build-cpp clean help
 
-all: generate
+all: bench
 
-# Install required code generation tools
-install-tools:
-	@echo "Installing Protocol Buffers compiler..."
-	@which protoc || (echo "Please install protoc: brew install protobuf" && exit 1)
-	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-	@echo "Installing FlatBuffers compiler..."
-	@which flatc || (echo "Please install flatc: brew install flatbuffers" && exit 1)
+# Build C benchmark
+build-c:
+	@echo "Building C benchmark..."
+	gcc -std=c99 -O3 -march=native -flto -Wall -Wextra \
+		standalone/bench_c.c \
+		../testdata/audiounit_c/encode.c \
+		../testdata/audiounit_c/decode.c \
+		-I../testdata/audiounit_c \
+		-o standalone/bench_c
 
-# Generate Protocol Buffers code
-generate-pb: install-tools
-	@echo "Generating Protocol Buffers code..."
-	@mkdir -p pb
-	protoc --go_out=pb --go_opt=paths=source_relative audiounit.proto
+# Build C++ benchmark
+build-cpp:
+	@echo "Building C++ benchmark..."
+	g++ -std=c++17 -O3 -march=native -flto -Wall -Wextra \
+		standalone/bench_cpp.cpp \
+		../testdata/audiounit_cpp/encode.cpp \
+		../testdata/audiounit_cpp/decode.cpp \
+		-I../testdata/audiounit_cpp \
+		-o standalone/bench_cpp
 
-# Generate FlatBuffers code
-generate-fb: install-tools
-	@echo "Generating FlatBuffers code..."
-	@mkdir -p fb
-	flatc --go --gen-onefile --go-namespace fb -o fb audiounit.fbs
+# Run Go benchmarks
+bench-go:
+	@echo "=== Go SDP AudioUnit Benchmarks ==="
+	@go test -bench=BenchmarkGo -run=^$$ -benchtime=1s
 
-# Generate all schemas
-generate: generate-pb generate-fb
-	@echo "All schemas generated successfully"
+# Run C benchmarks
+bench-c: build-c
+	@echo "\n=== C SDP AudioUnit Benchmarks ==="
+	@./standalone/bench_c 10000
 
-# Run tests
-test:
-	go test -v
+# Run C++ benchmarks
+bench-cpp: build-cpp
+	@echo "\n=== C++ SDP AudioUnit Benchmarks ==="
+	@./standalone/bench_cpp 10000
 
-# Run benchmarks
-bench:
-	go test -bench=. -benchmem -benchtime=5s
-
-# Run comprehensive comparison (5 iterations, 5s each for statistical confidence)
-bench-compare:
-	go test -bench=. -benchmem -benchtime=5s -count=5 2>&1 | tee results.txt
-
-# Run memory profiling benchmarks
-bench-memory:
-	go test -bench=BenchmarkMemory -benchmem -benchtime=3s
-
-# Run peak heap usage tests
-test-heap:
-	go test -run=TestPeakHeapUsage -v
-
-.PHONY: install-tools generate-pb generate-fb generate bench bench-compare bench-memory test-heap
+# Run all benchmarks
+bench: bench-go bench-c bench-cpp
+	@echo "\n=== Benchmark Summary ==="
+	@echo "All benchmarks completed successfully"
 
 # Clean generated files
 clean:
-	rm -rf pb/ fb/ results.txt
+	rm -f standalone/bench_c standalone/bench_cpp
 
 # Help
 help:
 	@echo "Available targets:"
-	@echo "  install-tools    - Install protoc and flatc code generators"
-	@echo "  generate-pb      - Generate Protocol Buffers code"
-	@echo "  generate-fb      - Generate FlatBuffers code"
-	@echo "  generate         - Generate all schemas"
-	@echo "  test             - Run tests"
-	@echo "  bench            - Run benchmarks (5s each)"
-	@echo "  bench-compare    - Run comparative benchmarks (10 iterations)"
-	@echo "  clean            - Remove generated files"
+	@echo "  bench         - Run all language benchmarks (Go, C, C++)"
+	@echo "  bench-go      - Run Go benchmarks only"
+	@echo "  bench-c       - Build and run C benchmarks"
+	@echo "  bench-cpp     - Build and run C++ benchmarks"
+	@echo "  build-c       - Build C benchmark executable"
+	@echo "  build-cpp     - Build C++ benchmark executable"
+	@echo "  clean         - Remove compiled binaries"
+	@echo ""
+	@echo "All benchmarks use ../testdata/audiounit.sdpb (110KB, 62 plugins, 1,759 params)"
+

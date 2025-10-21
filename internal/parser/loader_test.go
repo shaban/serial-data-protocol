@@ -27,7 +27,7 @@ func TestLoadSchemaFile_Valid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			path := filepath.Join("..", "..", "testdata", tt.file)
+			path := filepath.Join("..", "..", "testdata", "schemas", tt.file)
 			schema, err := LoadSchemaFile(path)
 			if err != nil {
 				t.Fatalf("LoadSchemaFile() error = %v", err)
@@ -112,7 +112,7 @@ func TestLoadSchemaFile_CRLF(t *testing.T) {
 }
 
 func TestLoadSchemaFile_PreservesDocComments(t *testing.T) {
-	path := filepath.Join("..", "..", "testdata", "valid_basic.sdp")
+	path := filepath.Join("..", "..", "testdata", "schemas", "valid_basic.sdp")
 	schema, err := LoadSchemaFile(path)
 	if err != nil {
 		t.Fatalf("LoadSchemaFile() error = %v", err)

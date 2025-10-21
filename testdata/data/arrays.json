@@ -1,0 +1,61 @@
+{
+  "primitives": [
+    {
+      "u8_array": [1, 2, 3, 4, 5],
+      "u32_array": [100, 200, 300, 400, 500],
+      "f64_array": [1.1, 2.2, 3.3, 4.4, 5.5],
+      "str_array": ["apple", "banana", "cherry", "date", "elderberry"],
+      "bool_array": [true, false, true, false, true]
+    },
+    {
+      "u8_array": [10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+      "u32_array": [1000, 2000, 3000, 4000, 5000],
+      "f64_array": [10.1, 20.2, 30.3, 40.4, 50.5, 60.6, 70.7, 80.8, 90.9],
+      "str_array": ["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta"],
+      "bool_array": [false, false, false, true, true, true]
+    },
+    {
+      "u8_array": [],
+      "u32_array": [],
+      "f64_array": [],
+      "str_array": [],
+      "bool_array": []
+    },
+    {
+      "u8_array": [255],
+      "u32_array": [4294967295],
+      "f64_array": [3.141592653589793],
+      "str_array": ["single"],
+      "bool_array": [true]
+    }
+  ],
+  "structs": [
+    {
+      "items": [
+        {"id": 1, "name": "Item One"},
+        {"id": 2, "name": "Item Two"},
+        {"id": 3, "name": "Item Three"}
+      ],
+      "count": 3
+    },
+    {
+      "items": [
+        {"id": 100, "name": "Product A"},
+        {"id": 101, "name": "Product B"},
+        {"id": 102, "name": "Product C"},
+        {"id": 103, "name": "Product D"},
+        {"id": 104, "name": "Product E"},
+        {"id": 105, "name": "Product F"},
+        {"id": 106, "name": "Product G"},
+        {"id": 107, "name": "Product H"},
+        {"id": 108, "name": "Product I"},
+        {"id": 109, "name": "Product J"}
+      ],
+      "count": 10
+    },
+    {
+      "items": [],
+      "count": 0
+    }
+  ]
+}

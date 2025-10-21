@@ -1,0 +1,47 @@
+[package]
+name = "sdp-parameter"
+version = "0.2.0-rc1"
+edition = "2021"
+authors = ["Serial Data Protocol Contributors"]
+license = "MIT"
+description = "Generated SDP package"
+
+[dependencies]
+# Only external dependency: byteorder for endianness handling
+byteorder = "1.5"
+
+[features]
+# Benchmark server mode (for cross-language performance testing)
+# Build with: cargo build --release --example parameter_server --features bench-server
+bench-server = []
+
+[profile.release]
+# Maximum performance optimizations
+opt-level = 3              # Maximum optimization level
+lto = "thin"               # Link-time optimization (thin = good balance)
+codegen-units = 1          # Single codegen unit for maximum optimization
+panic = 'abort'            # Smaller binary, no unwinding
+strip = true               # Strip symbols from binary
+overflow-checks = false    # Disable integer overflow checks in release
+debug = false              # No debug info
+incremental = false        # Disable incremental compilation for max optimization
+
+# Aggressive optimization flags for all dependencies
+[profile.release.package."*"]
+opt-level = 3
+codegen-units = 1
+
+# Development dependencies for benchmarking
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Example binary for cross-platform testing
+[[example]]
+name = "parameter_server"
+path = "examples/parameter_server.rs"
+
+# Criterion benchmark configuration
+[[bench]]
+name = "benchmarks"
+path = "benches/benchmarks.rs"
+harness = false  # Use Criterion instead of default harness

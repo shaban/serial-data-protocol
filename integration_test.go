@@ -14,17 +14,19 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
-	arrays "github.com/shaban/serial-data-protocol/testdata/arrays/go"
-	audiounit "github.com/shaban/serial-data-protocol/testdata/audiounit/go"
-	complex "github.com/shaban/serial-data-protocol/testdata/complex/go"
-	nested "github.com/shaban/serial-data-protocol/testdata/nested/go"
-	optional "github.com/shaban/serial-data-protocol/testdata/optional/go"
-	primitives "github.com/shaban/serial-data-protocol/testdata/primitives/go"
+	arrays "github.com/shaban/serial-data-protocol/testdata/go/arrays"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/go/audiounit"
+	complex "github.com/shaban/serial-data-protocol/testdata/go/complex"
+	nested "github.com/shaban/serial-data-protocol/testdata/go/nested"
+	optional "github.com/shaban/serial-data-protocol/testdata/go/optional"
+	primitives "github.com/shaban/serial-data-protocol/testdata/go/primitives"
 )
 
 var (
-	langFlag = flag.String("lang", "all", "Languages to regenerate: go|rust|swift|all")
+	langFlag      = flag.String("lang", "all", "Languages to regenerate: go|rust|swift|all")
+	skipRegenFlag = flag.Bool("skip-regen", false, "Skip regeneration (for benchmarks)")
 )
 
 const (
@@ -42,6 +44,11 @@ const (
 //	go test -v                 # Verbose output
 func TestMain(m *testing.M) {
 	flag.Parse()
+
+	// Skip regeneration if flag is set (for benchmarks)
+	if *skipRegenFlag {
+		os.Exit(m.Run())
+	}
 
 	// Determine which languages to regenerate
 	langs := parseLangs(*langFlag)
@@ -105,8 +112,43 @@ var testSchemas = []string{
 	"complex",
 }
 
-// buildGenerator compiles the sdp-gen CLI tool
+// buildGenerator compiles the sdp-gen CLI tool (only if needed)
 func buildGenerator() error {
+	// Check if binary exists and is up-to-date
+	binInfo, err := os.Stat(generatorBinary)
+	if err == nil {
+		// Binary exists, check if source files are newer
+		needsRebuild := false
+
+		// Check cmd/sdp-gen/*.go files
+		cmdFiles, _ := filepath.Glob("cmd/sdp-gen/*.go")
+		for _, f := range cmdFiles {
+			info, err := os.Stat(f)
+			if err == nil && info.ModTime().After(binInfo.ModTime()) {
+				needsRebuild = true
+				break
+			}
+		}
+
+		// Check internal/generator/**/*.go files (generator logic)
+		if !needsRebuild {
+			genFiles, _ := filepath.Glob("internal/generator/*/*.go")
+			for _, f := range genFiles {
+				info, err := os.Stat(f)
+				if err == nil && info.ModTime().After(binInfo.ModTime()) {
+					needsRebuild = true
+					break
+				}
+			}
+		}
+
+		if !needsRebuild {
+			// Binary is up-to-date
+			return nil
+		}
+	}
+
+	// Build the binary
 	cmd := exec.Command("go", "build", "-o", generatorBinary, "./cmd/sdp-gen")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -119,8 +161,19 @@ func regeneratePackages(langs []string) error {
 		fmt.Printf("  %s:\n", schema)
 
 		for _, lang := range langs {
-			outputDir := filepath.Join("testdata", schema, lang)
-			schemaFile := filepath.Join("testdata", fmt.Sprintf("%s.sdp", schema))
+			outputDir := filepath.Join("testdata", lang, schema)
+			schemaFile := filepath.Join("testdata", "schemas", fmt.Sprintf("%s.sdp", schema))
+
+			// Check if regeneration is needed
+			needsRegen, err := needsRegeneration(schemaFile, outputDir)
+			if err != nil {
+				return fmt.Errorf("failed to check regeneration for %s/%s: %w", schema, lang, err)
+			}
+
+			if !needsRegen {
+				fmt.Printf("    [%s] ✓ (cached)\n", lang)
+				continue
+			}
 
 			// Step 1: Clean
 			if err := cleanPackage(lang, outputDir); err != nil {
@@ -132,7 +185,12 @@ func regeneratePackages(langs []string) error {
 				return fmt.Errorf("failed to generate %s/%s: %w", schema, lang, err)
 			}
 
-			// Step 3: Build (verify compilation)
+			// Step 3: Write timestamp
+			if err := writeTimestamp(outputDir); err != nil {
+				return fmt.Errorf("failed to write timestamp for %s/%s: %w", schema, lang, err)
+			}
+
+			// Step 4: Build (verify compilation)
 			if err := buildPackage(lang, outputDir); err != nil {
 				return fmt.Errorf("failed to build %s/%s: %w", schema, lang, err)
 			}
@@ -145,6 +203,9 @@ func regeneratePackages(langs []string) error {
 
 // cleanPackage removes all generated files for a language
 func cleanPackage(lang, outputDir string) error {
+	// Always remove timestamp file
+	os.Remove(filepath.Join(outputDir, ".sdp-gen.timestamp"))
+
 	switch lang {
 	case "go":
 		// Remove all .go files
@@ -237,10 +298,10 @@ func buildPackage(lang, outputDir string) error {
 // Test that generator successfully creates packages
 func TestGeneratorCreatesPackages(t *testing.T) {
 	packages := []string{
-		"testdata/primitives/go",
-		"testdata/nested/go",
-		"testdata/arrays/go",
-		"testdata/complex/go",
+		"testdata/go/primitives",
+		"testdata/go/nested",
+		"testdata/go/arrays",
+		"testdata/go/complex",
 	}
 
 	for _, pkg := range packages {
@@ -1909,7 +1970,7 @@ func BenchmarkAllAtOnceConstruction(b *testing.B) {
 //   - FlatBuffers: 1,000 µs (1.0 ms) roundtrip
 func BenchmarkRealWorldAudioUnit(b *testing.B) {
 	// Load real AudioUnit plugin data from JSON
-	jsonData, err := os.ReadFile("testdata/plugins.json")
+	jsonData, err := os.ReadFile("testdata/data/plugins.json")
 	if err != nil {
 		b.Skipf("plugins.json not found, skipping real-world benchmark: %v", err)
 		return
@@ -2008,7 +2069,7 @@ func BenchmarkRealWorldAudioUnit(b *testing.B) {
 
 // BenchmarkRealWorldAudioUnitEncodeOnly measures just encoding performance
 func BenchmarkRealWorldAudioUnitEncodeOnly(b *testing.B) {
-	jsonData, err := os.ReadFile("testdata/plugins.json")
+	jsonData, err := os.ReadFile("testdata/data/plugins.json")
 	if err != nil {
 		b.Skipf("plugins.json not found: %v", err)
 		return
@@ -2086,7 +2147,7 @@ func BenchmarkRealWorldAudioUnitEncodeOnly(b *testing.B) {
 
 // BenchmarkRealWorldAudioUnitDecodeOnly measures just decoding performance
 func BenchmarkRealWorldAudioUnitDecodeOnly(b *testing.B) {
-	jsonData, err := os.ReadFile("testdata/plugins.json")
+	jsonData, err := os.ReadFile("testdata/data/plugins.json")
 	if err != nil {
 		b.Skipf("plugins.json not found: %v", err)
 		return
@@ -3644,4 +3705,49 @@ func TestStreamingWithOptionalFields(t *testing.T) {
 			}
 		})
 	}
+}
+
+// needsRegeneration checks if a package needs to be regenerated based on timestamps
+// Returns true if:
+// - .sdp-gen.timestamp doesn't exist
+// - schema file is newer than timestamp
+// - generator binary is newer than timestamp
+func needsRegeneration(schemaFile, outputDir string) (bool, error) {
+	timestampFile := filepath.Join(outputDir, ".sdp-gen.timestamp")
+
+	// If timestamp file doesn't exist, need regeneration
+	timestampInfo, err := os.Stat(timestampFile)
+	if os.IsNotExist(err) {
+		return true, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to stat timestamp file: %w", err)
+	}
+	timestampTime := timestampInfo.ModTime()
+
+	// Check if schema file is newer
+	schemaInfo, err := os.Stat(schemaFile)
+	if err != nil {
+		return false, fmt.Errorf("failed to stat schema file: %w", err)
+	}
+	if schemaInfo.ModTime().After(timestampTime) {
+		return true, nil
+	}
+
+	// Check if generator binary is newer
+	generatorInfo, err := os.Stat(generatorBinary)
+	if err != nil {
+		return false, fmt.Errorf("failed to stat generator binary: %w", err)
+	}
+	if generatorInfo.ModTime().After(timestampTime) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// writeTimestamp writes the current time to .sdp-gen.timestamp file
+func writeTimestamp(outputDir string) error {
+	timestampFile := filepath.Join(outputDir, ".sdp-gen.timestamp")
+	return os.WriteFile(timestampFile, []byte(time.Now().Format(time.RFC3339)), 0644)
 }

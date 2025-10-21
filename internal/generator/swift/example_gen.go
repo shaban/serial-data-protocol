@@ -8,8 +8,9 @@ import (
 )
 
 // GenerateExample generates a crossplatform_helper executable that can be used
-// for testing cross-language compatibility
-func GenerateExample(schema *parser.Schema, packageName string) string {
+// for testing cross-language compatibility.
+// When benchMode is true, includes TCP benchmark server code.
+func GenerateExample(schema *parser.Schema, packageName string, benchMode bool) string {
 	var b strings.Builder
 
 	b.WriteString("// Cross-platform test helper for " + packageName + "\n")
@@ -27,6 +28,12 @@ func GenerateExample(schema *parser.Schema, packageName string) string {
 	b.WriteString("import " + packageName + "\n")
 	b.WriteString("\n")
 
+	// Generate benchmark server mode (only when in bench mode)
+	if benchMode {
+		generateBenchmarkServer(&b, schema)
+		b.WriteString("\n")
+	}
+
 	// Generate helper functions for creating test instances
 	for _, st := range schema.Structs {
 		generateTestHelperFunction(&b, &st, schema)
@@ -42,9 +49,111 @@ func GenerateExample(schema *parser.Schema, packageName string) string {
 	}
 
 	// Generate main function
-	generateMainFunction(&b, schema)
+	generateMainFunction(&b, schema, benchMode)
 
 	return b.String()
+}
+
+// generateBenchmarkServer generates a TCP server for benchmarking
+func generateBenchmarkServer(b *strings.Builder, schema *parser.Schema) {
+	b.WriteString("import Network\n")
+	b.WriteString("\n")
+	b.WriteString("func runBenchmarkServer() {\n")
+	b.WriteString("    let listener = try! NWListener(using: .tcp, on: 0)\n")
+	b.WriteString("    \n")
+	b.WriteString("    listener.newConnectionHandler = { connection in\n")
+	b.WriteString("        connection.start(queue: .global())\n")
+	b.WriteString("        handleBenchmarkConnection(connection)\n")
+	b.WriteString("    }\n")
+	b.WriteString("    \n")
+	b.WriteString("    listener.stateUpdateHandler = { state in\n")
+	b.WriteString("        if case .ready = state {\n")
+	b.WriteString("            if let port = listener.port {\n")
+	b.WriteString("                print(\"BENCHPORT \\(port)\")\n")
+	b.WriteString("                fflush(stdout)\n")
+	b.WriteString("            }\n")
+	b.WriteString("        }\n")
+	b.WriteString("    }\n")
+	b.WriteString("    \n")
+	b.WriteString("    listener.start(queue: .global())\n")
+	b.WriteString("    RunLoop.main.run()\n")
+	b.WriteString("}\n")
+	b.WriteString("\n")
+	b.WriteString("func handleBenchmarkConnection(_ connection: NWConnection) {\n")
+	b.WriteString("    receiveCommand(connection)\n")
+	b.WriteString("}\n")
+	b.WriteString("\n")
+	b.WriteString("func receiveCommand(_ connection: NWConnection) {\n")
+	b.WriteString("    connection.receive(minimumIncompleteLength: 1, maximumLength: 1024) { data, _, isComplete, error in\n")
+	b.WriteString("        if let data = data, !data.isEmpty {\n")
+	b.WriteString("            let command = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? \"\"\n")
+	b.WriteString("            let response = processCommand(command)\n")
+	b.WriteString("            sendResponse(connection, response)\n")
+	b.WriteString("        }\n")
+	b.WriteString("        if !isComplete && error == nil {\n")
+	b.WriteString("            receiveCommand(connection)\n")
+	b.WriteString("        }\n")
+	b.WriteString("    }\n")
+	b.WriteString("}\n")
+	b.WriteString("\n")
+	b.WriteString("func processCommand(_ command: String) -> String {\n")
+	b.WriteString("    let parts = command.split(separator: \" \")\n")
+	b.WriteString("    guard !parts.isEmpty else { return \"ERROR\\n\" }\n")
+	b.WriteString("    \n")
+	b.WriteString("    let cmd = String(parts[0])\n")
+	b.WriteString("    \n")
+	b.WriteString("    if cmd == \"WARMUP\" {\n")
+	b.WriteString("        let start = Date()\n")
+	b.WriteString("        var count = 0\n")
+	b.WriteString("        while Date().timeIntervalSince(start) < 0.2 {\n")
+
+	// Generate warmup encoding for first struct
+	if len(schema.Structs) > 0 {
+		firstStruct := toCamelCase(schema.Structs[0].Name)
+		b.WriteString(fmt.Sprintf("            _ = makeTest%s().encodeToBytes()\n", firstStruct))
+	}
+
+	b.WriteString("            count += 1\n")
+	b.WriteString("        }\n")
+	b.WriteString("        return \"OK\\n\"\n")
+	b.WriteString("    }\n")
+	b.WriteString("    \n")
+
+	// Generate BENCH_ENCODE and BENCH_DECODE for each struct
+	for _, st := range schema.Structs {
+		structName := toCamelCase(st.Name)
+		b.WriteString(fmt.Sprintf("    if cmd == \"BENCH_ENCODE_%s\" {\n", strings.ToUpper(st.Name)))
+		b.WriteString("        guard parts.count >= 2, let iterations = Int(parts[1]) else {\n")
+		b.WriteString("            return \"ERROR\\n\"\n")
+		b.WriteString("        }\n")
+		b.WriteString(fmt.Sprintf("        let testData = makeTest%s()\n", structName))
+		b.WriteString("        for _ in 0..<iterations {\n")
+		b.WriteString("            _ = testData.encodeToBytes()\n")
+		b.WriteString("        }\n")
+		b.WriteString("        return \"OK\\n\"\n")
+		b.WriteString("    }\n")
+		b.WriteString("    \n")
+		b.WriteString(fmt.Sprintf("    if cmd == \"BENCH_DECODE_%s\" {\n", strings.ToUpper(st.Name)))
+		b.WriteString("        guard parts.count >= 2, let iterations = Int(parts[1]) else {\n")
+		b.WriteString("            return \"ERROR\\n\"\n")
+		b.WriteString("        }\n")
+		b.WriteString(fmt.Sprintf("        let testData = makeTest%s()\n", structName))
+		b.WriteString("        let encoded = testData.encodeToBytes()\n")
+		b.WriteString("        for _ in 0..<iterations {\n")
+		b.WriteString(fmt.Sprintf("            _ = try? %s.decode(from: encoded)\n", st.Name))
+		b.WriteString("        }\n")
+		b.WriteString("        return \"OK\\n\"\n")
+		b.WriteString("    }\n")
+		b.WriteString("    \n")
+	}
+
+	b.WriteString("    return \"ERROR\\n\"\n")
+	b.WriteString("}\n")
+	b.WriteString("\n")
+	b.WriteString("func sendResponse(_ connection: NWConnection, _ response: String) {\n")
+	b.WriteString("    let data = response.data(using: .utf8)!\n")
+	b.WriteString("    connection.send(content: data, completion: .contentProcessed { _ in })\n")
+	b.WriteString("}\n")
 }
 
 // generateTestHelperFunction generates a function that creates a test instance of a struct
@@ -115,10 +224,19 @@ func generateDecodeFunction(b *strings.Builder, st *parser.Struct) {
 	b.WriteString("}\n")
 }
 
-func generateMainFunction(b *strings.Builder, schema *parser.Schema) {
+func generateMainFunction(b *strings.Builder, schema *parser.Schema, benchMode bool) {
 	b.WriteString("// Main entry point\n")
 	b.WriteString("let args = CommandLine.arguments\n")
 	b.WriteString("\n")
+
+	if benchMode {
+		b.WriteString("if args.count >= 2 && args[1] == \"--bench-server\" {\n")
+		b.WriteString("    runBenchmarkServer()\n")
+		b.WriteString("    exit(0)\n")
+		b.WriteString("}\n")
+		b.WriteString("\n")
+	}
+
 	b.WriteString("if args.count < 2 {\n")
 	b.WriteString("    fputs(\"Usage: \\(args[0]) <command> [args]\\n\", stderr)\n")
 	b.WriteString("    fputs(\"Commands:\\n\", stderr)\n")

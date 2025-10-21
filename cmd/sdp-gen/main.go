@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/shaban/serial-data-protocol/internal/generator/cpp"
 	"github.com/shaban/serial-data-protocol/internal/generator/golang"
 	"github.com/shaban/serial-data-protocol/internal/generator/rust"
 	"github.com/shaban/serial-data-protocol/internal/generator/swift"
@@ -22,10 +22,9 @@ func main() {
 	var (
 		schemaPath   = flag.String("schema", "", "Path to .sdp schema file (required)")
 		outputDir    = flag.String("output", "", "Output directory for generated code (required)")
-		lang         = flag.String("lang", "go", "Target language: go, c")
+		lang         = flag.String("lang", "go", "Target language: go, cpp, rust, swift")
 		packageName  = flag.String("package", "", "Package name for generated code (Go only, defaults to output dir basename)")
 		validateOnly = flag.Bool("validate-only", false, "Only validate schema without generating code")
-		astJSON      = flag.Bool("ast-json", false, "Output AST as JSON instead of generating code (for other language generators)")
 		verbose      = flag.Bool("verbose", false, "Enable verbose output")
 		showVersion  = flag.Bool("version", false, "Show version and exit")
 	)
@@ -38,10 +37,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\nExamples:\n")
 		fmt.Fprintf(os.Stderr, "  # Generate Go code\n")
 		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./generated -lang go\n\n")
+		fmt.Fprintf(os.Stderr, "  # Generate C++ code\n")
+		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./generated -lang cpp\n\n")
 		fmt.Fprintf(os.Stderr, "  # Generate Rust code\n")
 		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./generated -lang rust\n\n")
-		fmt.Fprintf(os.Stderr, "  # Generate Swift code\n")
-		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -output ./generated -lang swift\n\n")
 		fmt.Fprintf(os.Stderr, "  # Validate schema only\n")
 		fmt.Fprintf(os.Stderr, "  sdp-gen -schema device.sdp -validate-only\n\n")
 	}
@@ -61,8 +60,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !*validateOnly && !*astJSON && *outputDir == "" {
-		fmt.Fprintf(os.Stderr, "Error: -output flag is required (or use -validate-only or -ast-json)\n\n")
+	if !*validateOnly && *outputDir == "" {
+		fmt.Fprintf(os.Stderr, "Error: -output flag is required (or use -validate-only)\n\n")
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -72,22 +71,16 @@ func main() {
 		"go":    true,
 		"rust":  true,
 		"swift": true,
-		"c":     false, // Not yet implemented
+		"cpp":   true,
 	}
 
 	if !validLangs[*lang] {
-		fmt.Fprintf(os.Stderr, "Error: -lang must be 'go', 'rust', or 'swift' (c not yet implemented), got '%s'\n", *lang)
-		os.Exit(1)
-	}
-
-	// Check if C is requested (not yet implemented)
-	if *lang == "c" {
-		fmt.Fprintf(os.Stderr, "Error: C code generation not yet implemented\n")
+		fmt.Fprintf(os.Stderr, "Error: -lang must be 'go', 'rust', 'swift', or 'cpp', got '%s'\n", *lang)
 		os.Exit(1)
 	}
 
 	// Run the generator
-	if err := run(*schemaPath, *outputDir, *lang, *packageName, *validateOnly, *astJSON, *verbose); err != nil {
+	if err := run(*schemaPath, *outputDir, *lang, *packageName, *validateOnly, *verbose); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
@@ -95,7 +88,7 @@ func main() {
 	os.Exit(0)
 }
 
-func run(schemaPath, outputDir, lang, packageName string, validateOnly, astJSON, verbose bool) error {
+func run(schemaPath, outputDir, lang, packageName string, validateOnly, verbose bool) error {
 	// Step 1: Load schema
 	if verbose {
 		fmt.Printf("Loading schema from: %s\n", schemaPath)
@@ -126,16 +119,6 @@ func run(schemaPath, outputDir, lang, packageName string, validateOnly, astJSON,
 	// If validate-only mode, we're done
 	if validateOnly {
 		fmt.Println("Schema validation passed")
-		return nil
-	}
-
-	// If ast-json mode, output AST as JSON and exit
-	if astJSON {
-		encoder := json.NewEncoder(os.Stdout)
-		encoder.SetIndent("", "  ")
-		if err := encoder.Encode(schema); err != nil {
-			return fmt.Errorf("failed to encode AST as JSON: %w", err)
-		}
 		return nil
 	}
 
@@ -197,8 +180,13 @@ func run(schemaPath, outputDir, lang, packageName string, validateOnly, astJSON,
 			return fmt.Errorf("failed to generate Swift code: %w", err)
 		}
 
-	case "c":
-		return fmt.Errorf("C code generation not yet implemented")
+	case "cpp":
+		// C++ generator writes files directly
+		err = cpp.Generate(schema, outputDir, verbose)
+		if err != nil {
+			return fmt.Errorf("failed to generate C++ code: %w", err)
+		}
+
 	default:
 		return fmt.Errorf("unsupported language: %s", lang)
 	}
