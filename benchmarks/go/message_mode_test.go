@@ -3,7 +3,7 @@ package benchmarks
 import (
 	"testing"
 
-	audiounit "github.com/shaban/serial-data-protocol/testdata/go/audiounit"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/generated/go/audiounit"
 )
 
 // ============================================================================

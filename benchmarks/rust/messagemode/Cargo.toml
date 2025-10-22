@@ -1,0 +1,22 @@
+[package]
+name = "sdp-rust-benchmarks"
+version = "0.2.0-rc1"
+edition = "2021"
+authors = ["Serial Data Protocol Contributors"]
+license = "MIT"
+
+[[bin]]
+name = "audiounit_benchmark"
+path = "audiounit_benchmark.rs"
+
+[dependencies]
+# Point to generated audiounit library
+sdp-audiounit = { path = "../../../testdata/generated/rust/audiounit" }
+criterion = "0.5"
+
+[profile.release]
+opt-level = 2
+codegen-units = 16
+lto = false
+debug = false
+incremental = true

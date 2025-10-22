@@ -16,12 +16,12 @@ import (
 	"testing"
 	"time"
 
-	arrays "github.com/shaban/serial-data-protocol/testdata/go/arrays"
-	audiounit "github.com/shaban/serial-data-protocol/testdata/go/audiounit"
-	complex "github.com/shaban/serial-data-protocol/testdata/go/complex"
-	nested "github.com/shaban/serial-data-protocol/testdata/go/nested"
-	optional "github.com/shaban/serial-data-protocol/testdata/go/optional"
-	primitives "github.com/shaban/serial-data-protocol/testdata/go/primitives"
+	arrays "github.com/shaban/serial-data-protocol/testdata/generated/go/arrays"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/generated/go/audiounit"
+	complex "github.com/shaban/serial-data-protocol/testdata/generated/go/complex"
+	nested "github.com/shaban/serial-data-protocol/testdata/generated/go/nested"
+	optional "github.com/shaban/serial-data-protocol/testdata/generated/go/optional"
+	primitives "github.com/shaban/serial-data-protocol/testdata/generated/go/primitives"
 )
 
 var (
@@ -298,10 +298,10 @@ func buildPackage(lang, outputDir string) error {
 // Test that generator successfully creates packages
 func TestGeneratorCreatesPackages(t *testing.T) {
 	packages := []string{
-		"testdata/go/primitives",
-		"testdata/go/nested",
-		"testdata/go/arrays",
-		"testdata/go/complex",
+		"testdata/generated/go/primitives",
+		"testdata/generated/go/nested",
+		"testdata/generated/go/arrays",
+		"testdata/generated/go/complex",
 	}
 
 	for _, pkg := range packages {

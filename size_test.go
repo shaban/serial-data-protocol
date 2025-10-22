@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	audiounit "github.com/shaban/serial-data-protocol/testdata/go/audiounit"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/generated/go/audiounit"
 )
 
 // TestBinarySizeComparison measures the binary size of our real-world data

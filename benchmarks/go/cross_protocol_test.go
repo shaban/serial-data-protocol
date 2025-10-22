@@ -8,7 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	fb "github.com/shaban/serial-data-protocol/testdata/flatbuffers/go"
-	audiounit "github.com/shaban/serial-data-protocol/testdata/go/audiounit"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/generated/go/audiounit"
 	pb "github.com/shaban/serial-data-protocol/testdata/protobuf/go"
 )
 
