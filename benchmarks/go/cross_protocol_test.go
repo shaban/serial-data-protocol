@@ -42,7 +42,7 @@ var (
 
 func init() {
 	// Load SDP binary data
-	sdpbData, err := loadBinaryFile("../testdata/binaries/audiounit.sdpb")
+	sdpbData, err := loadBinaryFile("../../testdata/binaries/audiounit.sdpb")
 	if err != nil {
 		panic("Failed to load audiounit.sdpb: " + err.Error())
 	}

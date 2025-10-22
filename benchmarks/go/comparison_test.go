@@ -15,7 +15,7 @@ var testDataSDP []byte
 
 func init() {
 	// Load .sdpb binary for decode benchmarks (measures decode performance only)
-	sdpbData, err := os.ReadFile("../testdata/binaries/audiounit.sdpb")
+	sdpbData, err := os.ReadFile("../../testdata/binaries/audiounit.sdpb")
 	if err != nil {
 		panic("audiounit.sdpb not found: " + err.Error())
 	}
