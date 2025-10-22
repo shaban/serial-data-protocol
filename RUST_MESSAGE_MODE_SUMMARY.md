@@ -2,7 +2,7 @@
 
 **Date:** October 22, 2025  
 **Status:** Production Ready  
-**Commits:** 8 commits (df5a7dd → 1720a35)
+**Commits:** 10 commits (df5a7dd → 5a75ec2)
 
 ---
 
@@ -317,13 +317,25 @@ match decode_message(&encoded)? {
 
 ### AudioUnit (110KB, Real-World Data)
 
-| Language | Encode | Decode |
-|----------|--------|--------|
-| Go (byte) | 26.3µs | 42.1µs |
-| C++ (byte) | 26.3µs | 42.1µs |
-| C++ (msg) | 25.9µs | 41.6µs |
+**Dataset:** 62 plugins, 1,759 parameters, ~110KB payload
 
-**Message mode overhead: -1.7% (actually faster!)**
+| Operation | C++ | Rust | Rust vs C++ |
+|-----------|-----|------|-------------|
+| **Byte mode encode** | 21.8µs | 38.08µs | 1.8× slower |
+| **Message mode encode** | 25.9µs | 41.73µs | 1.6× slower |
+| **Byte mode decode** | 34.4µs | 208.71µs | 6.1× slower |
+| **Message mode decode** | 41.6µs | 208.00µs | 5.0× slower |
+| **Dispatcher overhead** | N/A | +2.4% | Efficient |
+
+**Message mode overhead:**
+- C++: +18.8% (encode), +20.9% (decode)
+- Rust: +9.6% (encode), -0.3% (decode - actually faster!)
+
+**Key findings:**
+- Rust encode is competitive (1.6-1.8× slower due to bounds checking)
+- Rust decode is slower (5-6× due to validation)
+- Rust message mode overhead is **lower** than C++ (+9.6% vs +18.8%)
+- Pattern matching dispatch adds minimal cost (+2.4%)
 
 ---
 
@@ -344,10 +356,17 @@ match decode_message(&encoded)? {
 
 ## 🚀 What's Next
 
+### Completed ✅
+- [x] Code generation (encode + decode + dispatcher)
+- [x] Cross-language testing (9/9 passing)
+- [x] Point/Rectangle benchmarks (Criterion-based)
+- [x] AudioUnit Rust benchmark (110KB real data)
+- [x] Performance comparison with C++
+- [x] Documentation (this summary)
+
 ### Remaining Work
 1. **Documentation** - Update C++/Rust quick reference guides
-2. **AudioUnit Rust Benchmark** - Measure 110KB performance
-3. **Rust Byte Mode Benchmark** - Compare byte vs message mode
+2. **Go AudioUnit Benchmark** - Complete three-way comparison
 
 ### Future Enhancements
 - Optional fields support in message mode
@@ -360,6 +379,7 @@ match decode_message(&encoded)? {
 ## 📝 Commit History
 
 ```
+5a75ec2 bench: Add Rust AudioUnit message mode benchmark matching C++
 1720a35 fix: Remove missing example reference from Cargo.toml
 8cfe2b6 test: Add Rust message mode cross-language tests and benchmarks
 479304f gen: Implement Rust message mode support
