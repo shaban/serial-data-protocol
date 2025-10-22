@@ -68,6 +68,16 @@ func Generate(schema *parser.Schema, outputDir string, verbose bool) error {
 		return fmt.Errorf("failed to generate decode.rs: %w", err)
 	}
 
+	// Generate message_encode.rs (message mode encoders)
+	if err := generateMessageEncode(schema, srcDir, verbose); err != nil {
+		return fmt.Errorf("failed to generate message_encode.rs: %w", err)
+	}
+
+	// Generate message_decode.rs (message mode decoders + enum dispatcher)
+	if err := generateMessageDecode(schema, srcDir, verbose); err != nil {
+		return fmt.Errorf("failed to generate message_decode.rs: %w", err)
+	}
+
 	// Generate embedded wire runtime (makes crate self-contained)
 	if err := generateWireRuntime(srcDir, verbose); err != nil {
 		return fmt.Errorf("failed to generate wire runtime: %w", err)
@@ -174,10 +184,14 @@ func generateLib(_ *parser.Schema, outputDir string, verbose bool) error {
 	content += "mod wire_slice;   // Embedded: Direct slice API (faster)\n"
 	content += "mod types;\n"
 	content += "mod encode;\n"
-	content += "mod decode;\n\n"
+	content += "mod decode;\n"
+	content += "mod message_encode;  // Message mode: Self-describing messages\n"
+	content += "mod message_decode;  // Message mode: Decoders + enum dispatcher\n\n"
 	content += "pub use types::*;\n"
 	content += "pub use encode::*;\n"
-	content += "pub use decode::*;\n\n"
+	content += "pub use decode::*;\n"
+	content += "pub use message_encode::*;\n"
+	content += "pub use message_decode::*;\n\n"
 	content += "// Re-export common wire format types\n"
 	content += "pub use wire::{Error, Result, Encoder, Decoder};\n"
 	content += "pub use wire_slice::{SliceError, SliceResult};\n"
@@ -254,6 +268,46 @@ func generateDecode(schema *parser.Schema, outputDir string, verbose bool) error
 
 	if verbose {
 		fmt.Printf("  Generated decode.rs (%d structs)\n", len(schema.Structs))
+	}
+
+	return nil
+}
+
+// generateMessageEncode creates message_encode.rs with message mode encoders
+func generateMessageEncode(schema *parser.Schema, outputDir string, verbose bool) error {
+	filepath := filepath.Join(outputDir, "message_encode.rs")
+
+	content, err := GenerateMessageEncoders(schema)
+	if err != nil {
+		return fmt.Errorf("failed to generate message encoders: %w", err)
+	}
+
+	if err := os.WriteFile(filepath, []byte(content), 0644); err != nil {
+		return err
+	}
+
+	if verbose {
+		fmt.Printf("  Generated message_encode.rs (%d message encoders)\n", len(schema.Structs))
+	}
+
+	return nil
+}
+
+// generateMessageDecode creates message_decode.rs with message mode decoders and enum dispatcher
+func generateMessageDecode(schema *parser.Schema, outputDir string, verbose bool) error {
+	filepath := filepath.Join(outputDir, "message_decode.rs")
+
+	content, err := GenerateMessageDecoders(schema)
+	if err != nil {
+		return fmt.Errorf("failed to generate message decoders: %w", err)
+	}
+
+	if err := os.WriteFile(filepath, []byte(content), 0644); err != nil {
+		return err
+	}
+
+	if verbose {
+		fmt.Printf("  Generated message_decode.rs (%d message decoders + enum dispatcher)\n", len(schema.Structs))
 	}
 
 	return nil

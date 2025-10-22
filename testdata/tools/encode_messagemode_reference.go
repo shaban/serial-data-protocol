@@ -51,18 +51,18 @@ func encodePointMessage(p *Point) []byte {
 	const payloadSize = 16
 	const headerSize = 10 // SDP(3) + version(1) + type_id(2) + length(4)
 	const totalSize = headerSize + payloadSize
-	
+
 	buf := make([]byte, totalSize)
-	
+
 	// Header: [SDP:3][version:1][type_id:2][length:4]
 	copy(buf[0:3], MessageMagic)
 	buf[3] = MessageVersion
 	binary.LittleEndian.PutUint16(buf[4:6], TypeIDPoint)
 	binary.LittleEndian.PutUint32(buf[6:10], payloadSize)
-	
+
 	// Payload starts at byte 10
 	encodePoint(p, buf[10:])
-	
+
 	return buf
 }
 
@@ -71,18 +71,18 @@ func encodeRectangleMessage(r *Rectangle) []byte {
 	const payloadSize = 32
 	const headerSize = 10 // SDP(3) + version(1) + type_id(2) + length(4)
 	const totalSize = headerSize + payloadSize
-	
+
 	buf := make([]byte, totalSize)
-	
+
 	// Header: [SDP:3][version:1][type_id:2][length:4]
 	copy(buf[0:3], MessageMagic)
 	buf[3] = MessageVersion
 	binary.LittleEndian.PutUint16(buf[4:6], TypeIDRectangle)
 	binary.LittleEndian.PutUint32(buf[6:10], payloadSize)
-	
+
 	// Payload starts at byte 10
 	encodeRectangle(r, buf[10:])
-	
+
 	return buf
 }
 
@@ -93,51 +93,51 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error creating binaries directory: %v\n", err)
 		os.Exit(1)
 	}
-	
+
 	// Encode Point message
 	point := Point{
 		X: 3.14,
 		Y: 2.71,
 	}
-	
+
 	pointData := encodePointMessage(&point)
-	
+
 	pointPath := filepath.Join(binariesDir, "message_point.sdpb")
 	if err := os.WriteFile(pointPath, pointData, 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing Point file: %v\n", err)
 		os.Exit(1)
 	}
 	fmt.Printf("Created %s (%d bytes)\n", pointPath, len(pointData))
-	
+
 	// Print hex for verification
 	fmt.Printf("  Hex: ")
 	for _, b := range pointData {
 		fmt.Printf("%02x", b)
 	}
 	fmt.Println()
-	
+
 	// Encode Rectangle message
 	rect := Rectangle{
 		TopLeft: Point{X: 10.0, Y: 20.0},
 		Width:   100.0,
 		Height:  50.0,
 	}
-	
+
 	rectData := encodeRectangleMessage(&rect)
-	
+
 	rectPath := filepath.Join(binariesDir, "message_rectangle.sdpb")
 	if err := os.WriteFile(rectPath, rectData, 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing Rectangle file: %v\n", err)
 		os.Exit(1)
 	}
 	fmt.Printf("Created %s (%d bytes)\n", rectPath, len(rectData))
-	
+
 	// Print hex for verification
 	fmt.Printf("  Hex: ")
 	for _, b := range rectData {
 		fmt.Printf("%02x", b)
 	}
 	fmt.Println()
-	
+
 	fmt.Println("\nReference .sdpb files generated successfully!")
 }

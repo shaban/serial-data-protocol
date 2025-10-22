@@ -101,12 +101,12 @@ func generateSizeFunction(structDef parser.Struct) string {
 	}
 
 	b.WriteString(fmt.Sprintf("size_t %s(const %s& msg) {\n", funcName, structName))
-	
+
 	// If struct only has fixed-size primitives, suppress unused parameter warning
 	if !hasVariableSize {
 		b.WriteString("    (void)msg;  // Fixed-size struct, parameter unused\n")
 	}
-	
+
 	b.WriteString("    size_t size = 0;\n")
 
 	for _, field := range structDef.Fields {

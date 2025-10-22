@@ -9,10 +9,14 @@ mod wire_slice;   // Embedded: Direct slice API (faster)
 mod types;
 mod encode;
 mod decode;
+mod message_encode;  // Message mode: Self-describing messages
+mod message_decode;  // Message mode: Decoders + enum dispatcher
 
 pub use types::*;
 pub use encode::*;
 pub use decode::*;
+pub use message_encode::*;
+pub use message_decode::*;
 
 // Re-export common wire format types
 pub use wire::{Error, Result, Encoder, Decoder};
