@@ -1,35 +1,42 @@
 #!/usr/bin/env bash
-# Run Swift tests
+# Swift Test Runner
+# Runs all Swift tests (generation, compilation, smoke tests)
 
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "========================================"
 echo "Running Swift Tests"
 echo "========================================"
 echo ""
 
-# Find all Swift test directories (those with Package.swift)
-SWIFT_TESTS=$(find testdata/swift -name Package.swift -exec dirname {} \; 2>/dev/null | sort)
-
-if [ -z "$SWIFT_TESTS" ]; then
-    echo "⚠️  No Swift tests found (testdata/swift/**/Package.swift)"
-    echo "   Skipping Swift tests"
+# Check if Swift is available
+if ! command -v swift &> /dev/null; then
+    echo "⚠️  Swift not available - skipping Swift tests"
+    echo "   Swift is only available on macOS"
     exit 0
 fi
 
-FAILED=0
-PASSED=0
+# Run generation test
+echo "1. Testing Swift code generation..."
+"$SCRIPT_DIR/swift/test_generation.sh"
+echo ""
 
-for test_dir in $SWIFT_TESTS; do
-    test_name=$(basename "$test_dir")
-    echo "Testing: $test_name"
-    
-    # Swift packages in testdata are just wrappers - they don't have tests
-    # The actual testing is done via the macos_testing directory
-    echo "  ℹ️  $test_name is a Swift package wrapper (no unit tests)"
-    echo "     See macos_testing/ for Swift integration tests"
-    echo ""
-done
+# Run compilation test  
+echo "2. Testing Swift package compilation..."
+"$SCRIPT_DIR/swift/test_compilation.sh"
+echo ""
 
-echo "ℹ️  Swift unit tests should be run via macos_testing/"
-echo "   Run: cd macos_testing && make test"
+# Run smoke test
+echo "3. Running Swift smoke tests..."
+"$SCRIPT_DIR/swift/test_smoke.sh"
+echo ""
+
+echo "========================================"
+echo "Swift Tests Complete"
+echo "========================================"
+echo "✓ Code generation: All schemas generated successfully"
+echo "✓ Compilation: All packages compiled successfully"
+echo "✓ Smoke tests: C++ backend accessible via Swift"
+echo "✓ Message mode: Functions generated for all schemas"

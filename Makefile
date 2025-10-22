@@ -56,14 +56,15 @@ generate: build
 	@echo "Generating from official schemas..."
 	@for schema in $(SCHEMAS_DIR)/*.sdp; do \
 		name=$$(basename $$schema .sdp); \
-		echo "  $$name.sdp -> Go/C++/Rust"; \
+		echo "  $$name.sdp -> Go/C++/Rust/Swift"; \
 		$(SDP_GEN) -schema $$schema -output $(GENERATED_GO)/$$name -lang go || exit 1; \
 		$(SDP_GEN) -schema $$schema -output $(GENERATED_CPP)/$$name -lang cpp || exit 1; \
 		$(SDP_GEN) -schema $$schema -output $(GENERATED_RUST)/$$name -lang rust || exit 1; \
+		$(SDP_GEN) -schema $$schema -output $(GENERATED_SWIFT)/$$name -lang swift || exit 1; \
 	done
 	@echo ""
 	@echo "✓ Code generation complete"
-	@echo "  Generated: $(GENERATED_DIR)/{go,cpp,rust}/*"
+	@echo "  Generated: $(GENERATED_DIR)/{go,cpp,rust,swift}/*"
 
 # Verify generated code hasn't been manually edited
 verify-generated:
