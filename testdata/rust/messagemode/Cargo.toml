@@ -41,11 +41,6 @@ opt-level = 2
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
 
-# Example binary for cross-platform testing
-[[example]]
-name = "point_server"
-path = "examples/point_server.rs"
-
 # Criterion benchmark configuration
 [[bench]]
 name = "benchmarks"
