@@ -65,11 +65,28 @@ func GenerateDecodeImpl(schema *parser.Schema, packageName string) string {
 
 namespace sdp {
 
-/* Array size limits */
-constexpr uint32_t MAX_ARRAY_ELEMENTS = 1000000;
-constexpr uint32_t MAX_TOTAL_ELEMENTS = 10000000;
-
 `, packageName))
+
+	// Check if schema has any arrays
+	hasArrays := false
+	for _, structDef := range schema.Structs {
+		for _, field := range structDef.Fields {
+			if field.Type.Kind == parser.TypeKindArray {
+				hasArrays = true
+				break
+			}
+		}
+		if hasArrays {
+			break
+		}
+	}
+
+	// Only generate array limits if schema has arrays
+	if hasArrays {
+		b.WriteString("/* Array size limits */\n")
+		b.WriteString("constexpr uint32_t MAX_ARRAY_ELEMENTS = 1000000;\n")
+		b.WriteString("constexpr uint32_t MAX_TOTAL_ELEMENTS = 10000000;\n\n")
+	}
 
 	// Forward declarations for helper functions
 	b.WriteString("/* Forward declarations for internal decode helpers */\n")

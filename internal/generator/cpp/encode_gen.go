@@ -91,7 +91,22 @@ func generateSizeFunction(structDef parser.Struct) string {
 	funcName := toSnakeCase(structDef.Name) + "_size"
 	structName := toPascalCase(structDef.Name)
 
+	// Check if struct has only fixed-size fields (no arrays, strings, or nested structs)
+	hasVariableSize := false
+	for _, field := range structDef.Fields {
+		if field.Type.Kind == parser.TypeKindArray || field.Type.Name == "str" || field.Type.Kind == parser.TypeKindNamed {
+			hasVariableSize = true
+			break
+		}
+	}
+
 	b.WriteString(fmt.Sprintf("size_t %s(const %s& msg) {\n", funcName, structName))
+	
+	// If struct only has fixed-size primitives, suppress unused parameter warning
+	if !hasVariableSize {
+		b.WriteString("    (void)msg;  // Fixed-size struct, parameter unused\n")
+	}
+	
 	b.WriteString("    size_t size = 0;\n")
 
 	for _, field := range structDef.Fields {

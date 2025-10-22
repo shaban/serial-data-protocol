@@ -1,9 +1,9 @@
 package primitives
 
 import (
-	"encoding/binary"
 	"math"
 	"io"
+	"encoding/binary"
 )
 
 // calculateAllPrimitivesSize calculates the wire format size for AllPrimitives.

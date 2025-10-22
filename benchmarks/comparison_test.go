@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	audiounit "github.com/shaban/serial-data-protocol/testdata/audiounit/go"
+	audiounit "github.com/shaban/serial-data-protocol/testdata/go/audiounit"
 )
 
 // Test data loaded once in init() and reused across all benchmarks
@@ -15,7 +15,7 @@ var testDataSDP []byte
 
 func init() {
 	// Load .sdpb binary for decode benchmarks (measures decode performance only)
-	sdpbData, err := os.ReadFile("../testdata/audiounit.sdpb")
+	sdpbData, err := os.ReadFile("../testdata/binaries/audiounit.sdpb")
 	if err != nil {
 		panic("audiounit.sdpb not found: " + err.Error())
 	}

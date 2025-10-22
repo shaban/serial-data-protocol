@@ -1,9 +1,9 @@
 package nested
 
 import (
+	"io"
 	"encoding/binary"
 	"math"
-	"io"
 )
 
 // calculatePointSize calculates the wire format size for Point.

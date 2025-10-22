@@ -55,6 +55,26 @@ func Generate(schema *parser.Schema, outputDir string, verbose bool) error {
 		return err
 	}
 
+	// Generate message_encode.hpp
+	if err := generateFile(outputDir, "message_encode.hpp", GenerateMessageEncodeHeader(schema, packageName), verbose); err != nil {
+		return err
+	}
+
+	// Generate message_encode.cpp
+	if err := generateFile(outputDir, "message_encode.cpp", GenerateMessageEncodeImpl(schema, packageName), verbose); err != nil {
+		return err
+	}
+
+	// Generate message_decode.hpp
+	if err := generateFile(outputDir, "message_decode.hpp", GenerateMessageDecodeHeader(schema, packageName), verbose); err != nil {
+		return err
+	}
+
+	// Generate message_decode.cpp
+	if err := generateFile(outputDir, "message_decode.cpp", GenerateMessageDecodeImpl(schema, packageName), verbose); err != nil {
+		return err
+	}
+
 	// Generate endian.hpp
 	if err := generateFile(outputDir, "endian.hpp", GenerateEndianHeader(), verbose); err != nil {
 		return err

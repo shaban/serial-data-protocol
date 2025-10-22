@@ -1,0 +1,13 @@
+// Message mode test schema
+// Tests C++ message mode implementation with simple types
+
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+struct Rectangle {
+    top_left: Point,
+    width: f64,
+    height: f64,
+}
