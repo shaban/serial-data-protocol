@@ -76,13 +76,13 @@ void bench_encode(const std::vector<uint8_t>& sdpb_data, int iterations) {
         return;
     }
     
-    // Pre-allocate buffer
-    size_t size = sdp::arrays_of_primitives_size(arrays);
-    std::vector<uint8_t> buffer(size);
-    
     uint64_t total_ns = 0;
+    size_t encoded_size = 0;
     for (int i = 0; i < iterations; i++) {
         uint64_t start = nanotime();
+        // Include size calculation in timing - this is what users must do
+        size_t size = sdp::arrays_of_primitives_size(arrays);
+        std::vector<uint8_t> buffer(size);
         try {
             sdp::arrays_of_primitives_encode(arrays, buffer.data());
         } catch (const std::exception& e) {
@@ -92,6 +92,7 @@ void bench_encode(const std::vector<uint8_t>& sdpb_data, int iterations) {
         uint64_t end = nanotime();
         
         total_ns += (end - start);
+        encoded_size = size;
     }
     
     uint64_t avg_ns = total_ns / iterations;
@@ -99,7 +100,7 @@ void bench_encode(const std::vector<uint8_t>& sdpb_data, int iterations) {
     std::cout << "  " << avg_ns << " ns/op" << std::endl;
     std::cout << std::fixed << std::setprecision(2);
     std::cout << "  " << (avg_ns / 1000.0) << " μs/op" << std::endl;
-    std::cout << "  Encoded size: " << size << " bytes" << std::endl;
+    std::cout << "  Encoded size: " << encoded_size << " bytes" << std::endl;
 }
 
 // Benchmark roundtrip: encode + decode
@@ -115,15 +116,13 @@ void bench_roundtrip(const std::vector<uint8_t>& sdpb_data, int iterations) {
         return;
     }
     
-    // Pre-allocate buffer
-    size_t size = sdp::arrays_of_primitives_size(original);
-    std::vector<uint8_t> encoded(size);
-    
     uint64_t total_ns = 0;
     for (int i = 0; i < iterations; i++) {
         uint64_t start = nanotime();
         
-        // Encode
+        // Encode (with size calculation)
+        size_t size = sdp::arrays_of_primitives_size(original);
+        std::vector<uint8_t> encoded(size);
         try {
             sdp::arrays_of_primitives_encode(original, encoded.data());
         } catch (const std::exception& e) {
