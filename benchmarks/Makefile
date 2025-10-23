@@ -25,6 +25,19 @@ bench-go-message:
 	@cd go && go test -bench=BenchmarkGo_SDP_AudioUnit_Message -run=^\$\$ -benchtime=1s -benchmem
 
 # C++ benchmarks
+bench-cpp-arrays: cpp/bytemode/bench_arrays
+	@echo "=== C++ SDP Arrays Benchmarks (Bulk Optimization) ==="
+	@cd $(PROJECT_ROOT) && $(MKFILE_DIR)/cpp/bytemode/bench_arrays 10000
+
+cpp/bytemode/bench_arrays: cpp/bytemode/bench_arrays.cpp
+	@echo "Building C++ Arrays byte mode benchmark..."
+	@g++ $(CPP_BUILD_FLAGS) \
+		-I$(GENERATED_CPP)/arrays \
+		-o $(MKFILE_DIR)/cpp/bytemode/bench_arrays \
+		$(MKFILE_DIR)/cpp/bytemode/bench_arrays.cpp \
+		$(GENERATED_CPP)/arrays/encode.cpp \
+		$(GENERATED_CPP)/arrays/decode.cpp
+
 bench-cpp-message: cpp/messagemode/bench_audiounit
 	@echo "=== C++ SDP Message Mode Benchmarks ==="
 	@cd $(PROJECT_ROOT) && $(MKFILE_DIR)/cpp/messagemode/bench_audiounit 10000
@@ -40,7 +53,7 @@ cpp/messagemode/bench_audiounit: cpp/messagemode/bench_audiounit.cpp
 		$(GENERATED_CPP)/audiounit/message_encode.cpp \
 		$(GENERATED_CPP)/audiounit/message_decode.cpp
 
-bench-cpp: bench-cpp-message
+bench-cpp: bench-cpp-arrays bench-cpp-message
 
 # Rust benchmarks
 bench-rust-byte:
