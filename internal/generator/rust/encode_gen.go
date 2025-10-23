@@ -160,7 +160,7 @@ func generateArrayEncode(buf *strings.Builder, field *parser.Field, indent strin
 func generateBulkArrayEncode(buf *strings.Builder, elemType, fieldName, indent string) {
 	buf.WriteString(fmt.Sprintf("%s// Bulk encode optimization for primitive arrays\n", indent))
 	buf.WriteString(fmt.Sprintf("%sif !self.%s.is_empty() {\n", indent, fieldName))
-	
+
 	if elemType == "u8" || elemType == "i8" {
 		// Single-byte types: direct slice copy
 		buf.WriteString(fmt.Sprintf("%s    let src = if std::mem::size_of::<i8>() == 1 {\n", indent))
@@ -177,7 +177,7 @@ func generateBulkArrayEncode(buf *strings.Builder, elemType, fieldName, indent s
 		buf.WriteString(fmt.Sprintf("%s    buf[offset..offset + bytes.len()].copy_from_slice(bytes);\n", indent))
 		buf.WriteString(fmt.Sprintf("%s    offset += bytes.len();\n", indent))
 	}
-	
+
 	buf.WriteString(fmt.Sprintf("%s}\n", indent))
 }
 

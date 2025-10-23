@@ -717,15 +717,15 @@ func generateArrayPrimitiveElementDecode(buf *strings.Builder, primitiveType, fi
 // Uses unsafe.Slice to create a byte view of the destination array for a single copy operation.
 func generateBulkArrayDecode(buf *strings.Builder, primitiveType, fieldName string) {
 	elemSize := getPrimitiveSize(primitiveType)
-	
+
 	buf.WriteString("\t// Bulk decode optimization for primitive arrays\n")
 	buf.WriteString("\tif arrCount > 0 {\n")
-	
+
 	// Bounds check
 	buf.WriteString(fmt.Sprintf("\t\tif *offset + int(arrCount)*%d > len(data) {\n", elemSize))
 	buf.WriteString("\t\t\treturn ErrUnexpectedEOF\n")
 	buf.WriteString("\t\t}\n")
-	
+
 	if primitiveType == "u8" || primitiveType == "i8" {
 		// Single-byte types: direct copy without unsafe
 		buf.WriteString("\t\tcopy(dest.")
@@ -740,7 +740,7 @@ func generateBulkArrayDecode(buf *strings.Builder, primitiveType, fieldName stri
 		buf.WriteString(fmt.Sprintf("%d", elemSize))
 		buf.WriteString("])\n")
 	}
-	
+
 	buf.WriteString(fmt.Sprintf("\t\t*offset += int(arrCount)*%d\n", elemSize))
 	buf.WriteString("\t}\n")
 }

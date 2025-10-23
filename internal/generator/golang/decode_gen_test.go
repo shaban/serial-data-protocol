@@ -985,7 +985,7 @@ func TestGenerateDecodeHelpersWithPrimitiveArray(t *testing.T) {
 	// Check for EITHER loop-based decode OR bulk optimization
 	hasLoop := strings.Contains(result, "for i := uint32(0); i < arrCount; i++ {")
 	hasBulkOpt := strings.Contains(result, "Bulk decode optimization")
-	
+
 	if !hasLoop && !hasBulkOpt {
 		t.Errorf("missing decode logic (neither loop nor bulk optimization), got:\n%s", result)
 	}
@@ -1078,7 +1078,7 @@ func TestGenerateDecodeHelpersWithMultiplePrimitiveArrays(t *testing.T) {
 	if !strings.Contains(result, "Bulk decode optimization") {
 		t.Errorf("missing bulk decode optimization for integer arrays")
 	}
-	
+
 	// Floats and bools should still have loop-based decode
 	if !strings.Contains(result, "dest.Floats[i] = math.Float64frombits(binary.LittleEndian.Uint64(data[*offset:]))") {
 		t.Errorf("missing f64 element decode")
@@ -1269,7 +1269,7 @@ func TestGenerateDecodeHelpersAllArrayPrimitiveTypes(t *testing.T) {
 			t.Errorf("missing element decode: %q", expected)
 		}
 	}
-	
+
 	// Integer arrays should have bulk optimization
 	if !strings.Contains(result, "Bulk decode optimization") {
 		t.Errorf("expected bulk decode optimization for integer arrays")

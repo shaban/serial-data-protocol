@@ -12,6 +12,10 @@ bench-go:
 	@echo "=== Go SDP Benchmarks ==="
 	@cd go && go test -bench=. -run=^\$\$ -benchtime=1s -benchmem
 
+bench-go-arrays:
+	@echo "=== Go SDP Arrays Benchmarks (Bulk Optimization) ==="
+	@cd go && go test -bench=BenchmarkGo_SDP_Arrays -run=^\$\$ -benchtime=1s -benchmem
+
 bench-go-byte:
 	@echo "=== Go SDP Byte Mode Benchmarks ==="
 	@cd go && go test -bench=BenchmarkGo_SDP_AudioUnit[^_] -run=^\$\$ -benchtime=1s -benchmem
@@ -39,6 +43,12 @@ cpp/messagemode/bench_audiounit: cpp/messagemode/bench_audiounit.cpp
 bench-cpp: bench-cpp-message
 
 # Rust benchmarks
+bench-rust-byte:
+	@echo "=== Rust SDP Byte Mode Benchmarks ==="
+	@echo "Building and running Rust Arrays benchmark..."
+	@cd $(GENERATED_RUST)/arrays && cargo build $(RUST_BUILD_FLAGS)
+	@cd $(MKFILE_DIR)/rust/bytemode && cargo run --release --bin arrays_benchmark
+
 bench-rust-message:
 	@echo "=== Rust SDP Message Mode Benchmarks ==="
 	@echo "Building and running Rust AudioUnit benchmark..."
@@ -48,7 +58,7 @@ bench-rust-message:
 		AUDIOUNIT_LIB=$(GENERATED_RUST)/audiounit/target/release \
 		cargo run --release --bin audiounit_benchmark
 
-bench-rust: bench-rust-message
+bench-rust: bench-rust-byte bench-rust-message
 
 bench: bench-go bench-cpp bench-rust
 	@echo "✓ Benchmark suite complete"

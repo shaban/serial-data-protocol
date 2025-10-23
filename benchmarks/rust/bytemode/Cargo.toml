@@ -1,0 +1,21 @@
+[package]
+name = "sdp-rust-bytemode-benchmarks"
+version = "0.2.0-rc1"
+edition = "2021"
+authors = ["Serial Data Protocol Contributors"]
+license = "MIT"
+
+[[bin]]
+name = "arrays_benchmark"
+path = "arrays_benchmark.rs"
+
+[dependencies]
+# Point to generated arrays library
+sdp-arrays_of_primitives = { path = "../../../testdata/generated/rust/arrays" }
+
+[profile.release]
+opt-level = 2
+codegen-units = 16
+lto = false
+debug = false
+incremental = true

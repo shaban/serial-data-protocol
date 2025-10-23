@@ -164,10 +164,10 @@ func generateArrayDecode(buf *strings.Builder, field *parser.Field, indent strin
 // generateBulkArrayDecode generates optimized bulk copy code for primitive integer arrays
 func generateBulkArrayDecode(buf *strings.Builder, elemType, fieldName, indent string) {
 	elemSize := FixedSize(elemType)
-	
+
 	buf.WriteString(fmt.Sprintf("%s// Bulk decode optimization for primitive arrays\n", indent))
 	buf.WriteString(fmt.Sprintf("%slet %s = if array_len > 0 {\n", indent, fieldName))
-	
+
 	if elemType == "u8" || elemType == "i8" {
 		// Single-byte types: direct slice copy
 		buf.WriteString(fmt.Sprintf("%s    wire_slice::check_bounds(buf, offset, array_len)?;\n", indent))
@@ -180,13 +180,22 @@ func generateBulkArrayDecode(buf *strings.Builder, elemType, fieldName, indent s
 		}
 	} else {
 		// Multi-byte types: use bytemuck for zero-copy byte view
+		// Note: cast_slice requires proper alignment, so we use try_cast_slice with fallback
 		buf.WriteString(fmt.Sprintf("%s    let byte_len = array_len * %d;\n", indent, elemSize))
 		buf.WriteString(fmt.Sprintf("%s    wire_slice::check_bounds(buf, offset, byte_len)?;\n", indent))
 		buf.WriteString(fmt.Sprintf("%s    let bytes = &buf[offset..offset + byte_len];\n", indent))
 		buf.WriteString(fmt.Sprintf("%s    offset += byte_len;\n", indent))
-		buf.WriteString(fmt.Sprintf("%s    bytemuck::cast_slice(bytes).to_vec()\n", indent))
+		// Use try_cast_slice which checks alignment, fallback to pod_read_unaligned if misaligned
+		buf.WriteString(fmt.Sprintf("%s    if let Ok(slice) = bytemuck::try_cast_slice(bytes) {\n", indent))
+		buf.WriteString(fmt.Sprintf("%s        slice.to_vec()\n", indent))
+		buf.WriteString(fmt.Sprintf("%s    } else {\n", indent))
+		buf.WriteString(fmt.Sprintf("%s        // Misaligned data, read element-by-element\n", indent))
+		buf.WriteString(fmt.Sprintf("%s        bytes.chunks_exact(%d)\n", indent, elemSize))
+		buf.WriteString(fmt.Sprintf("%s            .map(|chunk| %s::from_le_bytes(chunk.try_into().unwrap()))\n", indent, elemType))
+		buf.WriteString(fmt.Sprintf("%s            .collect()\n", indent))
+		buf.WriteString(fmt.Sprintf("%s    }\n", indent))
 	}
-	
+
 	buf.WriteString(fmt.Sprintf("%s} else {\n", indent))
 	buf.WriteString(fmt.Sprintf("%s    Vec::new()\n", indent))
 	buf.WriteString(fmt.Sprintf("%s};\n", indent))
