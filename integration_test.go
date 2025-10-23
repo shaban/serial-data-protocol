@@ -16,12 +16,12 @@ import (
 	"testing"
 	"time"
 
-	arrays "github.com/shaban/serial-data-protocol/testdata/generated/go/arrays"
-	audiounit "github.com/shaban/serial-data-protocol/testdata/generated/go/audiounit"
-	complex "github.com/shaban/serial-data-protocol/testdata/generated/go/complex"
-	nested "github.com/shaban/serial-data-protocol/testdata/generated/go/nested"
-	optional "github.com/shaban/serial-data-protocol/testdata/generated/go/optional"
-	primitives "github.com/shaban/serial-data-protocol/testdata/generated/go/primitives"
+	"github.com/shaban/serial-data-protocol/testdata/generated/go/arrays"
+	"github.com/shaban/serial-data-protocol/testdata/generated/go/audiounit"
+	"github.com/shaban/serial-data-protocol/testdata/generated/go/complex"
+	"github.com/shaban/serial-data-protocol/testdata/generated/go/nested"
+	"github.com/shaban/serial-data-protocol/testdata/generated/go/optional"
+	"github.com/shaban/serial-data-protocol/testdata/generated/go/primitives"
 )
 
 var (

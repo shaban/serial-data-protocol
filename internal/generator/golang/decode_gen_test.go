@@ -982,14 +982,17 @@ func TestGenerateDecodeHelpersWithPrimitiveArray(t *testing.T) {
 		t.Errorf("missing array allocation, got:\n%s", result)
 	}
 
-	// Check loop
-	if !strings.Contains(result, "for i := uint32(0); i < arrCount; i++ {") {
-		t.Errorf("missing loop, got:\n%s", result)
+	// Check for EITHER loop-based decode OR bulk optimization
+	hasLoop := strings.Contains(result, "for i := uint32(0); i < arrCount; i++ {")
+	hasBulkOpt := strings.Contains(result, "Bulk decode optimization")
+	
+	if !hasLoop && !hasBulkOpt {
+		t.Errorf("missing decode logic (neither loop nor bulk optimization), got:\n%s", result)
 	}
 
-	// Check element decode
-	if !strings.Contains(result, "dest.Values[i] = binary.LittleEndian.Uint32(data[*offset:])") {
-		t.Errorf("missing element decode, got:\n%s", result)
+	// For primitive integer arrays, we expect bulk optimization
+	if !hasBulkOpt {
+		t.Errorf("expected bulk decode optimization for u32 array, got loop instead")
 	}
 }
 
@@ -1071,13 +1074,12 @@ func TestGenerateDecodeHelpersWithMultiplePrimitiveArrays(t *testing.T) {
 		t.Errorf("missing bool array allocation")
 	}
 
-	// Check element decodes
-	if !strings.Contains(result, "dest.Bytes[i] = uint8(data[*offset])") {
-		t.Errorf("missing u8 element decode")
+	// Integer arrays should use bulk optimization, floats/bools should use loops
+	if !strings.Contains(result, "Bulk decode optimization") {
+		t.Errorf("missing bulk decode optimization for integer arrays")
 	}
-	if !strings.Contains(result, "dest.Ints[i] = int32(binary.LittleEndian.Uint32(data[*offset:]))") {
-		t.Errorf("missing i32 element decode")
-	}
+	
+	// Floats and bools should still have loop-based decode
 	if !strings.Contains(result, "dest.Floats[i] = math.Float64frombits(binary.LittleEndian.Uint64(data[*offset:]))") {
 		t.Errorf("missing f64 element decode")
 	}
@@ -1177,13 +1179,13 @@ func TestGenerateDecodeHelpersArrayLoopStructure(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Verify loop structure elements in order
+	// Verify structure elements in order (but accept either loop or bulk optimization)
 	expectedOrder := []string{
 		"arrCount = binary.LittleEndian.Uint32(data[*offset:])",
 		"ctx.checkArraySize(arrCount)",
 		"dest.Items = make([]uint16, arrCount)",
-		"for i := uint32(0); i < arrCount; i++ {",
-		"dest.Items[i] = binary.LittleEndian.Uint16(data[*offset:])",
+		// u16 arrays should use bulk optimization, not loops
+		"Bulk decode optimization",
 	}
 
 	lastIndex := -1
@@ -1252,17 +1254,12 @@ func TestGenerateDecodeHelpersAllArrayPrimitiveTypes(t *testing.T) {
 	}
 
 	// Check all element decodes
+	// Integer arrays should use bulk optimization, floats/bools/strings should use loops
 	expectedDecodes := []string{
-		"dest.U8s[i] = uint8(data[*offset])",
-		"dest.U16s[i] = binary.LittleEndian.Uint16(data[*offset:])",
-		"dest.U32s[i] = binary.LittleEndian.Uint32(data[*offset:])",
-		"dest.U64s[i] = binary.LittleEndian.Uint64(data[*offset:])",
-		"dest.I8s[i] = int8(data[*offset])",
-		"dest.I16s[i] = int16(binary.LittleEndian.Uint16(data[*offset:]))",
-		"dest.I32s[i] = int32(binary.LittleEndian.Uint32(data[*offset:]))",
-		"dest.I64s[i] = int64(binary.LittleEndian.Uint64(data[*offset:]))",
+		// Floats still need loop-based decode
 		"dest.F32s[i] = math.Float32frombits(binary.LittleEndian.Uint32(data[*offset:]))",
 		"dest.F64s[i] = math.Float64frombits(binary.LittleEndian.Uint64(data[*offset:]))",
+		// Bools and strings still need loop-based decode
 		"dest.Bools[i] = data[*offset] != 0",
 		"dest.Strs[i] = string(data[*offset:*offset+int(strLen)])",
 	}
@@ -1271,6 +1268,11 @@ func TestGenerateDecodeHelpersAllArrayPrimitiveTypes(t *testing.T) {
 		if !strings.Contains(result, expected) {
 			t.Errorf("missing element decode: %q", expected)
 		}
+	}
+	
+	// Integer arrays should have bulk optimization
+	if !strings.Contains(result, "Bulk decode optimization") {
+		t.Errorf("expected bulk decode optimization for integer arrays")
 	}
 }
 

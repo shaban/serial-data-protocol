@@ -1,9 +1,10 @@
 package arrays
 
 import (
-	"math"
 	"io"
+	"unsafe"
 	"encoding/binary"
+	"math"
 )
 
 // Size limit constants for decode validation
@@ -95,12 +96,13 @@ func decodeArraysOfPrimitives(dest *ArraysOfPrimitives, data []byte, offset *int
 	}
 
 	dest.U8Array = make([]uint8, arrCount)
-	for i := uint32(0); i < arrCount; i++ {
-		if *offset + 1 > len(data) {
+	// Bulk decode optimization for primitive arrays
+	if arrCount > 0 {
+		if *offset + int(arrCount)*1 > len(data) {
 			return ErrUnexpectedEOF
 		}
-		dest.U8Array[i] = uint8(data[*offset])
-		*offset += 1
+		copy(dest.U8Array, data[*offset:*offset+int(arrCount)])
+		*offset += int(arrCount)*1
 	}
 
 	// Field: U32Array ([]u32)
@@ -116,12 +118,14 @@ func decodeArraysOfPrimitives(dest *ArraysOfPrimitives, data []byte, offset *int
 	}
 
 	dest.U32Array = make([]uint32, arrCount)
-	for i := uint32(0); i < arrCount; i++ {
-		if *offset + 4 > len(data) {
+	// Bulk decode optimization for primitive arrays
+	if arrCount > 0 {
+		if *offset + int(arrCount)*4 > len(data) {
 			return ErrUnexpectedEOF
 		}
-		dest.U32Array[i] = binary.LittleEndian.Uint32(data[*offset:])
-		*offset += 4
+		bytes := unsafe.Slice((*byte)(unsafe.Pointer(&dest.U32Array[0])), int(arrCount)*4)
+		copy(bytes, data[*offset:*offset+int(arrCount)*4])
+		*offset += int(arrCount)*4
 	}
 
 	// Field: F64Array ([]f64)

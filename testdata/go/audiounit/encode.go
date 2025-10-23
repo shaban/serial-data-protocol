@@ -1,9 +1,9 @@
 package audiounit
 
 import (
-	"encoding/binary"
 	"math"
 	"io"
+	"encoding/binary"
 )
 
 // calculateParameterSize calculates the wire format size for Parameter.

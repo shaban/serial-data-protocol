@@ -510,15 +510,22 @@ func generateArrayDecode(buf *strings.Builder, arrayType *parser.TypeExpr, field
 	buf.WriteString(goType)
 	buf.WriteString(", arrCount)\n")
 
-	// Decode elements
-	buf.WriteString("\tfor i := uint32(0); i < arrCount; i++ {\n")
+	// Check if we can use bulk copy optimization for primitive integer arrays
+	if arrayType.Elem.Kind == parser.TypeKindPrimitive && canUseBulkCopy(arrayType.Elem.Name) {
+		// Use bulk copy - no loop needed
+		generateBulkArrayDecode(buf, arrayType.Elem.Name, fieldName)
+	} else {
+		// Element-by-element decode for complex types
+		buf.WriteString("\tfor i := uint32(0); i < arrCount; i++ {\n")
 
-	// Generate element decode based on type
-	if err := generateArrayElementDecode(buf, arrayType.Elem, fieldName); err != nil {
-		return err
+		// Generate element decode based on type
+		if err := generateArrayElementDecode(buf, arrayType.Elem, fieldName); err != nil {
+			return err
+		}
+
+		buf.WriteString("\t}\n")
 	}
 
-	buf.WriteString("\t}\n")
 	buf.WriteString("\n")
 
 	return nil
@@ -581,6 +588,7 @@ func generateArrayElementDecode(buf *strings.Builder, elemType *parser.TypeExpr,
 }
 
 // generateArrayPrimitiveElementDecode generates decode code for primitive array elements.
+// This is only used when bulk copy optimization doesn't apply (floats, bools, strings).
 func generateArrayPrimitiveElementDecode(buf *strings.Builder, primitiveType, fieldName string) error {
 	switch primitiveType {
 	case "u8":
@@ -703,6 +711,38 @@ func generateArrayPrimitiveElementDecode(buf *strings.Builder, primitiveType, fi
 	}
 
 	return nil
+}
+
+// generateBulkArrayDecode generates optimized bulk copy code for decoding primitive integer arrays.
+// Uses unsafe.Slice to create a byte view of the destination array for a single copy operation.
+func generateBulkArrayDecode(buf *strings.Builder, primitiveType, fieldName string) {
+	elemSize := getPrimitiveSize(primitiveType)
+	
+	buf.WriteString("\t// Bulk decode optimization for primitive arrays\n")
+	buf.WriteString("\tif arrCount > 0 {\n")
+	
+	// Bounds check
+	buf.WriteString(fmt.Sprintf("\t\tif *offset + int(arrCount)*%d > len(data) {\n", elemSize))
+	buf.WriteString("\t\t\treturn ErrUnexpectedEOF\n")
+	buf.WriteString("\t\t}\n")
+	
+	if primitiveType == "u8" || primitiveType == "i8" {
+		// Single-byte types: direct copy without unsafe
+		buf.WriteString("\t\tcopy(dest.")
+		buf.WriteString(fieldName)
+		buf.WriteString(", data[*offset:*offset+int(arrCount)])\n")
+	} else {
+		// Multi-byte types: unsafe.Slice for zero-copy byte view
+		buf.WriteString("\t\tbytes := unsafe.Slice((*byte)(unsafe.Pointer(&dest.")
+		buf.WriteString(fieldName)
+		buf.WriteString(fmt.Sprintf("[0])), int(arrCount)*%d)\n", elemSize))
+		buf.WriteString("\t\tcopy(bytes, data[*offset:*offset+int(arrCount)*")
+		buf.WriteString(fmt.Sprintf("%d", elemSize))
+		buf.WriteString("])\n")
+	}
+	
+	buf.WriteString(fmt.Sprintf("\t\t*offset += int(arrCount)*%d\n", elemSize))
+	buf.WriteString("\t}\n")
 }
 
 // generateArrayNamedTypeElementDecode generates decode code for named type array elements.
