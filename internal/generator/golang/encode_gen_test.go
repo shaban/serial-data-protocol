@@ -667,7 +667,7 @@ func TestGenerateEncodeHelpers_PrimitiveArray(t *testing.T) {
 	// Check for either bulk copy optimization OR element-by-element loop
 	hasBulkCopy := strings.Contains(result, "// Bulk copy optimization") || strings.Contains(result, "unsafe.Slice")
 	hasLoop := strings.Contains(result, "for i := range src.Values {")
-
+	
 	if !hasBulkCopy && !hasLoop {
 		t.Error("missing array encoding (neither bulk copy nor loop found)")
 	}
