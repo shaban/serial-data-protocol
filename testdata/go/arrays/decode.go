@@ -1,10 +1,10 @@
 package arrays
 
 import (
+	"math"
 	"io"
 	"unsafe"
 	"encoding/binary"
-	"math"
 )
 
 // Size limit constants for decode validation

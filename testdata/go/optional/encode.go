@@ -1,8 +1,8 @@
 package optional
 
 import (
-	"encoding/binary"
 	"io"
+	"encoding/binary"
 )
 
 // calculateRequestSize calculates the wire format size for Request.

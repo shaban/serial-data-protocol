@@ -7,8 +7,9 @@ license = "MIT"
 description = "Generated SDP package"
 
 [dependencies]
-# Only external dependency: byteorder for endianness handling
-byteorder = "1.5"
+# Dependencies for zero-copy operations
+byteorder = "1.5"  # Endianness handling
+bytemuck = "1.14"  # Safe zero-copy byte casting for bulk array operations
 
 [features]
 # Benchmark server mode (for cross-language performance testing)

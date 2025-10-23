@@ -115,8 +115,9 @@ func generateCargoToml(schema *parser.Schema, outputDir string, verbose bool) er
 	content += "description = \"Generated SDP package\"\n\n"
 
 	content += "[dependencies]\n"
-	content += "# Only external dependency: byteorder for endianness handling\n"
-	content += "byteorder = \"1.5\"\n\n"
+	content += "# Dependencies for zero-copy operations\n"
+	content += "byteorder = \"1.5\"  # Endianness handling\n"
+	content += "bytemuck = \"1.14\"  # Safe zero-copy byte casting for bulk array operations\n\n"
 
 	content += "[features]\n"
 	content += "# Benchmark server mode (for cross-language performance testing)\n"

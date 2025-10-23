@@ -299,6 +299,19 @@ pub type SliceResult<T> = std::result::Result<T, SliceError>;
 /// Maximum array size (prevents DoS attacks)
 const MAX_ARRAY_SIZE: u32 = 10_000_000;
 
+/// Check if buffer has enough space at the given offset
+/// This is a helper for bulk operations that need bounds checking
+#[inline]
+pub fn check_bounds(buf: &[u8], offset: usize, size: usize) -> SliceResult<()> {
+    if offset + size > buf.len() {
+        return Err(SliceError::BufferTooSmall {
+            needed: offset + size,
+            available: buf.len(),
+        });
+    }
+    Ok(())
+}
+
 // ============================================================================
 // ENCODING - Direct byte slice operations
 // ============================================================================

@@ -117,6 +117,13 @@ func generateArrayDecode(buf *strings.Builder, field *parser.Field, indent strin
 	buf.WriteString(fmt.Sprintf("%slet array_len = wire_slice::decode_u32(buf, offset)? as usize;\n", indent))
 	buf.WriteString(fmt.Sprintf("%soffset += 4;\n", indent))
 
+	// Check if we can use bulk copy optimization for primitive integer arrays
+	if elemType.Kind == parser.TypeKindPrimitive && CanUseBulkCopy(elemType.Name) {
+		generateBulkArrayDecode(buf, elemType.Name, fieldName, indent)
+		return nil
+	}
+
+	// Fall back to element-by-element decoding for complex types
 	// Create vector with capacity
 	buf.WriteString(fmt.Sprintf("%slet mut %s = Vec::with_capacity(array_len);\n", indent, fieldName))
 
@@ -152,6 +159,37 @@ func generateArrayDecode(buf *strings.Builder, field *parser.Field, indent strin
 	buf.WriteString(fmt.Sprintf("%s}\n", indent))
 
 	return nil
+}
+
+// generateBulkArrayDecode generates optimized bulk copy code for primitive integer arrays
+func generateBulkArrayDecode(buf *strings.Builder, elemType, fieldName, indent string) {
+	elemSize := FixedSize(elemType)
+	
+	buf.WriteString(fmt.Sprintf("%s// Bulk decode optimization for primitive arrays\n", indent))
+	buf.WriteString(fmt.Sprintf("%slet %s = if array_len > 0 {\n", indent, fieldName))
+	
+	if elemType == "u8" || elemType == "i8" {
+		// Single-byte types: direct slice copy
+		buf.WriteString(fmt.Sprintf("%s    wire_slice::check_bounds(buf, offset, array_len)?;\n", indent))
+		buf.WriteString(fmt.Sprintf("%s    let slice = &buf[offset..offset + array_len];\n", indent))
+		buf.WriteString(fmt.Sprintf("%s    offset += array_len;\n", indent))
+		if elemType == "i8" {
+			buf.WriteString(fmt.Sprintf("%s    unsafe { std::slice::from_raw_parts(slice.as_ptr() as *const i8, slice.len()).to_vec() }\n", indent))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s    slice.to_vec()\n", indent))
+		}
+	} else {
+		// Multi-byte types: use bytemuck for zero-copy byte view
+		buf.WriteString(fmt.Sprintf("%s    let byte_len = array_len * %d;\n", indent, elemSize))
+		buf.WriteString(fmt.Sprintf("%s    wire_slice::check_bounds(buf, offset, byte_len)?;\n", indent))
+		buf.WriteString(fmt.Sprintf("%s    let bytes = &buf[offset..offset + byte_len];\n", indent))
+		buf.WriteString(fmt.Sprintf("%s    offset += byte_len;\n", indent))
+		buf.WriteString(fmt.Sprintf("%s    bytemuck::cast_slice(bytes).to_vec()\n", indent))
+	}
+	
+	buf.WriteString(fmt.Sprintf("%s} else {\n", indent))
+	buf.WriteString(fmt.Sprintf("%s    Vec::new()\n", indent))
+	buf.WriteString(fmt.Sprintf("%s};\n", indent))
 }
 
 // generateOptionalDecode generates decoding code for optional fields

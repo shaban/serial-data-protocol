@@ -11,15 +11,23 @@ impl ArraysOfPrimitives {
 
         wire_slice::encode_u32(buf, offset, self.u8_array.len() as u32)?;
         offset += 4;
-        for item in &self.u8_array {
-            wire_slice::encode_u8(buf, offset, *item)?;
-            offset += 1;
+        // Bulk encode optimization for primitive arrays
+        if !self.u8_array.is_empty() {
+            let src = if std::mem::size_of::<i8>() == 1 {
+                unsafe { std::slice::from_raw_parts(self.u8_array.as_ptr() as *const u8, self.u8_array.len()) }
+            } else { unreachable!() };
+            wire_slice::check_bounds(buf, offset, src.len())?;
+            buf[offset..offset + src.len()].copy_from_slice(src);
+            offset += src.len();
         }
         wire_slice::encode_u32(buf, offset, self.u32_array.len() as u32)?;
         offset += 4;
-        for item in &self.u32_array {
-            wire_slice::encode_u32(buf, offset, *item)?;
-            offset += 4;
+        // Bulk encode optimization for primitive arrays
+        if !self.u32_array.is_empty() {
+            let bytes = bytemuck::cast_slice(&self.u32_array);
+            wire_slice::check_bounds(buf, offset, bytes.len())?;
+            buf[offset..offset + bytes.len()].copy_from_slice(bytes);
+            offset += bytes.len();
         }
         wire_slice::encode_u32(buf, offset, self.f64_array.len() as u32)?;
         offset += 4;

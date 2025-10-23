@@ -1,9 +1,9 @@
 package nested
 
 import (
-	"encoding/binary"
 	"math"
 	"io"
+	"encoding/binary"
 )
 
 // Size limit constants for decode validation

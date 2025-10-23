@@ -10,20 +10,27 @@ impl ArraysOfPrimitives {
 
         let array_len = wire_slice::decode_u32(buf, offset)? as usize;
         offset += 4;
-        let mut u8_array = Vec::with_capacity(array_len);
-        for _ in 0..array_len {
-            let item = wire_slice::decode_u8(buf, offset)?;
-            offset += 1;
-            u8_array.push(item);
-        }
+        // Bulk decode optimization for primitive arrays
+        let u8_array = if array_len > 0 {
+            wire_slice::check_bounds(buf, offset, array_len)?;
+            let slice = &buf[offset..offset + array_len];
+            offset += array_len;
+            slice.to_vec()
+        } else {
+            Vec::new()
+        };
         let array_len = wire_slice::decode_u32(buf, offset)? as usize;
         offset += 4;
-        let mut u32_array = Vec::with_capacity(array_len);
-        for _ in 0..array_len {
-            let item = wire_slice::decode_u32(buf, offset)?;
-            offset += 4;
-            u32_array.push(item);
-        }
+        // Bulk decode optimization for primitive arrays
+        let u32_array = if array_len > 0 {
+            let byte_len = array_len * 4;
+            wire_slice::check_bounds(buf, offset, byte_len)?;
+            let bytes = &buf[offset..offset + byte_len];
+            offset += byte_len;
+            bytemuck::cast_slice(bytes).to_vec()
+        } else {
+            Vec::new()
+        };
         let array_len = wire_slice::decode_u32(buf, offset)? as usize;
         offset += 4;
         let mut f64_array = Vec::with_capacity(array_len);

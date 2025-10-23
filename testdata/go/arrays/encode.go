@@ -1,10 +1,10 @@
 package arrays
 
 import (
-	"encoding/binary"
 	"math"
 	"io"
 	"unsafe"
+	"encoding/binary"
 )
 
 // calculateArraysOfPrimitivesSize calculates the wire format size for ArraysOfPrimitives.
