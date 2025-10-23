@@ -215,8 +215,8 @@ func TestIntegrationWithArrays(t *testing.T) {
 		t.Error("array length calculation not found in encoder")
 	}
 	// Accept either bulk copy optimization OR traditional loop
-	hasBulkCopy := bytes.Contains([]byte(encodeHelpers), []byte("// Bulk copy")) || 
-	               bytes.Contains([]byte(encodeHelpers), []byte("unsafe.Slice"))
+	hasBulkCopy := bytes.Contains([]byte(encodeHelpers), []byte("// Bulk copy")) ||
+		bytes.Contains([]byte(encodeHelpers), []byte("unsafe.Slice"))
 	hasLoop := bytes.Contains([]byte(encodeHelpers), []byte("for i := range src.Values"))
 	if !hasBulkCopy && !hasLoop {
 		t.Error("array encoding not found in encoder (neither bulk copy nor loop)")

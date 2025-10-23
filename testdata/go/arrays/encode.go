@@ -1,10 +1,9 @@
 package arrays
 
 import (
-	"io"
-	"unsafe"
 	"encoding/binary"
 	"math"
+	"io"
 )
 
 // calculateArraysOfPrimitivesSize calculates the wire format size for ArraysOfPrimitives.
@@ -96,21 +95,17 @@ func encodeArraysOfPrimitives(src *ArraysOfPrimitives, buf []byte, offset *int) 
 	binary.LittleEndian.PutUint32(buf[*offset:], uint32(len(src.U8Array)))
 	*offset += 4
 
-	// Bulk copy optimization for primitive arrays
-	if len(src.U8Array) > 0 {
-		copy(buf[*offset:], src.U8Array)
-		*offset += len(src.U8Array)
+	for i := range src.U8Array {
+		buf[*offset] = src.U8Array[i]
+		*offset++
 	}
 	// Field: U32Array ([]u32)
 	binary.LittleEndian.PutUint32(buf[*offset:], uint32(len(src.U32Array)))
 	*offset += 4
 
-	// Bulk copy optimization for primitive arrays
-	if len(src.U32Array) > 0 {
-		// Cast slice to bytes for bulk copy
-		bytes := unsafe.Slice((*byte)(unsafe.Pointer(&src.U32Array[0])), len(src.U32Array)*4)
-		copy(buf[*offset:], bytes)
-		*offset += len(src.U32Array)*4
+	for i := range src.U32Array {
+		binary.LittleEndian.PutUint32(buf[*offset:], src.U32Array[i])
+		*offset += 4
 	}
 	// Field: F64Array ([]f64)
 	binary.LittleEndian.PutUint32(buf[*offset:], uint32(len(src.F64Array)))
