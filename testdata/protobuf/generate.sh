@@ -33,5 +33,8 @@ go 1.25.1
 require google.golang.org/protobuf v1.31.0
 EOF
 
+# Run go mod tidy to create go.sum
+(cd "$OUTPUT_DIR" && go mod tidy)
+
 echo "✅ Protocol Buffers code generated successfully"
 echo "   Generated: $OUTPUT_DIR/audiounit.pb.go"

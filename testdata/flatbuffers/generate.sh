@@ -29,7 +29,12 @@ cat > "$OUTPUT_DIR/go.mod" <<EOF
 module github.com/shaban/serial-data-protocol/testdata/generated/flatbuffers/go
 
 go 1.25.1
+
+require github.com/google/flatbuffers v23.5.26+incompatible
 EOF
+
+# Run go mod tidy to create go.sum
+(cd "$OUTPUT_DIR" && go mod tidy)
 
 echo "✅ FlatBuffers code generated successfully"
 echo "   Generated: $OUTPUT_DIR/audiounit/*.go"
