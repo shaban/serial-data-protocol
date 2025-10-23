@@ -12,33 +12,37 @@
 
 | Language | Time (ns/op) | Relative | Allocations | Notes |
 |----------|--------------|----------|-------------|-------|
-| **Rust** | **41 ns**    | 1.0×     | 0 (pre-allocated) | Buffer-based API |
-| **C++**  | **49 ns**    | 1.20×    | 1 vector    | **Realistic: size() + encode()** |
-| **Go**   | **74 ns**    | 1.80×    | 144 B (1 alloc) | Allocates internally |
+| **Rust** | **40 ns**    | 1.0×     | 0 (pre-allocated) | Buffer-based API, Criterion median (±7 ns) |
+| **C++**  | **49 ns**    | 1.23×    | 1 vector    | **Realistic: size() + encode()** |
+| **Go**   | **74 ns**    | 1.85×    | 144 B (1 alloc) | Allocates internally |
 
-**Winner:** Rust (41 ns) - Fastest with pre-allocated buffer
+**Winner:** Rust (40 ns) - Fastest with pre-allocated buffer
 
 **Methodology Note:** C++ measurement now includes the required `_size()` call inside the timing loop (was 39 ns encode-only previously). This measures the realistic two-step process that all users must perform.
 
 ### Decode Performance (binary → struct)
 
-| Language | Time (ns/op) | Relative | Allocations |
-|----------|--------------|----------|-------------|
-| **C++**  | **112 ns**   | 1.0×     | ~5 vectors |
-| **Go**   | **185 ns**   | 1.65×    | 200 B (10 allocs) |
-| **Rust** | **343 ns**   | 3.06×    | ~5 vectors + alignment check |
+| Language | Time (ns/op) | Relative | Allocations | Notes |
+|----------|--------------|----------|-------------|-------|
+| **C++**  | **112 ns**   | 1.0×     | ~5 vectors | Zero-copy decode |
+| **Go**   | **185 ns**   | 1.65×    | 200 B (10 allocs) | Allocates intermediate slices |
+| **Rust** | **353 ns**   | 3.15×    | ~5 vectors + alignment check | Criterion median (±26 ns) |
 
 **Winner:** C++ (112 ns) - Fastest with zero-copy decode
+
+**Note:** Rust decode time measured with Criterion.rs statistical framework (handles outliers and variance automatically). Previous simple benchmark showed 330-800 ns range due to CPU throttling and cache effects.
 
 **Winner:** C++ (152 ns) - 17% faster than Go, 54% faster than Rust
 
 ### Roundtrip Performance (encode + decode)
 
-| Language | Time (ns/op) | Relative |
-|----------|--------------|----------|
-| **C++**  | **171 ns**   | 1.0×     |
-| **Go**   | **263 ns**   | 1.54×    |
-| **Rust** | **421 ns**   | 2.46×    |
+| Language | Time (ns/op) | Relative | Notes |
+|----------|--------------|----------|-------|
+| **C++**  | **171 ns**   | 1.0×     | |
+| **Go**   | **263 ns**   | 1.54×    | |
+| **Rust** | **371 ns**   | 2.17×    | Criterion median (±15 ns) |
+
+**Winner:** C++ (171 ns) - Best overall throughput
 
 **Winner:** C++ (156 ns) - 41% faster than Go, 58% faster than Rust
 
@@ -57,12 +61,12 @@ Our initial benchmark measured only step 2 (39 ns) because the size was pre-calc
 **Comparison:**
 - **C++ (realistic):** 49 ns = size() + encode()
 - **Go:** 74 ns = single call that allocates
-- **Rust:** 41 ns = single call with pre-allocated buffer
+- **Rust:** 40 ns = single call with pre-allocated buffer (Criterion median)
 
 ### Rust Performance Advantages (Encode)
 
 **Rust is fastest for realistic single-message encoding:**
-- **Rust:** 41 ns/op (pre-allocated buffer, single-step API)
+- **Rust:** 40 ns/op (pre-allocated buffer, single-step API, Criterion median ±7 ns)
 - **C++ (realistic):** 49 ns/op (two-step: ~19 ns size + ~30 ns encode)
 - **Go:** 74 ns/op (single-step with allocation)
 
@@ -78,7 +82,7 @@ Our initial benchmark measured only step 2 (39 ns) because the size was pre-calc
 **C++ Wins Decoding:**
 - **C++:** 112 ns/op (fastest, zero-copy pointer arithmetic)
 - **Go:** 185 ns/op (65% slower, allocates intermediate slices)
-- **Rust:** 343 ns/op (3× slower, alignment checks + fallback)
+- **Rust:** 353 ns/op (3.2× slower, alignment checks + fallback, Criterion median ±26 ns)
 
 **Why C++ is fastest:**
 1. **Zero-copy decode:** Direct pointer arithmetic, no intermediate buffers
@@ -164,23 +168,24 @@ make bench-rust-byte     # Rust
 **Rust is fastest for single-message encoding, C++ wins decode, Go is simplest:**
 
 **Encode Performance (realistic, one-off messages):**
-- **Rust:** 41 ns (baseline - fastest)
-- **C++ (realistic):** 49 ns (+20%) - includes required size calculation
-- **Go:** 74 ns (+80%)
+- **Rust:** 40 ns (baseline - fastest, Criterion median ±7 ns)
+- **C++ (realistic):** 49 ns (+23%) - includes required size calculation
+- **Go:** 74 ns (+85%)
 
 **Decode Performance:**
 - **C++:** 112 ns (baseline - fastest)
 - **Go:** 185 ns (+65%)
-- **Rust:** 343 ns (+206%)
+- **Rust:** 353 ns (+215%, Criterion median ±26 ns)
 
 **Key Insights:**
-1. **Rust** has the fastest single-step encode API (41 ns)
-2. **C++** is 20% slower for encode (49 ns) but wins decode by 65% (112 ns vs 185 ns)
+1. **Rust** has the fastest single-step encode API (40 ns) with stable performance
+2. **C++** is 23% slower for encode (49 ns) but wins decode by 65% (112 ns vs 185 ns)
 3. **Go** is fastest to write code for, with competitive performance (74 ns encode, 185 ns decode)
 4. All three benefit from 2-3× bulk array optimization
+5. **Criterion.rs** provides statistical rigor - eliminates variance from CPU throttling and cache effects
 
 **Recommendation:** 
-- Use **Rust** for encode-heavy workloads with safety requirements
+- Use **Rust** for encode-heavy workloads with safety requirements (fastest + predictable)
 - Use **C++** for decode-heavy or balanced workloads where maximum performance is critical
 - Use **Go** for rapid development with good-enough performance
 
