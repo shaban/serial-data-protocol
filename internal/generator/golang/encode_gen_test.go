@@ -664,14 +664,17 @@ func TestGenerateEncodeHelpers_PrimitiveArray(t *testing.T) {
 		t.Error("missing array count encoding")
 	}
 
-	// Check loop
-	if !strings.Contains(result, "for i := range src.Values {") {
-		t.Error("missing array loop")
+	// Check for either bulk copy optimization OR element-by-element loop
+	hasBulkCopy := strings.Contains(result, "// Bulk copy optimization") || strings.Contains(result, "unsafe.Slice")
+	hasLoop := strings.Contains(result, "for i := range src.Values {")
+	
+	if !hasBulkCopy && !hasLoop {
+		t.Error("missing array encoding (neither bulk copy nor loop found)")
 	}
 
-	// Check element encoding
-	if !strings.Contains(result, "binary.LittleEndian.PutUint32(buf[*offset:], src.Values[i])") {
-		t.Error("missing array element encoding")
+	// If using loop, check element encoding
+	if hasLoop && !strings.Contains(result, "binary.LittleEndian.PutUint32(buf[*offset:], src.Values[i])") {
+		t.Error("missing array element encoding in loop")
 	}
 }
 

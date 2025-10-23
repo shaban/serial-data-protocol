@@ -303,6 +303,7 @@ func formatGoFileWithAutoImports(packageName string, body string) string {
 		"errors":          {"errors.New"},
 		"math":            {"math.Float"},
 		"io":              {"io.ReadAll", "w io.Writer", "r io.Reader"}, // For streaming I/O functions
+		"unsafe":          {"unsafe.Slice", "unsafe.Pointer"},            // For bulk array copy optimization
 	}
 
 	for importPath, markers := range importChecks {

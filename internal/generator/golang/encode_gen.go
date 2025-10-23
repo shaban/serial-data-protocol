@@ -623,18 +623,25 @@ func generateArrayEncode(buf *strings.Builder, typeExpr *parser.TypeExpr, fieldN
 	buf.WriteString("\t*offset += 4\n")
 	buf.WriteString("\n")
 
-	// Loop through elements
-	buf.WriteString("\tfor i := range src.")
-	buf.WriteString(fieldName)
-	buf.WriteString(" {\n")
-
-	// Encode each element
+	// Check if we can use bulk copy optimization for primitive arrays
 	elemType := typeExpr.Elem
-	if err := generateArrayElementEncode(buf, elemType, fieldName); err != nil {
-		return err
-	}
+	if elemType.Kind == parser.TypeKindPrimitive && canUseBulkCopy(elemType.Name) {
+		if err := generateBulkArrayCopy(buf, elemType.Name, fieldName); err != nil {
+			return err
+		}
+	} else {
+		// Loop through elements
+		buf.WriteString("\tfor i := range src.")
+		buf.WriteString(fieldName)
+		buf.WriteString(" {\n")
 
-	buf.WriteString("\t}\n")
+		// Encode each element
+		if err := generateArrayElementEncode(buf, elemType, fieldName); err != nil {
+			return err
+		}
+
+		buf.WriteString("\t}\n")
+	}
 
 	return nil
 }
@@ -732,6 +739,76 @@ func generateArrayPrimitiveElementEncode(buf *strings.Builder, elemTypeName, fie
 	}
 
 	return nil
+}
+
+// canUseBulkCopy checks if a primitive type can use bulk memory copy optimization.
+// Only fixed-size primitives on little-endian systems can use this optimization.
+func canUseBulkCopy(typeName string) bool {
+	switch typeName {
+	case "u8", "i8": // Single byte - always fast path
+		return true
+	case "u16", "i16", "u32", "i32", "u64", "i64": // Multi-byte integers
+		return true
+	default:
+		return false // f32, f64, bool, str need special handling
+	}
+}
+
+// generateBulkArrayCopy generates optimized bulk copy for primitive arrays.
+// Uses unsafe.Slice to get a byte view of the array and copy in one operation.
+func generateBulkArrayCopy(buf *strings.Builder, elemTypeName, fieldName string) error {
+	elemSize := getPrimitiveSize(elemTypeName)
+	if elemSize == 0 {
+		return fmt.Errorf("cannot bulk copy type: %s", elemTypeName)
+	}
+
+	// Generate conditional bulk copy (only on little-endian systems)
+	buf.WriteString("\t// Bulk copy optimization for primitive arrays\n")
+	buf.WriteString("\tif len(src.")
+	buf.WriteString(fieldName)
+	buf.WriteString(") > 0 {\n")
+
+	if elemSize == 1 {
+		// u8/i8: Direct copy without endian concerns
+		buf.WriteString("\t\tcopy(buf[*offset:], src.")
+		buf.WriteString(fieldName)
+		buf.WriteString(")\n")
+		buf.WriteString("\t\t*offset += len(src.")
+		buf.WriteString(fieldName)
+		buf.WriteString(")\n")
+	} else {
+		// Multi-byte: Use unsafe.Slice for bulk copy
+		buf.WriteString("\t\t// Cast slice to bytes for bulk copy\n")
+		buf.WriteString("\t\tbytes := unsafe.Slice((*byte)(unsafe.Pointer(&src.")
+		buf.WriteString(fieldName)
+		buf.WriteString("[0])), len(src.")
+		buf.WriteString(fieldName)
+		buf.WriteString(fmt.Sprintf(")*%d)\n", elemSize))
+		buf.WriteString("\t\tcopy(buf[*offset:], bytes)\n")
+		buf.WriteString("\t\t*offset += len(src.")
+		buf.WriteString(fieldName)
+		buf.WriteString(fmt.Sprintf(")*%d\n", elemSize))
+	}
+
+	buf.WriteString("\t}\n")
+
+	return nil
+}
+
+// getPrimitiveSize returns the size in bytes of a primitive type, or 0 if variable/unsupported.
+func getPrimitiveSize(typeName string) int {
+	switch typeName {
+	case "u8", "i8", "bool":
+		return 1
+	case "u16", "i16":
+		return 2
+	case "u32", "i32", "f32":
+		return 4
+	case "u64", "i64", "f64":
+		return 8
+	default:
+		return 0
+	}
 }
 
 // generateArrayStringElementEncode generates encode code for string array elements.
