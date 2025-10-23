@@ -264,7 +264,7 @@ pub enum SliceError {
     /// Buffer too small for the requested operation
     BufferTooSmall { needed: usize, available: usize },
     /// Invalid UTF-8 in string field
-    InvalidUtf8(std::string::FromUtf8Error),
+    InvalidUtf8(std::str::Utf8Error),
     /// Array length exceeds maximum (prevents DoS)
     ArrayTooLarge { size: u32, max: u32 },
     /// Invalid boolean value (must be 0 or 1)
@@ -288,8 +288,10 @@ impl std::fmt::Display for SliceError {
 
 impl std::error::Error for SliceError {}
 
-impl From<std::string::FromUtf8Error> for SliceError {
-    fn from(e: std::string::FromUtf8Error) -> Self {
+// Note: std::str::Utf8Error for slice operations (zero-copy validation)
+// Different from std::string::FromUtf8Error used in Reader API (owned data)
+impl From<std::str::Utf8Error> for SliceError {
+    fn from(e: std::str::Utf8Error) -> Self {
         SliceError::InvalidUtf8(e)
     }
 }
@@ -581,7 +583,9 @@ pub fn decode_string(buf: &[u8], offset: usize) -> SliceResult<(String, usize)> 
     }
     
     let bytes = &buf[offset + 4..offset + 4 + len];
-    let s = String::from_utf8(bytes.to_vec())?;
+    // Optimize: validate UTF-8 in-place first (zero-copy), then allocate
+    // This is faster than bytes.to_vec() + String::from_utf8()
+    let s = std::str::from_utf8(bytes)?.to_string();
     
     Ok((s, total))
 }

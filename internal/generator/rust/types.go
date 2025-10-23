@@ -143,10 +143,10 @@ func FixedSize(typeName string) int {
 }
 
 // CanUseBulkCopy returns true if the type can use bulk memcpy optimization
-// Only primitive integer types (not floats, bool, str) can use this
+// Only primitive integer and float types (not bool, str) can use this
 func CanUseBulkCopy(typeName string) bool {
 	switch typeName {
-	case "u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64":
+	case "u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64", "f32", "f64":
 		return true
 	default:
 		return false
