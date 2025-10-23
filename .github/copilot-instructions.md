@@ -83,45 +83,67 @@ Generated code uses ONLY standard libraries:
 
 ---
 
-## Development Workflows
+## Development workflows, generation, and benchmarking (modernized)
 
-### Building & Testing
+This project uses a Makefile-driven orchestration layer and small shell helpers to keep generation, tests, and benchmarks reproducible across languages. The single entry-point for developer workflows is the project root Makefile and the `benchmarks/Makefile` for performance runs.
 
-**Current state (needs modernization):**
-
-```bash
-# Build generator
-go build -o sdp-gen ./cmd/sdp-gen
-
-# Go tests work well (415 tests)
-go test ./...
-go test -cover ./...
-
-# Non-Go testing is fragmented
-cd benchmarks && make bench                    # Benchmarks
-```
-
-**Test organization:**
-- ✅ **Go tests:** Well-organized with TestMain auto-regeneration
-- ❌ **C++/Rust tests:** Individual Makefiles, no unified runner
-- ❌ **Cross-language verification:** Manual, not automated
-- ❌ **Benchmarks:** Inconsistent, hard to compare across languages
-
-**See `MODERNIZATION_SUMMARY.md` for recommended improvements (Make-orchestrated unified testing).**
-
-### Generating Code
+High-level commands you will use:
 
 ```bash
-# Generate Go code
-sdp-gen -schema plugin.sdp -output ./plugin -lang go
+# Rebuild the generator and regenerate all target languages (Go/C++/Rust/Swift)
+make generate
 
-# Generate C++ code
-sdp-gen -schema plugin.sdp -output ./plugin_cpp -lang cpp
+# Run the full benchmark suite (Go + C++ + Rust)
+cd benchmarks && make bench
 
-# Outputs:
-# Go: types.go, encode.go, decode.go, errors.go
-# C++: types.hpp, encode.cpp, decode.cpp
+# Run a single language benchmark (examples):
+cd benchmarks && make bench-go         # Go
+cd benchmarks && make bench-cpp        # C++
+cd benchmarks && make bench-rust       # Rust (message + byte mode)
 ```
+
+Why this structure:
+- `make generate` ensures `sdp-gen` is rebuilt first (FORCE pattern) and then regenerates all packages. This prevents stale generated code and avoids brittle local edits.
+- Benchmarks are driven by shell scripts / Make targets under `benchmarks/` so they build the generated libraries and run the platform-appropriate harnesses (Go `go test -bench`, C++ compiled runner, Rust `cargo run` wrappers).
+
+Where test data comes from (important for comparable benchmarks):
+- Encoding (encode) benchmarks use canonical JSON fixtures under `/testdata/data` or the project-specific JSON samples in `/testdata/*/*.json`. These are decoded (once) using the generated Go code to produce in-memory structs used for encode-only benchmarks. Example: `benchmarks/go/comparison_test.go` uses `testdata/binaries/*.sdpb` and the generated Go decoder to create `testData`.
+- Decoding (decode) benchmarks use pre-encoded canonical binary files stored in `/testdata/binaries/*.sdpb`. These files are the authoritative decode fixtures to ensure every language decodes the exact same bytes.
+
+Important conventions (do not diverge):
+- "Schemas" that are used for correctness tests live in `/testdata/schemas/` (these include small, focused schemas used in unit tests). These are NOT automatically the data used for performance benches unless explicitly referenced by the bench harness.
+- Performance benches are driven by two sources:
+    1. The canonical JSON samples (for encode benchmarks). Path: `/testdata/data` or per-schema JSON files under `/testdata/*/*.json`.
+    2. The canonical binary fixtures for decode benches. Path: `/testdata/binaries/*.sdpb`.
+- The `benchmarks/` harnesses will call the generated libraries (Go, C++, Rust) to encode/decode these fixtures so that the byte-for-byte encoding is verified and the timings are comparable across languages.
+
+Generator & runtime notes:
+- The generator `cmd/sdp-gen` must be rebuilt before regenerating packages to ensure runtime changes (e.g., added helper `wire_slice::check_bounds`) are propagated. `make generate` does this automatically.
+- Generated Rust/C++ code may include small runtime helpers embedded in `src/wire*.rs` or `*.cpp` — keep those in sync via generation rather than hand-editing the generated outputs.
+
+Benchmark methodology (short):
+- Warm-up: run a small number of iterations to warm caches and JIT/OS caches.
+- Repeatable iteration counts: benchmarks use fixed iteration counts or Go's `b.N` style to get stable measurements.
+- Memory reporting: Go benches use `b.ReportAllocs()`; C++/Rust harnesses should report memory and size where appropriate.
+- Compare encode vs decode separately (different bottlenecks). Use the same sample data for both encode and decode when possible (JSON→encode, pre-encoded binary→decode).
+
+Cross-language test and bench checklist (to reproduce reliably):
+1. Run `make generate` to rebuild `sdp-gen` and regenerate all outputs.
+2. Build the generated libraries for each language (Go: none, C++: compiled in `benchmarks` Makefile, Rust: `cargo build`) — the `benchmarks/Makefile` builds them automatically.
+3. Ensure the canonical JSON and binary fixtures exist in `/testdata/data` and `/testdata/binaries`.
+4. Run `cd benchmarks && make bench` to execute the full harness. This will:
+     - Use Go to pre-decode JSON fixtures into in-memory structs for encode benches
+     - Use pre-generated `.sdpb` binary fixtures for decode benches
+     - Build and run language-specific runners (C++ binary, Rust `cargo run`, Go `go test -bench`)
+5. Collect numbers and store them in `benchmarks/RESULTS.md` with the machine specs, OS, and command used.
+
+If you must add a new benchmark, follow this pattern:
+1. Add a language-appropriate harness under `benchmarks/` (Go: *_test.go; C++: cpp/.../bench_*.cpp; Rust: small binary under `benchmarks/rust/*`)
+2. Point the harness at the canonical fixtures under `/testdata` (JSON for encode, .sdpb for decode)
+3. Wire the build into `benchmarks/Makefile` so `make bench` runs it
+4. Run locally and add results to `benchmarks/RESULTS.md`
+
+This keeps benchmarks reproducible, comparable, and easy to run in CI or on other machines.
 
 ---
 
