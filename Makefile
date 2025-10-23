@@ -38,13 +38,17 @@ help:
 # Build tools
 build: $(SDP_GEN) $(SDP_ENCODE)
 
-$(SDP_GEN):
+# Force rebuild sdp-gen (don't rely on timestamp, source code may have changed)
+$(SDP_GEN): FORCE
 	@echo "Building sdp-gen..."
 	@go build -o $(SDP_GEN) ./cmd/sdp-gen
 
 $(SDP_ENCODE):
 	@echo "Building sdp-encode..."
 	@go build -o $(SDP_ENCODE) ./cmd/sdp-encode
+
+# Force target to always rebuild sdp-gen (critical for generator changes)
+FORCE:
 
 # Generate all code from schemas (clean slate)
 generate: build
