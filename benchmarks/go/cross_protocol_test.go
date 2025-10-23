@@ -7,9 +7,9 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 	"google.golang.org/protobuf/proto"
 
-	fb "github.com/shaban/serial-data-protocol/testdata/flatbuffers/go"
+	fb "github.com/shaban/serial-data-protocol/testdata/generated/flatbuffers/go"
 	audiounit "github.com/shaban/serial-data-protocol/testdata/generated/go/audiounit"
-	pb "github.com/shaban/serial-data-protocol/testdata/protobuf/go"
+	pb "github.com/shaban/serial-data-protocol/testdata/generated/protobuf/go"
 )
 
 // ============================================================================

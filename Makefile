@@ -63,8 +63,14 @@ generate: build
 		$(SDP_GEN) -schema $$schema -output $(GENERATED_SWIFT)/$$name -lang swift || exit 1; \
 	done
 	@echo ""
+	@echo "Generating Protocol Buffers code..."
+	@./testdata/protobuf/generate.sh
+	@echo ""
+	@echo "Generating FlatBuffers code..."
+	@./testdata/flatbuffers/generate.sh
+	@echo ""
 	@echo "✓ Code generation complete"
-	@echo "  Generated: $(GENERATED_DIR)/{go,cpp,rust,swift}/*"
+	@echo "  Generated: $(GENERATED_DIR)/{go,cpp,rust,swift,protobuf,flatbuffers}/*"
 
 # Verify generated code hasn't been manually edited
 verify-generated:

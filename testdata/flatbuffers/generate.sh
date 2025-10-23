@@ -5,11 +5,12 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCHEMA_DIR="$SCRIPT_DIR/../schemas"
-OUTPUT_DIR="$SCRIPT_DIR/go"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SCHEMA_FILE="$PROJECT_ROOT/testdata/schemas/audiounit.fbs"
+OUTPUT_DIR="$PROJECT_ROOT/testdata/generated/flatbuffers/go"
 
 echo "Generating FlatBuffers code..."
-echo "Schema: $SCHEMA_DIR/audiounit.fbs"
+echo "Schema: $SCHEMA_FILE"
 echo "Output: $OUTPUT_DIR"
 
 # Create output directory
@@ -21,7 +22,14 @@ flatc \
     --go-namespace fb \
     --gen-onefile \
     -o "$OUTPUT_DIR" \
-    "$SCHEMA_DIR/audiounit.fbs"
+    "$SCHEMA_FILE"
+
+# Create go.mod for the generated package
+cat > "$OUTPUT_DIR/go.mod" <<EOF
+module github.com/shaban/serial-data-protocol/testdata/generated/flatbuffers/go
+
+go 1.25.1
+EOF
 
 echo "✅ FlatBuffers code generated successfully"
 echo "   Generated: $OUTPUT_DIR/audiounit/*.go"
