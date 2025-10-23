@@ -57,7 +57,13 @@ bench-cpp: bench-cpp-arrays bench-cpp-message
 
 # Rust benchmarks
 bench-rust-byte:
-	@echo "=== Rust SDP Byte Mode Benchmarks ==="
+	@echo "=== Rust SDP Byte Mode Benchmarks (Criterion) ==="
+	@echo "Building and running Rust Arrays benchmark with statistical analysis..."
+	@cd $(GENERATED_RUST)/arrays && cargo build $(RUST_BUILD_FLAGS)
+	@cd $(MKFILE_DIR)/rust/bytemode && cargo bench --bench arrays_criterion -- --output-format bencher
+
+bench-rust-byte-simple:
+	@echo "=== Rust SDP Byte Mode Benchmarks (Simple) ==="
 	@echo "Building and running Rust Arrays benchmark..."
 	@cd $(GENERATED_RUST)/arrays && cargo build $(RUST_BUILD_FLAGS)
 	@cd $(MKFILE_DIR)/rust/bytemode && cargo run --release --bin arrays_benchmark

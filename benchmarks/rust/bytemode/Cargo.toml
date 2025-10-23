@@ -9,9 +9,16 @@ license = "MIT"
 name = "arrays_benchmark"
 path = "arrays_benchmark.rs"
 
+[[bench]]
+name = "arrays_criterion"
+harness = false
+
 [dependencies]
 # Point to generated arrays library
 sdp-arrays_of_primitives = { path = "../../../testdata/generated/rust/arrays" }
+
+[dev-dependencies]
+criterion = "0.5"
 
 [profile.release]
 opt-level = 2
