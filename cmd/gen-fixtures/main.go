@@ -1,3 +1,4 @@
+package genfixtures
 // Generate canonical binary fixtures for benchmarks
 package main
 

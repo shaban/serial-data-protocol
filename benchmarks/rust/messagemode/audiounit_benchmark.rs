@@ -6,7 +6,7 @@
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use std::fs;
-use sdp_audiounit::{PluginRegistry, encode_plugin_registry_message, decode_plugin_registry_message, decode_message, Message};
+use sdp_parameter::{PluginRegistry, encode_plugin_registry_message, decode_plugin_registry_message, decode_message, Message};
 
 // Load .sdpb file (path from environment or default)
 fn load_audiounit_data() -> PluginRegistry {

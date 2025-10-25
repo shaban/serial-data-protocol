@@ -1,0 +1,40 @@
+[package]
+name = "sdp-rustexp-bytemode-benchmarks"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Will link to generated package under testdata/generated/rustexp/arrays
+sdp-arrays_of_primitives = { path = "../../../testdata/generated/rustexp/arrays" }
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "arrays_fastpath"
+harness = false
+
+[profile.dev]
+opt-level = 0              # No optimization
+
+[profile.test]
+opt-level = 2              # Optimize tests for performance
+
+[profile.release]
+# Balanced optimizations for reasonable build times
+opt-level = 2              # Good optimization without extreme compile times
+lto = "thin"               # Link-time optimization (thin = good balance)
+codegen-units = 16         # Parallelized code generation
+panic = "abort"            # Smaller binary, slightly faster
+
+[profile.bench]
+# Aggressive optimization for benchmarks
+opt-level = 3              # Maximum optimization
+lto = "fat"                # Full link-time optimization
+codegen-units = 1          # Better optimization (single-threaded codegen)
+panic = "abort"            # Smaller binary, slightly faster
+
+[profile.bench.package."*"]
+# Moderate optimization for dependencies (faster builds)
+opt-level = 2
+codegen-units = 16

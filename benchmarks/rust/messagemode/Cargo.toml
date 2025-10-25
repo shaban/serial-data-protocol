@@ -1,22 +1,20 @@
 [package]
-name = "sdp-rust-benchmarks"
+name = "sdp-rust-messagemode-benchmarks"
 version = "0.2.0-rc1"
 edition = "2021"
-authors = ["Serial Data Protocol Contributors"]
-license = "MIT"
-
-[[bin]]
-name = "audiounit_benchmark"
-path = "audiounit_benchmark.rs"
 
 [dependencies]
-# Point to generated audiounit library
-sdp-audiounit = { path = "../../../testdata/generated/rust/audiounit" }
+sdp-parameter = { path = "../../../testdata/generated/rust/audiounit" }
+
+[dev-dependencies]
 criterion = "0.5"
+
+[[bench]]
+name = "audiounit"
+path = "audiounit_benchmark.rs"
+harness = false
 
 [profile.release]
 opt-level = 2
 codegen-units = 16
 lto = false
-debug = false
-incremental = true

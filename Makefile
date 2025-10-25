@@ -55,15 +55,16 @@ generate: build
 	@echo "Generating code from schemas..."
 	@echo "Cleaning previous generated code..."
 	@rm -rf $(GENERATED_DIR)/*
-	@mkdir -p $(GENERATED_GO) $(GENERATED_CPP) $(GENERATED_RUST) $(GENERATED_SWIFT)
+	@mkdir -p $(GENERATED_GO) $(GENERATED_CPP) $(GENERATED_RUST) $(GENERATED_RUSTEXP) $(GENERATED_SWIFT)
 	@echo ""
 	@echo "Generating from official schemas..."
 	@for schema in $(SCHEMAS_DIR)/*.sdp; do \
 		name=$$(basename $$schema .sdp); \
-		echo "  $$name.sdp -> Go/C++/Rust/Swift"; \
+		echo "  $$name.sdp -> Go/C++/Rust/RustExp/Swift"; \
 		$(SDP_GEN) -schema $$schema -output $(GENERATED_GO)/$$name -lang go || exit 1; \
 		$(SDP_GEN) -schema $$schema -output $(GENERATED_CPP)/$$name -lang cpp || exit 1; \
 		$(SDP_GEN) -schema $$schema -output $(GENERATED_RUST)/$$name -lang rust || exit 1; \
+		$(SDP_GEN) -schema $$schema -output $(GENERATED_RUSTEXP)/$$name -lang rustexp || exit 1; \
 		$(SDP_GEN) -schema $$schema -output $(GENERATED_SWIFT)/$$name -lang swift || exit 1; \
 	done
 	@echo ""

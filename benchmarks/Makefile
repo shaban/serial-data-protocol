@@ -69,15 +69,46 @@ bench-rust-byte-simple:
 	@cd $(MKFILE_DIR)/rust/bytemode && cargo run --release --bin arrays_benchmark
 
 bench-rust-message:
-	@echo "=== Rust SDP Message Mode Benchmarks ==="
+	@echo "=== Rust AudioUnit Byte Mode Benchmarks (Criterion) ==="
 	@echo "Building and running Rust AudioUnit benchmark..."
 	@cd $(GENERATED_RUST)/audiounit && cargo build $(RUST_BUILD_FLAGS)
-	@cd $(MKFILE_DIR)/rust/messagemode && \
-		AUDIOUNIT_DATA=$(BINARIES_DIR)/audiounit.sdpb \
-		AUDIOUNIT_LIB=$(GENERATED_RUST)/audiounit/target/release \
-		cargo run --release --bin audiounit_benchmark
+	@cd $(MKFILE_DIR)/rust/messagemode && cargo bench --bench audiounit -- --output-format bencher
 
 bench-rust: bench-rust-byte bench-rust-message
+
+# Experimental Rust (rustexp) benchmarks
+bench-rustexp-byte:
+	@echo "=== Experimental Rust SDP Byte Mode Benchmarks (Fast-Path) ==="
+	@echo "Building and running experimental Rust Arrays benchmark..."
+	@cd $(GENERATED_RUSTEXP)/arrays && cargo build $(RUST_BUILD_FLAGS)
+	@cd $(MKFILE_DIR)/rustexp/bytemode && cargo bench --bench arrays_fastpath -- --output-format bencher
+
+bench-rustexp-message:
+	@echo "=== Experimental Rust AudioUnit Byte Mode Benchmark (Fast-Path) ==="
+	@echo "Building and running experimental Rust AudioUnit benchmark..."
+	@cd $(GENERATED_RUSTEXP)/audiounit && cargo build $(RUST_BUILD_FLAGS)
+	@cd $(MKFILE_DIR)/rustexp/audiounit && cargo bench --bench audiounit_fastpath -- --output-format bencher
+
+bench-rustexp: bench-rustexp-byte bench-rustexp-message
+
+# Compare standard Rust vs experimental Rust side-by-side
+bench-rust-compare:
+	@echo "=== Comparing Standard Rust vs Experimental Rust ==="
+	@echo ""
+	@echo "--- Standard Rust (chunks_exact fallback) ---"
+	@$(MAKE) -s bench-rust-byte
+	@echo ""
+	@echo "--- Experimental Rust (ptr::read_unaligned + memcpy fast-paths) ---"
+	@$(MAKE) -s bench-rustexp-byte
+
+bench-audiounit-compare:
+	@echo "=== AudioUnit: Standard Rust vs Experimental Rust ==="
+	@echo ""
+	@echo "--- Standard Rust AudioUnit ---"
+	@$(MAKE) -s bench-rust-message
+	@echo ""
+	@echo "--- Experimental Rust AudioUnit (Fast-Path) ---"
+	@$(MAKE) -s bench-rustexp-message
 
 bench: bench-go bench-cpp bench-rust
 	@echo "✓ Benchmark suite complete"

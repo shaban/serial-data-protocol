@@ -1,0 +1,14 @@
+/Users/shaban/Code/serial-data-protocol/benchmarks/rust/messagemode/target/release/deps/serde-c4cdc610b62ff026.d: /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/shaban/Code/serial-data-protocol/benchmarks/rust/messagemode/target/release/build/serde-0855cc5af960545c/out/private.rs
+
+/Users/shaban/Code/serial-data-protocol/benchmarks/rust/messagemode/target/release/deps/libserde-c4cdc610b62ff026.rlib: /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/shaban/Code/serial-data-protocol/benchmarks/rust/messagemode/target/release/build/serde-0855cc5af960545c/out/private.rs
+
+/Users/shaban/Code/serial-data-protocol/benchmarks/rust/messagemode/target/release/deps/libserde-c4cdc610b62ff026.rmeta: /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/shaban/Code/serial-data-protocol/benchmarks/rust/messagemode/target/release/build/serde-0855cc5af960545c/out/private.rs
+
+/Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/Users/shaban/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/Users/shaban/Code/serial-data-protocol/benchmarks/rust/messagemode/target/release/build/serde-0855cc5af960545c/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/shaban/Code/serial-data-protocol/benchmarks/rust/messagemode/target/release/build/serde-0855cc5af960545c/out

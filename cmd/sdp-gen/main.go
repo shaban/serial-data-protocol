@@ -10,6 +10,7 @@ import (
 	"github.com/shaban/serial-data-protocol/internal/generator/cpp"
 	"github.com/shaban/serial-data-protocol/internal/generator/golang"
 	"github.com/shaban/serial-data-protocol/internal/generator/rust"
+	"github.com/shaban/serial-data-protocol/internal/generator/rustexp"
 	"github.com/shaban/serial-data-protocol/internal/generator/swift"
 	"github.com/shaban/serial-data-protocol/internal/parser"
 	"github.com/shaban/serial-data-protocol/internal/validator"
@@ -68,14 +69,15 @@ func main() {
 
 	// Validate language
 	validLangs := map[string]bool{
-		"go":    true,
-		"rust":  true,
-		"swift": true,
-		"cpp":   true,
+		"go":      true,
+		"rust":    true,
+		"rustexp": true,
+		"swift":   true,
+		"cpp":     true,
 	}
 
 	if !validLangs[*lang] {
-		fmt.Fprintf(os.Stderr, "Error: -lang must be 'go', 'rust', 'swift', or 'cpp', got '%s'\n", *lang)
+		fmt.Fprintf(os.Stderr, "Error: -lang must be 'go', 'rust', 'rustexp', 'swift', or 'cpp', got '%s'\n", *lang)
 		os.Exit(1)
 	}
 
@@ -171,6 +173,13 @@ func run(schemaPath, outputDir, lang, packageName string, validateOnly, verbose 
 		err = rust.Generate(schema, outputDir, verbose)
 		if err != nil {
 			return fmt.Errorf("failed to generate Rust code: %w", err)
+		}
+
+	case "rustexp":
+		// Experimental Rust generator with fast-path decoding
+		err = rustexp.Generate(schema, outputDir, verbose)
+		if err != nil {
+			return fmt.Errorf("failed to generate experimental Rust code: %w", err)
 		}
 
 	case "swift":
@@ -303,7 +312,7 @@ func formatGoFileWithAutoImports(packageName string, body string) string {
 		"errors":          {"errors.New"},
 		"math":            {"math.Float"},
 		"io":              {"io.ReadAll", "w io.Writer", "r io.Reader"}, // For streaming I/O functions
-		"unsafe":          {"unsafe.Slice", "unsafe.Pointer"},            // For bulk array copy optimization
+		"unsafe":          {"unsafe.Slice", "unsafe.Pointer"},           // For bulk array copy optimization
 	}
 
 	for importPath, markers := range importChecks {
